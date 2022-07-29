@@ -10,8 +10,6 @@ import numpy as np
 from abc import ABC, abstractmethod, abstractstaticmethod
 import scipy.optimize
 
-from sysiddata import SysIdData
-
 class SysIdAlg(ABC):
     def __init__(self,data,y_name,u_name):
         self.y = data[y_name]
@@ -88,7 +86,7 @@ class SysIdAlgFactory:
     
 sysidalg = SysIdAlgFactory()
 
-from subspace import N4SID, PO_MOESP
+from .subspace import N4SID, PO_MOESP
 sysidalg.register_creator(N4SID)
 sysidalg.register_creator(PO_MOESP)
 sysidalg.register_creator(PEM_SS)

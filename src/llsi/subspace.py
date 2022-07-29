@@ -6,8 +6,8 @@ Created on Sun Apr  4 21:54:55 2021
 @author: armin
 """
 
-from sysidalg import SysIdAlg
-from statespacemodel import StateSpaceModel
+from .sysidalg import SysIdAlg
+from .statespacemodel import StateSpaceModel
 import numpy as np
 import scipy.linalg
 
@@ -161,7 +161,7 @@ class PO_MOESP(SubspaceIdent):
         
         Or = U1 @ Sigma_sqrt # extended observability matrix
         
-        C = Or[0,:]
+        C = Or[0,:] # TODO: might be wrong!!!
         A = np.linalg.pinv(Or[0:-1,:]) @ Or[1:,:]
         # print(A)
         
@@ -183,7 +183,7 @@ class PO_MOESP(SubspaceIdent):
             
         print(A_)
             
-        M = (U2 @ L21 @ np.linalg.inv(L11)).ravel(order='F')
+        M = (U2.T @ L31 @ np.linalg.inv(L11)).ravel(order='F')
         
         x_, *_ = scipy.linalg.lstsq(A_,M)
         # x_ = scipy.linalg.pinv(A_) @ M

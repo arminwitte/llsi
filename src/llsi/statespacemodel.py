@@ -8,7 +8,7 @@ Created on Fri Apr  2 22:54:53 2021
 
 import numpy as np
 
-from ltimodel import LTIModel
+from .ltimodel import LTIModel
 
 class StateSpaceModel(LTIModel):
     def __init__(self,A=None,B=None,C=None,D=None,Ts=1.,Nx=0):
@@ -73,3 +73,21 @@ class StateSpaceModel(LTIModel):
     def plot_hsv(self,ax):
         hsv = self.info['Hankel singular values']
         ax.bar(np.arange(0,len(hsv),1),hsv)
+        
+    def to_ss(self):
+        from scipy import signal
+        sys = signal.StateSpace(self.A, self.B, self.C, self.D, dt=self.Ts)
+        return sys
+        
+    def __repr__(self):
+        s = f'A:\n{self.A}\n'
+        s += f'B:\n{self.B}\n'
+        s += f'C:\n{self.C}\n'
+        s += f'D:\n{self.D}\n'
+        return s
+    
+    def __str__(self):
+        return self.__repr__()
+    
+    
+        
