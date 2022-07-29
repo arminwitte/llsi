@@ -1,14 +1,14 @@
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling>=1.4.1"]
 build-backend = "hatchling.build"
 
 [project]
 name = "llsi"
+description = "A lightweight linear system identification tool"
 version = "0.0.1"
 authors = [
   { name="Armin Witte", email="witte.armin@gmail.com" },
 ]
-description = "A lightweight linear system identification tool"
 readme = "README.md"
 license = { file="LICENSE" }
 requires-python = ">=3.7"
@@ -17,7 +17,10 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
-
+dependencies = [
+	"numpy>1.18.4",
+	"scipy>1.6.3",
+]
 [project.urls]
 "Homepage" = "https://github.com/pypa/sampleproject"
 "Bug Tracker" = "https://github.com/pypa/sampleproject/issues"
