@@ -6,9 +6,8 @@ Created on Sun Apr  4 21:11:47 2021
 @author: armin
 """
 
-from sysidalg import sysid, sysidalg
-from sysiddata import SysIdData
-from statespacemodel import StateSpaceModel
+from llsi import sysid, sysidalg, SysIdData
+from llsi.statespacemodel import StateSpaceModel
 import scipy.stats
 import numpy as np
 
@@ -56,9 +55,10 @@ data = generate_data(filt=filt,plot=False,noise=1.)
 data.center()
 mod1 = sysid(data,'y','u',(2),method='n4sid')
 ti1, i1 = mod1.impulse_response(plot=False)
-mod = sysid(data,'y','u',(2),method='po-moesp')
-ti2, i2 = mod.impulse_response(plot=False)
+mod2 = sysid(data,'y','u',(2),method='po-moesp')
+ti2, i2 = mod2.impulse_response(plot=False)
 
+mod = mod1
 
 import matplotlib.pyplot as plt
 plt.close('all')
@@ -71,7 +71,7 @@ ax[1,1].stem(ti2,i2)
 fig, ax = plt.subplots(figsize=(16,9))
 mod.plot_hsv(ax)
 
-plt.plot()
+plt.show()
 
 
 

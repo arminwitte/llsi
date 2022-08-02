@@ -75,6 +75,7 @@ class N4SID(SubspaceIdent):
         # U1 = U_[:,0:n]
         # U2 = U_[:,n:r]
         Sigma_sqrt = np.diag(np.sqrt(s_[:n]))
+        # Sigma_sqrt = scipy.linalg.diagsvd(s_, *Gamma_r.shape)
         V1 = V_[:,0:n]
         # V2 = V_[:,n:r]
         
@@ -145,8 +146,8 @@ class PO_MOESP(SubspaceIdent):
         L31 = L[3*r:4*r,0:r]
         L32 = L[3*r:4*r,r:3*r]
         
-        Gamma_r = 1./np.sqrt(N) * L32
-        # Gamma_r = L32
+        # Gamma_r = 1./np.sqrt(N) * L32
+        Gamma_r = L32
         U_, s_, V_ = scipy.linalg.svd(Gamma_r,full_matrices=False)
         
         self.singular_values = s_
@@ -159,14 +160,15 @@ class PO_MOESP(SubspaceIdent):
         # V1 = V_[:,0:n]
         # V2 = V_[:,n:r]
         
-        Or = U1 @ Sigma_sqrt # extended observability matrix
+        Or = U1# @ Sigma_sqrt # extended observability matrix
         
         C = Or[0,:] # TODO: might be wrong!!!
-        A = np.linalg.pinv(Or[0:-1,:]) @ Or[1:,:]
+        A = scipy.linalg.pinv(Or[0:-1,:]) @ Or[1:,:]
+        # A = scipy.linalg.lstsq(Or[0:-1,:],Or[1:,:])
         # print(A)
         
         P = U2.T
-        print(P)
+        # print(P)
         A1_ = P.ravel(order='F')
         
         nn = A1_.shape[0]
@@ -181,7 +183,7 @@ class PO_MOESP(SubspaceIdent):
             j = (i - 1) * (r - n)
             A_[j:j+Ni.shape[0],ny:ny+Ni.shape[1]] = Ni
             
-        print(A_)
+        # print(A_)
             
         M = (U2.T @ L31 @ np.linalg.inv(L11)).ravel(order='F')
         
