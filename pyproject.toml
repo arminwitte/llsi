@@ -18,9 +18,9 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
-	"numpy>1.18.4",
-	"scipy>1.6.3",
+	"numpy>=1.19.0",
+	"scipy>=1.7.0",
 ]
 [project.urls]
-"Homepage" = "https://github.com/pypa/sampleproject"
-"Bug Tracker" = "https://github.com/pypa/sampleproject/issues"
+"Homepage" = "https://github.com/arminwitte/llsi"
+"Bug Tracker" = "hhttps://github.com/arminwitte/llsi/issues"
