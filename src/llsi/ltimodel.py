@@ -6,7 +6,7 @@ Created on Mon Apr  5 00:40:00 2021
 @author: armin
 """
 
-from abc import ABC
+from abc import ABC, abstractmethod
 import numpy as np
 
 class LTIModel(ABC):
@@ -42,4 +42,8 @@ class LTIModel(ABC):
             plt.plot()
         
         return t, y
+    
+    @abstractmethod
+    def simulate(u):
+        pass
         
