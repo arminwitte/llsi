@@ -7,6 +7,7 @@ Created on Fri Apr  2 22:54:53 2021
 """
 
 import numpy as np
+import scipy.linalg
 
 from .ltimodel import LTIModel
 
@@ -74,10 +75,48 @@ class StateSpaceModel(LTIModel):
         hsv = self.info['Hankel singular values']
         ax.bar(np.arange(0,len(hsv),1),hsv)
         
-    def to_ss(self):
+    def to_ss(self,continuous=False,method='bilinear'):
         from scipy import signal
-        sys = signal.StateSpace(self.A, self.B, self.C, self.D, dt=self.Ts)
+        if continuous:
+            A, B, C, D = self._d2c(self.A, self.B, self.C, self.D, self.Ts, method=method)
+            sys = signal.StateSpace(A,B,C,D)
+        else:
+            sys = signal.StateSpace(self.A, self.B, self.C, self.D, dt=self.Ts)
         return sys
+    
+    @staticmethod
+    def _d2c(A,B,C,D,Ts,method='bilinear'):
+        # https://math.stackexchange.com/questions/3820100/discrete-time-to-continuous-time-state-space
+        if method in 'bilinear':
+            return StateSpaceModel._d2c_bilinear(A,B,C,D,Ts)
+        else:
+            return StateSpaceModel._d2c_euler(A,B,C,D,Ts)
+    
+    @staticmethod
+    def _d2c_bilinear(A,B,C,D,Ts):
+        I = np.eye(*A.shape)
+        AI = scipy.linalg.inv(A + I)
+        A_ = 2.0/Ts * (A - I) @ AI
+        B_ = 2.0/Ts * (I - (A - I) @ AI) @ B
+        C_ = C @ AI
+        D_ = D - C @ AI @ B
+        return A_, B_, C_, D_
+    
+    @staticmethod
+    def _d2c_euler(A,B,C,D,Ts):
+        A_ = (A - np.eye(*A.shape))/Ts
+        B_ = B/Ts
+        C_ = C
+        D_ = D
+        return A_, B_, C_, D_
+    
+    def to_tf(self,continuous=False,method='bilinear'):
+        sys = self.to_ss(continuous=continuous,method=method)
+        return scipy.signal.TransferFunction(sys)
+    
+    def to_zpk(self,continuous=False,method='bilinear'):
+        sys = self.to_ss(continuous=continuous,method=method)
+        return scipy.signal.ZerosPolesGain(sys)
         
     def __repr__(self):
         s = f'A:\n{self.A}\n'
