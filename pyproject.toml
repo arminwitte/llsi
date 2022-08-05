@@ -7,7 +7,7 @@ name = "llsi"
 description = "A lightweight linear system identification tool"
 version = "0.0.2"
 authors = [
-  { name="Armin Witte", email="witte.armin@gmail.com" },
+  { name="Armin Witte"},
 ]
 readme = "README.md"
 license = { file="LICENSE" }
