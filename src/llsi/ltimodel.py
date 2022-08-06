@@ -6,7 +6,7 @@ Created on Mon Apr  5 00:40:00 2021
 @author: armin
 """
 
-from abc import ABC
+from abc import ABC, abstractmethod
 import numpy as np
 
 class LTIModel(ABC):
@@ -42,4 +42,52 @@ class LTIModel(ABC):
             plt.plot()
         
         return t, y
+    
+    @staticmethod
+    def residuals(y,y_hat):
+        return y.ravel()-y_hat.ravel()
+    
+    @staticmethod
+    def SE(e):
+        return np.power(e.ravel(),2)
+    
+    @staticmethod
+    def SSE(e):
+        e_ = e.ravel()
+        return e_.T @ e_
+    
+    @staticmethod
+    def MSE(e):
+        e_ = e.ravel()
+        return 1/len(e_) * e_.T @ e_
+        return np.mean(LTIModel.SE(e_))
+    
+    @staticmethod
+    def RMSE(e):
+        return np.root(LTIModel.MSE(e))
+    
+    @staticmethod
+    def NRMSE(y,y_hat,normalization='matlab'):
+        e = LTIModel.residuals(y,y_hat)
+        if normalization in 'matlab':
+            nrmse = np.linalg.norm(e)/np.linalg.norm(y - np.mean(y))
+        elif normalization in 'mean':
+            nrmse = LTIModel.RMSE(e)/np.mean(y)
+        elif normalization in 'ptp':
+            nrmse = LTIModel.RMSE(e)/np.ptp(y)
+        else:
+            raise ValueError(f"Unknown normalization method {normalization}")
+        return nrmse
+    
+    def compare(self,y,u):
+        y_hat = self.simulate(u)
+        return 1.0-self.NRMSE(y,y_hat)
+    
+    @abstractmethod
+    def simulate(u):
+        pass
+    
+    
+
+    
         
