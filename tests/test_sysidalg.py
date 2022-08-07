@@ -6,10 +6,12 @@ Created on Sun Apr  4 21:11:47 2021
 @author: armin
 """
 
-from llsi import sysid, sysidalg, SysIdData
-from llsi.statespacemodel import StateSpaceModel
-import scipy.stats
 import numpy as np
+import scipy.stats
+
+from llsi import SysIdData, sysid, sysidalg
+from llsi.statespacemodel import StateSpaceModel
+
 
 def generate_data(filt = None, plot=False, noise=0.01):
     if filt is None:
@@ -61,6 +63,7 @@ ti2, i2 = mod2.impulse_response(plot=False)
 mod = mod1
 
 import matplotlib.pyplot as plt
+
 plt.close('all')
 fig, ax = plt.subplots(2,2,figsize=(16,9))
 data.plot(ax[0,0])

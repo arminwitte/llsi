@@ -7,9 +7,10 @@ Created on Sun Apr  4 18:10:56 2021
 """
 
 import numpy as np
-import scipy.stats
 import scipy.fft
 import scipy.signal
+import scipy.stats
+
 
 class MCSigGen:
     def __init__(self,N=1000,A=1,f_cut=1000):

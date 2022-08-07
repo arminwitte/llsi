@@ -10,6 +10,7 @@ import numpy as np
 import scipy.interpolate
 import scipy.signal
 
+
 class SysIdData:
     def __init__(self,t=None,Ts=None,t_start=None,**kwargs):
         self.N = None

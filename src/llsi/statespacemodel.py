@@ -11,6 +11,7 @@ import scipy.linalg
 
 from .ltimodel import LTIModel
 
+
 class StateSpaceModel(LTIModel):
     def __init__(self,A=None,B=None,C=None,D=None,Ts=1.,Nx=0):
         super().__init__(Ts = Ts)

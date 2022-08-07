@@ -6,10 +6,12 @@ Created on Sun Apr  4 21:54:55 2021
 @author: armin
 """
 
-from .sysidalg import SysIdAlg
-from .statespacemodel import StateSpaceModel
 import numpy as np
 import scipy.linalg
+
+from .statespacemodel import StateSpaceModel
+from .sysidalg import SysIdAlg
+
 
 class SubspaceIdent(SysIdAlg):
     def __init__(self,data,y_name,u_name):
