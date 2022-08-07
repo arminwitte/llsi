@@ -12,6 +12,6 @@ from llsi.statespacemodel import StateSpaceModel
 
 def test_init():
     ss = StateSpaceModel()
-    assert isinstance(ss,LTIModel)
-    assert isinstance(ss,StateSpaceModel)
-    assert ss.Ts == 1.
+    assert isinstance(ss, LTIModel)
+    assert isinstance(ss, StateSpaceModel)
+    assert ss.Ts == 1.0

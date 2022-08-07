@@ -3,10 +3,10 @@ python3 -m pip install --upgrade pip
 python3 -m pip install --upgrade isort black coverage pytest build twine
 
 # isort
-isort src/llsi
+isort src/
 
 # black
-black src/llsi/
+black src/
 
 # pytest with coverage
 coverage run -m pytest
