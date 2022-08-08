@@ -18,7 +18,7 @@ class StateSpaceModel(LTIModel):
         self.A = np.array(A)
         self.B = np.array(B).reshape(-1, 1)
         self.C = np.array(C).reshape(1, -1)
-        self.D = D
+        self.D = np.array(D)
 
         if A is not None:
             self.Nx = self.A.shape[0]
@@ -120,11 +120,16 @@ class StateSpaceModel(LTIModel):
 
     def to_tf(self, continuous=False, method="bilinear"):
         sys = self.to_ss(continuous=continuous, method=method)
-        return scipy.signal.TransferFunction(sys)
+        return sys.to_tf()
 
     def to_zpk(self, continuous=False, method="bilinear"):
         sys = self.to_ss(continuous=continuous, method=method)
-        return scipy.signal.ZerosPolesGain(sys)
+        return sys.to_zpk()
+
+    def to_controllable_form(self):
+        tf = self.to_tf()
+        ss = tf.to_ss()
+        return StateSpaceModel(A=ss.A, B=ss.B, C=ss.C, D=ss.D, Ts=self.Ts)
 
     def __repr__(self):
         s = f"A:\n{self.A}\n"

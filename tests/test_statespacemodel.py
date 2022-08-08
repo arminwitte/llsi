@@ -6,6 +6,7 @@ Created on Fri Apr  2 23:19:30 2021
 @author: armin
 """
 import numpy as np
+
 from llsi.statespacemodel import StateSpaceModel
 
 # ss = StateSpaceModel(A=[[0.9]],B=[1],C=[1],D=1,Ts=1)

@@ -102,10 +102,10 @@ class SysIdData:
             self.Ts *= q
 
     @staticmethod
-    def generate_prbs(N,Ts,seed=42):
-        u = np.zeros((N,),dtype=float)
-        t = np.linspace(0, Ts*N, num=N, endpoint=False)
-        
+    def generate_prbs(N, Ts, seed=42):
+        u = np.zeros((N,), dtype=float)
+        t = np.linspace(0, Ts * N, num=N, endpoint=False)
+
         code = seed
         i = 0
         while i < N:
@@ -117,20 +117,23 @@ class SysIdData:
                 u[i] = float(s)
                 i += 1
         return t, u
-        
+
     @staticmethod
     def prbs31(code):
         for i in range(32):
-            next_bit = ~((code>>30) ^ (code>>27))&0x01
-            code = ((code<<1) | next_bit) & 0xFFFFFFFF
+            next_bit = ~((code >> 30) ^ (code >> 27)) & 0x01
+            code = ((code << 1) | next_bit) & 0xFFFFFFFF
         return code
 
     @staticmethod
     def prbs31_fast(code):
-        next_code = (~((code<<1)^(code<<4)) & 0xFFFFFFF0)
-        next_code |= (~(( (code<<1 & 0x0E) | (next_code>>31 & 0x01)) ^ (next_code>>28)) & 0x0000000F)
+        next_code = ~((code << 1) ^ (code << 4)) & 0xFFFFFFF0
+        next_code |= (
+            ~(((code << 1 & 0x0E) | (next_code >> 31 & 0x01)) ^ (next_code >> 28))
+            & 0x0000000F
+        )
         return next_code
-    
+
     @classmethod
     def from_excel(cls, filename, column_names=None):
         import pandas as pd
