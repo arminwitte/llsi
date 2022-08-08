@@ -10,6 +10,7 @@ black src/
 
 # pytest with coverage
 coverage run -m pytest
+coverage report
 
 # build wheel
 rm -rf dist/
