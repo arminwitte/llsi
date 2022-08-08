@@ -13,10 +13,12 @@ from llsi.sysiddata import SysIdData
 # )
 
 
+# t, u = SysIdData.generate_prbs(1000, 1e-3)
 # import matplotlib.pyplot as plt
 
 # fig, ax = plt.subplots(figsize=(16, 9))
-# data.plot(ax)
-# data.equidistant()
-# data.plot(ax)
+# # data.plot(ax)
+# # data.equidistant()
+# # data.plot(ax)
+# ax.plot(t,u)
 # ax.legend()
