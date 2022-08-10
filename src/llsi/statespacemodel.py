@@ -131,18 +131,35 @@ class StateSpaceModel(LTIModel):
         ss = tf.to_ss()
         return StateSpaceModel(A=ss.A, B=ss.B, C=ss.C, D=ss.D, Ts=self.Ts)
 
-    def reduce_order(self, n):
+    def reduce_order(self, n: int):
+        """
+        Perform order reduction using balanced truncation
+
+        Parameters
+        ----------
+        n : int
+            New (reduced) model order.
+
+        Returns
+        -------
+        TYPE
+            DESCRIPTION.
+        s : TYPE
+            DESCRIPTION.
+
+        """
         A = self.A
         B = self.B
         C = self.C
+        
+        if n > A.shape[0]:
+            raise ValueError(f'New model order has to be <= {A.shape[0]} but is {n}')
 
         # controllability gramian
         W_c = scipy.linalg.solve_discrete_lyapunov(A, B @ B.T)
-        print("W_c:", W_c)
 
         # observability gramian
         W_o = scipy.linalg.solve_discrete_lyapunov(A.T, C.T @ C)
-        print("W_o:", W_o)
 
         # controllability matrix
         S = scipy.linalg.cholesky(W_c)
@@ -152,27 +169,19 @@ class StateSpaceModel(LTIModel):
 
         U, s, V = scipy.linalg.svd(S @ R.T)
 
-        print("s:", s)
-
         U1 = U[:, :n]
         s1 = s[:n]
         V1 = V[:, :n]
         Sigma1 = np.diag(1 / s1)
 
-        print("U1:", U1)
-        print("V1:", V1)
-
         T_l = np.sqrt(Sigma1) @ U1.T @ R
         T_r = S.T @ V1 @ np.sqrt(Sigma1)
-
-        print("T_l:", T_l)
-        print("T_r:", T_r)
 
         A_ = T_l @ A @ T_r
         B_ = T_l @ B
         C_ = C @ T_r
 
-        return StateSpaceModel(A=A_, B=B_, C=C_, D=self.D, Ts=self.Ts)
+        return StateSpaceModel(A=A_, B=B_, C=C_, D=self.D, Ts=self.Ts), s
 
     def __repr__(self):
         s = f"A:\n{self.A}\n"
