@@ -130,38 +130,48 @@ class StateSpaceModel(LTIModel):
         tf = self.to_tf()
         ss = tf.to_ss()
         return StateSpaceModel(A=ss.A, B=ss.B, C=ss.C, D=ss.D, Ts=self.Ts)
-    
-    def reduce_order(self,n):
+
+    def reduce_order(self, n):
         A = self.A
         B = self.B
         C = self.C
-        
+
         # controllability gramian
         W_c = scipy.linalg.solve_discrete_lyapunov(A, B @ B.T)
+        print("W_c:", W_c)
 
         # observability gramian
         W_o = scipy.linalg.solve_discrete_lyapunov(A.T, C.T @ C)
-        
+        print("W_o:", W_o)
+
         # controllability matrix
         S = scipy.linalg.cholesky(W_c)
-        
+
         # observability matrix
         R = scipy.linalg.cholesky(W_o)
 
         U, s, V = scipy.linalg.svd(S @ R.T)
-        
-        U1 = U[:,:n]
+
+        print("s:", s)
+
+        U1 = U[:, :n]
         s1 = s[:n]
-        V1 = V[:n,:]
-        Sigma1 = np.diag(s1)
-        
+        V1 = V[:, :n]
+        Sigma1 = np.diag(1 / s1)
+
+        print("U1:", U1)
+        print("V1:", V1)
+
         T_l = np.sqrt(Sigma1) @ U1.T @ R
         T_r = S.T @ V1 @ np.sqrt(Sigma1)
-        
+
+        print("T_l:", T_l)
+        print("T_r:", T_r)
+
         A_ = T_l @ A @ T_r
         B_ = T_l @ B
         C_ = C @ T_r
-        
+
         return StateSpaceModel(A=A_, B=B_, C=C_, D=self.D, Ts=self.Ts)
 
     def __repr__(self):
