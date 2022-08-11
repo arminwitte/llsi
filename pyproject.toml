@@ -5,9 +5,9 @@ build-backend = "hatchling.build"
 [project]
 name = "llsi"
 description = "A lightweight linear system identification tool"
-version = "0.0.1"
+version = "0.0.2"
 authors = [
-  { name="Armin Witte", email="witte.armin@gmail.com" },
+  { name="Armin Witte"},
 ]
 readme = "README.md"
 license = { file="LICENSE" }
@@ -23,4 +23,4 @@ dependencies = [
 ]
 [project.urls]
 "Homepage" = "https://github.com/arminwitte/llsi"
-"Bug Tracker" = "hhttps://github.com/arminwitte/llsi/issues"
+"Bug Tracker" = "https://github.com/arminwitte/llsi/issues"

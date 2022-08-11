@@ -31,6 +31,10 @@ mod = llsi.sysid(data,'Nu','Re',(3,),method='po-moesp')
 ```python
 ss = mod.to_ss()
 ```
+or to a continuous time transfer function
+```python
+ss = mod.to_tf(continuous=True)
+```
 
 ## Contribution
 Thank you for considering to contribute. Any exchange and help is welcome. However, I have to ask you to be patient with me responding.
