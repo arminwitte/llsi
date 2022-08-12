@@ -24,3 +24,8 @@ dependencies = [
 [project.urls]
 "Homepage" = "https://github.com/arminwitte/llsi"
 "Bug Tracker" = "https://github.com/arminwitte/llsi/issues"
+
+[tool.coverage.run]
+source = [
+'llsi'
+]
