@@ -6,33 +6,12 @@ Created on Sun Apr  4 20:47:33 2021
 @author: armin
 """
 
-from abc import ABC, abstractmethod, abstractstaticmethod
-
-import numpy as np
 import scipy.optimize
 
-
-class SysIdAlg(ABC):
-    def __init__(self, data, y_name, u_name):
-        self.y = data[y_name]
-        self.u = data[u_name]
-        self.Ts = data.Ts
-
-    @abstractmethod
-    def ident(self, order):
-        pass
-
-    @abstractstaticmethod
-    def name():
-        pass
-
-    @staticmethod
-    def _sse(y, y_hat):
-        e = y - y_hat
-        return np.sum(e**2)
+from .sysidalgbase import SysIdAlgBase
 
 
-class PEM_Poly(SysIdAlg):
+class PEM_Poly(SysIdAlgBase):
     def __init__(self, data, y_name, u_name):
         super().__init__(data, y_name, u_name)
 
@@ -44,7 +23,7 @@ class PEM_Poly(SysIdAlg):
         return "pem_poly"
 
 
-class PEM_SS(SysIdAlg):
+class PEM_SS(SysIdAlgBase):
     def __init__(self, data, y_name, u_name):
         super().__init__(data, y_name, u_name)
         alg = sysidalg.get_creator("po-moesp")

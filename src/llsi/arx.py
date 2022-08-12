@@ -10,10 +10,10 @@ import numpy as np
 import scipy.linalg
 
 from .polynomialmodel import PolynomialModel
-from .sysidalg import SysIdAlg
+from .sysidalgbase import SysIdAlgBase
 
 
-class ARX(SysIdAlg):
+class ARX(SysIdAlgBase):
     def __init__(self, data, y_name, u_name):
         super().__init__(data, y_name, u_name)
 

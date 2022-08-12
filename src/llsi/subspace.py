@@ -10,10 +10,10 @@ import numpy as np
 import scipy.linalg
 
 from .statespacemodel import StateSpaceModel
-from .sysidalg import SysIdAlg
+from .sysidalgbase import SysIdAlgBase
 
 
-class SubspaceIdent(SysIdAlg):
+class SubspaceIdent(SysIdAlgBase):
     def __init__(self, data, y_name, u_name):
         super().__init__(data, y_name, u_name)
 
