@@ -10,8 +10,7 @@ import numpy as np
 import pytest
 import scipy.stats
 
-from llsi import SysIdData, sysid, sysidalg
-from llsi.statespacemodel import StateSpaceModel
+from llsi import StateSpaceModel, SysIdData, sysid
 
 
 def generate_data(filt, noise=0.01):
