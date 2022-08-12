@@ -7,6 +7,7 @@ Created on Mon Apr  5 00:40:00 2021
 """
 
 from abc import ABC, abstractmethod
+
 import numpy as np
 
 
