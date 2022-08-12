@@ -54,14 +54,17 @@ def generate_data(filt=None, plot=False, noise=0.01):
 filt = StateSpaceModel(A=[[0.8, 0.8], [0, 0.8]], B=[1, 1], C=[1, 0], D=0, Ts=1)
 # filt = StateSpaceModel(A=[[0.8]],B=[1],C=[1],D=0,Ts=1)
 ti, i = filt.impulse_response(plot=False)
-data = generate_data(filt=filt, plot=False, noise=1.0)
+data = generate_data(filt=filt, plot=False, noise=0.1)
 data.center()
 mod1 = sysid(data, "y", "u", (2), method="n4sid")
 ti1, i1 = mod1.impulse_response(plot=False)
 mod2 = sysid(data, "y", "u", (2), method="po-moesp")
 ti2, i2 = mod2.impulse_response(plot=False)
 
-mod = mod1
+mod3 = sysid(data, "y", "u", (2,3,0), method="arx")
+ti3, i3 = mod3.impulse_response(plot=False)
+
+mod = mod3
 
 import matplotlib.pyplot as plt
 
@@ -70,9 +73,12 @@ fig, ax = plt.subplots(2, 2, figsize=(16, 9))
 data.plot(ax[0, 0])
 ax[1, 0].stem(ti, i)
 ax[0, 1].stem(ti1, i1)
-ax[1, 1].stem(ti2, i2)
+ax[1, 1].stem(ti3, i3)
 
-fig, ax = plt.subplots(figsize=(16, 9))
-mod.plot_hsv(ax)
+# fig, ax = plt.subplots(figsize=(16, 9))
+# mod.plot_hsv(ax)
 
 plt.show()
+
+print(mod2.to_tf())
+print(mod3)

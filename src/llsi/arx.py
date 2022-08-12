@@ -7,14 +7,45 @@ Created on Fri Aug 12 01:34:47 2022
 """
 
 from .sysidalg import SysIdAlg
+import numpy as np
+import scipy.linalg
+from .polynomialmodel import PolynomialModel
 
 
 class ARX(SysIdAlg):
     def __init__(self, data, y_name, u_name):
-        pass
+        super().__init__(data, y_name, u_name)
 
     def ident(self, order):
-        pass
+        na, nb, nk = order
+        Phi, y = self._observations(na,nb,nk)
+        
+        theta = scipy.linalg.pinv(Phi) @ y
+        # theta, res, rank, s = scipy.linalg.lstsq(Phi, y)
+        
+        print(theta)
+        
+        b = theta[:nb]
+        a = np.hstack(([1.],theta[nb:]))
+        
+        mod = PolynomialModel(b=b, a=a, nk=nk, Ts=self.Ts)
+        
+        return mod
+        
+    
+    def _observations(self,na,nb,nk):
+        nn = max(nb+nk,na)
+        N = self.u.ravel().shape[0]
+        Phi = np.empty((N-nn,nb+na))
+        for i in range(nb):
+            Phi[:,i] = self.u[nn-i-nk:N-i-nk]
+        for i in range(na):
+            Phi[:,nb+i] = -self.y[nn-i-1:N-i-1]
+            
+        y = self.y[nn:N]
+            
+        return Phi, y
+        
 
     @staticmethod
     def name():

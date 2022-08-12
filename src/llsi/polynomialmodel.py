@@ -63,3 +63,12 @@ class PolynomialModel(LTIModel):
 
     def to_tf(self):
         return scipy.signal.TransferFunction(self.b, self.a, dt=self.Ts)
+    
+    
+    def __repr__(self):
+        s = f"b:\n{self.b}\n"
+        s += f"a:\n{self.a}\n"
+        return s
+
+    def __str__(self):
+        return self.__repr__()
