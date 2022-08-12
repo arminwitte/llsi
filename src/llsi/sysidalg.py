@@ -92,11 +92,13 @@ class SysIdAlgFactory:
 
 sysidalg = SysIdAlgFactory()
 
+from .arx import ARX
 from .subspace import N4SID, PO_MOESP
 
 sysidalg.register_creator(N4SID)
 sysidalg.register_creator(PO_MOESP)
 sysidalg.register_creator(PEM_SS)
+sysidalg.register_creator(ARX)
 
 
 def sysid(data, y_name, u_name, order, method="bla"):
