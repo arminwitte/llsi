@@ -92,8 +92,8 @@ class SysIdAlgFactory:
 
 sysidalg = SysIdAlgFactory()
 
-from .subspace import N4SID, PO_MOESP
 from .arx import ARX
+from .subspace import N4SID, PO_MOESP
 
 sysidalg.register_creator(N4SID)
 sysidalg.register_creator(PO_MOESP)

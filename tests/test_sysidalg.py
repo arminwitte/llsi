@@ -61,7 +61,7 @@ ti1, i1 = mod1.impulse_response(plot=False)
 mod2 = sysid(data, "y", "u", (2), method="po-moesp")
 ti2, i2 = mod2.impulse_response(plot=False)
 
-mod3 = sysid(data, "y", "u", (2,3,0), method="arx")
+mod3 = sysid(data, "y", "u", (2, 3, 0), method="arx")
 ti3, i3 = mod3.impulse_response(plot=False)
 
 mod = mod3
