@@ -72,7 +72,14 @@ def test_po_moesp_deterministic(data_siso_deterministic):
 
 def test_arx_deterministic(data_siso_deterministic):
     mod = sysid(data_siso_deterministic, "y", "u", (2, 3, 0), method="arx")
-    ti, i = mod.impulse_response(plot=False)
+    ti, i = mod.impulse_response(plot=True)
+    np.testing.assert_allclose(i[:3], [0.0, 1.0, 1.6], rtol=1e-3, atol=1e-3)
+
+def test_fir_deterministic(data_siso_deterministic):
+    mod = sysid(data_siso_deterministic, "y", "u", (0, 50, 0), method="arx")
+    ti, i = mod.impulse_response(plot=True)
+    import matplotlib.pyplot as plt
+    plt.show() 
     np.testing.assert_allclose(i[:3], [0.0, 1.0, 1.6], rtol=1e-3, atol=1e-3)
 
 

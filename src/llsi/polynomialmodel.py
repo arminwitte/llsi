@@ -35,7 +35,7 @@ class PolynomialModel(LTIModel):
         nb = b.shape[0]  #!
         nk = self.nk
         n = max(na, nb + nk)
-        print(a.T[1:].shape)
+        # print(a.T[1:].shape)
 
         # init with for-loops
         for i in range(n):

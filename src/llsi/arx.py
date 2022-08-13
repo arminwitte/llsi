@@ -24,7 +24,7 @@ class ARX(SysIdAlgBase):
         theta = scipy.linalg.pinv(Phi) @ y
         # theta, res, rank, s = scipy.linalg.lstsq(Phi, y)
 
-        print(theta)
+        # print(theta)
 
         b = theta[:nb]
         a = np.hstack(([1.0], theta[nb:]))
