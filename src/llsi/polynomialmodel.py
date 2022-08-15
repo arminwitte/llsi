@@ -57,11 +57,11 @@ class PolynomialModel(LTIModel):
     def vectorize(self):
         self.na = self.a.ravel().shape[0]
         self.nb = self.b.ravel().shape[0]
-        return np.vstack((self.b, self.a))
+        return np.hstack((self.b, self.a[1:])).ravel()
 
     def reshape(self, theta):
         self.b = theta[: self.nb]
-        self.a = theta[self.nb :]
+        self.a = np.hstack(([1.0], theta[self.nb :]))
 
     def to_tf(self):
         return scipy.signal.TransferFunction(self.b, self.a, dt=self.Ts)

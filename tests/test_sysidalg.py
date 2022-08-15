@@ -97,7 +97,7 @@ def test_fir_deterministic(data_siso_deterministic):
     ti, i = mod.impulse_response(plot=False)
     # import matplotlib.pyplot as plt
     # plt.show()
-    np.testing.assert_allclose(i[:3], [0.0, 1.0, 10.6], rtol=1e-3, atol=1e-3)
+    np.testing.assert_allclose(i[:3], [0.0, 1.0, 1.6], rtol=1e-3, atol=1e-3)
 
 
 def test_n4sid_deterministic_stochastic(data_siso_deterministic_stochastic):

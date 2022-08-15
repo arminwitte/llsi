@@ -144,3 +144,20 @@ def test_to_tf(model):
     tf = model.to_tf()
     print(tf)
     assert isinstance(tf, scipy.signal.TransferFunction)
+
+
+def test_vectorize(model):
+    theta = model.vectorize()
+    np.testing.assert_allclose(theta, [0.04761905, 0.04761905, -0.9047619])
+
+
+def test_reshape(model):
+    model.reshape([0.05, 0.05, -0.9])
+    np.testing.assert_allclose(model.b, [0.05, 0.05])
+    np.testing.assert_allclose(model.a, [1.0, -0.9])
+
+
+def test_repr_str(model):
+    s = "b:\n[0.04761905 0.04761905]\na:\n[ 1.        -0.9047619]\n"
+    assert model.__repr__() == s
+    assert model.__str__() == s
