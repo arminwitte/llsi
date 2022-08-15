@@ -23,6 +23,8 @@ class PolynomialModel(LTIModel):
         self.nb = self.b.ravel().shape[0]
         self.nk = kwargs.get("nk", 0)
 
+        self.cov = kwargs.get("cov")
+
     def simulate(self, u):
         u = u.ravel()
         N = u.shape[0]

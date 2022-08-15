@@ -52,6 +52,8 @@ class StateSpaceModel(LTIModel):
         else:
             self.Nx = Nx
 
+        self.cov = None
+
     def vectorize(self):
         theta = np.vstack(
             [

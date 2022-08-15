@@ -39,7 +39,7 @@ def data_siso_deterministic():
 def data_siso_deterministic_stochastic():
     filt = StateSpaceModel(A=[[0.8, 0.8], [0, 0.8]], B=[1, 1], C=[1, 0], D=0, Ts=1)
     ti, i = filt.impulse_response(plot=False)
-    data = generate_data(filt, noise=0.1)
+    data = generate_data(filt, noise=0.5)
     data.center()
     return data
 
@@ -67,20 +67,37 @@ def test_po_moesp_deterministic(data_siso_deterministic):
 # def test_pem_ss_deterministic(data_siso_deterministic):
 #     mod = sysid(data_siso_deterministic, "y", "u", (2), method="pem_ss")
 #     ti, i = mod.impulse_response(plot=False)
-#     np.testing.assert_allclose(i[:3], [0.0, 1.0, 1.6], rtol=1e-3, atol=1e-3)
+#     print(mod.cov)
+#     np.testing.assert_allclose(i[:3], [0.0, 1.0, 10.6], rtol=1e-3, atol=1e-3)
 
 
 def test_arx_deterministic(data_siso_deterministic):
-    mod = sysid(data_siso_deterministic, "y", "u", (2, 3, 0), method="arx")
-    ti, i = mod.impulse_response(plot=True)
+    mod = sysid(
+        data_siso_deterministic,
+        "y",
+        "u",
+        (2, 3, 0),
+        method="arx",
+        settings={"lstsq_method": "svd", "lambda": 1e-9},
+    )
+    ti, i = mod.impulse_response(plot=False)
+    print(mod.cov)
     np.testing.assert_allclose(i[:3], [0.0, 1.0, 1.6], rtol=1e-3, atol=1e-3)
 
+
 def test_fir_deterministic(data_siso_deterministic):
-    mod = sysid(data_siso_deterministic, "y", "u", (0, 50, 0), method="arx")
-    ti, i = mod.impulse_response(plot=True)
-    import matplotlib.pyplot as plt
-    plt.show() 
-    np.testing.assert_allclose(i[:3], [0.0, 1.0, 1.6], rtol=1e-3, atol=1e-3)
+    mod = sysid(
+        data_siso_deterministic,
+        "y",
+        "u",
+        (0, 50, 0),
+        method="arx",
+        settings={"lstsq_method": "svd", "lambda": 1e0},
+    )
+    ti, i = mod.impulse_response(plot=False)
+    # import matplotlib.pyplot as plt
+    # plt.show()
+    np.testing.assert_allclose(i[:3], [0.0, 1.0, 10.6], rtol=1e-3, atol=1e-3)
 
 
 def test_n4sid_deterministic_stochastic(data_siso_deterministic_stochastic):
@@ -104,6 +121,14 @@ def test_po_moesp_deterministic_stochastic(data_siso_deterministic_stochastic):
 
 
 def test_arx_deterministic_stochastik(data_siso_deterministic_stochastic):
-    mod = sysid(data_siso_deterministic_stochastic, "y", "u", (2, 3, 0), method="arx")
+    mod = sysid(
+        data_siso_deterministic_stochastic,
+        "y",
+        "u",
+        (2, 3, 0),
+        method="arx",
+        settings={"lstsq_method": "svd", "lambda": 1e-3},
+    )
     ti, i = mod.impulse_response(plot=False)
+    # print(mod.cov)
     np.testing.assert_allclose(i[:3], [0.0, 1.0, 1.6], rtol=0.1, atol=0.1)

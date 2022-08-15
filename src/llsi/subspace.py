@@ -14,8 +14,8 @@ from .sysidalgbase import SysIdAlgBase
 
 
 class SubspaceIdent(SysIdAlgBase):
-    def __init__(self, data, y_name, u_name):
-        super().__init__(data, y_name, u_name)
+    def __init__(self, data, y_name, u_name, settings):
+        super().__init__(data, y_name, u_name, settings=settings)
 
     def hankel(self, x, n):
         A = []
@@ -31,8 +31,8 @@ class SubspaceIdent(SysIdAlgBase):
 
 
 class N4SID(SubspaceIdent):
-    def __init__(self, data, y_name, u_name):
-        super().__init__(data, y_name, u_name)
+    def __init__(self, data, y_name, u_name, settings={}):
+        super().__init__(data, y_name, u_name, settings=settings)
 
         # estimate extended observability matrix and states. Then estimate A, B, C, and D in one go.
         # (Tangirala 2014)
@@ -104,8 +104,8 @@ class N4SID(SubspaceIdent):
 
 
 class PO_MOESP(SubspaceIdent):
-    def __init__(self, data, y_name, u_name):
-        super().__init__(data, y_name, u_name)
+    def __init__(self, data, y_name, u_name, settings={}):
+        super().__init__(data, y_name, u_name, settings=settings)
 
         # estimate extended observability matrix and states. Then estimate A, B, C, and D in one go.
         # (Tangirala 2014)
