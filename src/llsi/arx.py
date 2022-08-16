@@ -29,7 +29,7 @@ class ARX(SysIdAlgBase):
         if lstsq_method in "pinv":
             theta, cov = self._lstsq_pinv(Phi, y)
         elif lstsq_method in "lstsq":
-            theta, cov = self.lstsq_lstsq(Phi, y)
+            theta, cov = self._lstsq_lstsq(Phi, y)
         elif lstsq_method in "qr":
             theta, cov = self._lstsq_qr(Phi, y)
         elif lstsq_method in "svd":
@@ -76,7 +76,7 @@ class ARX(SysIdAlgBase):
 
     @staticmethod
     def _lstsq_qr(Phi, y):
-        Q, R = scipy.linalg.qr(Phi)
+        Q, R = scipy.linalg.qr(Phi, mode="economic")
         theta = scipy.linalg.solve_triangular(R, Q.T @ y)
 
         e = y - (Phi @ theta)
