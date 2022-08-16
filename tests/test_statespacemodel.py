@@ -8,6 +8,7 @@ Created on Sun Aug  7 00:01:33 2022
 
 import numpy as np
 import pytest
+import scipy.signal
 
 from llsi.ltimodel import LTIModel
 from llsi.statespacemodel import StateSpaceModel
@@ -102,3 +103,45 @@ def test_step(model):
             15.60475904,
         ],
     )
+
+
+def test_to_ss(model):
+    ss = model.to_ss()
+    assert isinstance(ss, scipy.signal.StateSpace)
+    print(ss.A)
+    np.testing.assert_allclose(ss.A, [[0.8, 0.8], [0.0, 0.8]])
+
+
+def test_to_ss_continuous(model):
+    ss = model.to_ss(continuous=True)
+    assert isinstance(ss, scipy.signal.StateSpace)
+    print(ss.A)
+    np.testing.assert_allclose(ss.A, [[-0.22222222, 0.98765432], [0.0, -0.22222222]])
+
+
+def test_to_ss_continuous_euler(model):
+    ss = model.to_ss(continuous=True, method="euler")
+    assert isinstance(ss, scipy.signal.StateSpace)
+    print(ss.A)
+    np.testing.assert_allclose(ss.A, [[-0.2, 0.8], [0.0, -0.2]])
+
+
+def test_to_tf(model):
+    tf = model.to_tf()
+    assert isinstance(tf, scipy.signal.TransferFunction)
+    print(tf.den)
+    np.testing.assert_allclose(tf.den, [1.0, -1.6, 0.64])
+
+
+def test_to_zpk(model):
+    zpk = model.to_zpk()
+    assert isinstance(zpk, scipy.signal.ZerosPolesGain)
+    print(zpk.poles)
+    np.testing.assert_allclose(zpk.poles, [0.8 + 0.0j, 0.8 - 0.0j])
+
+
+def test_to_controllable_form(model):
+    ss = model.to_controllable_form()
+    assert isinstance(ss, StateSpaceModel)
+    print(ss.A)
+    np.testing.assert_allclose(ss.A, [[1.6, -0.64], [1.0, 0.0]])
