@@ -101,6 +101,39 @@ class SysIdData:
             self.N = self.series[key].shape[0]
             self.Ts *= q
 
+    @staticmethod
+    def generate_prbs(N, Ts, seed=42):
+        u = np.zeros((N,), dtype=float)
+        t = np.linspace(0, Ts * N, num=N, endpoint=False)
+
+        code = seed
+        i = 0
+        while i < N:
+            # generate integer
+            code = SysIdData.prbs31(code)
+            for s in "{0:b}".format(code):
+                if i >= N:
+                    break
+                u[i] = float(s)
+                i += 1
+        return t, u
+
+    @staticmethod
+    def prbs31(code):
+        for i in range(32):
+            next_bit = ~((code >> 30) ^ (code >> 27)) & 0x01
+            code = ((code << 1) | next_bit) & 0xFFFFFFFF
+        return code
+
+    @staticmethod
+    def prbs31_fast(code):
+        next_code = ~((code << 1) ^ (code << 4)) & 0xFFFFFFF0
+        next_code |= (
+            ~(((code << 1 & 0x0E) | (next_code >> 31 & 0x01)) ^ (next_code >> 28))
+            & 0x0000000F
+        )
+        return next_code
+
     @classmethod
     def from_excel(cls, filename, column_names=None):
         import pandas as pd

@@ -47,6 +47,10 @@ class LTIModel(ABC):
 
         return t, y
 
+    def compare(self, y, u):
+        y_hat = self.simulate(u)
+        return 1.0 - self.NRMSE(y, y_hat)
+
     @staticmethod
     def residuals(y, y_hat):
         return y.ravel() - y_hat.ravel()
@@ -68,7 +72,7 @@ class LTIModel(ABC):
 
     @staticmethod
     def RMSE(e):
-        return np.root(LTIModel.MSE(e))
+        return np.sqrt(LTIModel.MSE(e))
 
     @staticmethod
     def NRMSE(y, y_hat, normalization="matlab"):
@@ -82,10 +86,6 @@ class LTIModel(ABC):
         else:
             raise ValueError(f"Unknown normalization method {normalization}")
         return nrmse
-
-    def compare(self, y, u):
-        y_hat = self.simulate(u)
-        return 1.0 - self.NRMSE(y, y_hat)
 
     @abstractmethod
     def simulate(u):

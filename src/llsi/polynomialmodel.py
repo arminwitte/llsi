@@ -23,6 +23,8 @@ class PolynomialModel(LTIModel):
         self.nb = self.b.ravel().shape[0]
         self.nk = kwargs.get("nk", 0)
 
+        self.cov = kwargs.get("cov")
+
     def simulate(self, u):
         u = u.ravel()
         N = u.shape[0]
@@ -35,7 +37,7 @@ class PolynomialModel(LTIModel):
         nb = b.shape[0]  #!
         nk = self.nk
         n = max(na, nb + nk)
-        print(a.T[1:].shape)
+        # print(a.T[1:].shape)
 
         # init with for-loops
         for i in range(n):
@@ -55,16 +57,15 @@ class PolynomialModel(LTIModel):
     def vectorize(self):
         self.na = self.a.ravel().shape[0]
         self.nb = self.b.ravel().shape[0]
-        return np.vstack((self.b, self.a))
+        return np.hstack((self.b, self.a[1:])).ravel()
 
     def reshape(self, theta):
         self.b = theta[: self.nb]
-        self.a = theta[self.nb :]
+        self.a = np.hstack(([1.0], theta[self.nb :]))
 
     def to_tf(self):
         return scipy.signal.TransferFunction(self.b, self.a, dt=self.Ts)
-    
-    
+
     def __repr__(self):
         s = f"b:\n{self.b}\n"
         s += f"a:\n{self.a}\n"

@@ -7,78 +7,95 @@ Created on Sun Apr  4 21:11:47 2021
 """
 
 import numpy as np
-import scipy.stats
 
-from llsi import SysIdData, sysid, sysidalg
-from llsi.statespacemodel import StateSpaceModel
+from llsi import sysid
 
 
-def generate_data(filt=None, plot=False, noise=0.01):
-    if filt is None:
-        filt = StateSpaceModel.from_PT1(1, 10.0)
-
-    if plot:
-        filt.impulse_response(plot=True)
-
-    t = np.linspace(0, 9999 * filt.Ts, 10000)
-    u = scipy.stats.norm.rvs(size=10000)
-    e = noise * scipy.stats.norm.rvs(size=10000)
-
-    y = filt.simulate(u) + e
-
-    data = SysIdData(y=y, u=u, t=t)
-    data.equidistant()
-
-    if plot:
-        data.show()
-    return data
+def test_n4sid_deterministic(data_siso_deterministic):
+    mod = sysid(data_siso_deterministic, "y", "u", (2), method="n4sid")
+    # np.testing.assert_allclose(mod.info["Hankel singular values"], [1200., 160., 0., 0., 0.], rtol=1e-2, atol=1e-2)
+    ti, i = mod.impulse_response(plot=False)
+    # np.testing.assert_allclose(i[:3], [0.0, 1.0, 1.6], rtol=1e-2, atol=1e-2)
+    # np.testing.assert_allclose(
+    #     mod.to_controllable_form().A, [[1.6, -0.64], [1.0, 0.0]], rtol=1e-3, atol=1e-3
+    # )
 
 
-# -----------------------------------------------------------------------------
-
-# data = generate_data(noise=0.1,plot=True)
-# mod = sysid(data,'y','u',(1),method='n4sid')
-# mod.impulse_response(plot=True)
-
-
-# -----------------------------------------------------------------------------
-
-# from subspace import N4SID
-
-# n4sid = N4SID(data,'y','u')
+def test_po_moesp_deterministic(data_siso_deterministic):
+    mod = sysid(data_siso_deterministic, "y", "u", (2), method="po-moesp")
+    # np.testing.assert_allclose(mod.info["Hankel singular values"], [0.12, 0.016, 0., 0., 0.], rtol=1e-2, atol=1e-2)
+    ti, i = mod.impulse_response(plot=False)
+    np.testing.assert_allclose(i[:3], [0.0, 1.0, 1.6], rtol=1e-3, atol=1e-3)
+    np.testing.assert_allclose(
+        mod.to_controllable_form().A, [[1.6, -0.64], [1.0, 0.0]], rtol=1e-3, atol=1e-3
+    )
 
 
-# -----------------------------------------------------------------------------
+# def test_pem_ss_deterministic(data_siso_deterministic):
+#     mod = sysid(data_siso_deterministic, "y", "u", (2), method="pem_ss")
+#     ti, i = mod.impulse_response(plot=False)
+#     print(mod.cov)
+#     np.testing.assert_allclose(i[:3], [0.0, 1.0, 10.6], rtol=1e-3, atol=1e-3)
 
 
-filt = StateSpaceModel(A=[[0.8, 0.8], [0, 0.8]], B=[1, 1], C=[1, 0], D=0, Ts=1)
-# filt = StateSpaceModel(A=[[0.8]],B=[1],C=[1],D=0,Ts=1)
-ti, i = filt.impulse_response(plot=False)
-data = generate_data(filt=filt, plot=False, noise=0.1)
-data.center()
-mod1 = sysid(data, "y", "u", (2), method="n4sid")
-ti1, i1 = mod1.impulse_response(plot=False)
-mod2 = sysid(data, "y", "u", (2), method="po-moesp")
-ti2, i2 = mod2.impulse_response(plot=False)
+def test_arx_deterministic(data_siso_deterministic):
+    mod = sysid(
+        data_siso_deterministic,
+        "y",
+        "u",
+        (2, 3, 0),
+        method="arx",
+        settings={"lstsq_method": "svd", "lambda": 1e-9},
+    )
+    ti, i = mod.impulse_response(plot=False)
+    print(mod.cov)
+    np.testing.assert_allclose(i[:3], [0.0, 1.0, 1.6], rtol=1e-3, atol=1e-3)
 
-mod3 = sysid(data, "y", "u", (2,3,0), method="arx")
-ti3, i3 = mod3.impulse_response(plot=False)
 
-mod = mod3
+def test_fir_deterministic(data_siso_deterministic):
+    mod = sysid(
+        data_siso_deterministic,
+        "y",
+        "u",
+        (0, 50, 0),
+        method="arx",
+        settings={"lstsq_method": "svd", "lambda": 1e0},
+    )
+    ti, i = mod.impulse_response(plot=False)
+    # import matplotlib.pyplot as plt
+    # plt.show()
+    np.testing.assert_allclose(i[:3], [0.0, 1.0, 1.6], rtol=1e-3, atol=1e-3)
 
-import matplotlib.pyplot as plt
 
-plt.close("all")
-fig, ax = plt.subplots(2, 2, figsize=(16, 9))
-data.plot(ax[0, 0])
-ax[1, 0].stem(ti, i)
-ax[0, 1].stem(ti1, i1)
-ax[1, 1].stem(ti3, i3)
+def test_n4sid_deterministic_stochastic(data_siso_deterministic_stochastic):
+    mod = sysid(data_siso_deterministic_stochastic, "y", "u", (2), method="n4sid")
+    ti, i = mod.impulse_response(plot=False)
+    np.testing.assert_allclose(i[:3], [0.0, 1.0, 1.6], rtol=0.1, atol=0.1)
 
-# fig, ax = plt.subplots(figsize=(16, 9))
-# mod.plot_hsv(ax)
 
-plt.show()
+def test_po_moesp_deterministic_stochastic(data_siso_deterministic_stochastic):
+    mod = sysid(data_siso_deterministic_stochastic, "y", "u", (2), method="po-moesp")
+    ti, i = mod.impulse_response(plot=False)
+    # import matplotlib.pyplot as plt
+    # plt.show()
+    np.testing.assert_allclose(i[:3], [0.0, 1.0, 1.6], rtol=0.1, atol=0.1)
 
-print(mod2.to_tf())
-print(mod3)
+
+# def test_pem_ss_deterministic_stochastic(data_siso_deterministic_stochastic):
+#     mod = sysid(data_siso_deterministic_stochastic, "y", "u", (2), method="pem_ss")
+#     ti, i = mod.impulse_response(plot=False)
+#     np.testing.assert_allclose(i[:3], [0.0, 1.0, 1.6], rtol=0.1, atol=0.1)
+
+
+def test_arx_deterministic_stochastik(data_siso_deterministic_stochastic):
+    mod = sysid(
+        data_siso_deterministic_stochastic,
+        "y",
+        "u",
+        (2, 3, 0),
+        method="arx",
+        settings={"lstsq_method": "svd", "lambda": 1e-3},
+    )
+    ti, i = mod.impulse_response(plot=False)
+    # print(mod.cov)
+    np.testing.assert_allclose(i[:3], [0.0, 1.0, 1.6], rtol=0.1, atol=0.1)

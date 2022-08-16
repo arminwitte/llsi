@@ -24,3 +24,11 @@ dependencies = [
 [project.urls]
 "Homepage" = "https://github.com/arminwitte/llsi"
 "Bug Tracker" = "https://github.com/arminwitte/llsi/issues"
+
+[tool.coverage.run]
+source = ['llsi']
+branch = true
+
+[tool.coverage.report]
+show_missing = true
+fail_under = 90

@@ -6,35 +6,15 @@ Created on Sun Apr  4 20:47:33 2021
 @author: armin
 """
 
-from abc import ABC, abstractmethod, abstractstaticmethod
-
 import numpy as np
 import scipy.optimize
 
-
-class SysIdAlg(ABC):
-    def __init__(self, data, y_name, u_name):
-        self.y = data[y_name]
-        self.u = data[u_name]
-        self.Ts = data.Ts
-
-    @abstractmethod
-    def ident(self, order):
-        pass
-
-    @abstractstaticmethod
-    def name():
-        pass
-
-    @staticmethod
-    def _sse(y, y_hat):
-        e = y - y_hat
-        return np.sum(e**2)
+from .sysidalgbase import SysIdAlgBase
 
 
-class PEM_Poly(SysIdAlg):
-    def __init__(self, data, y_name, u_name):
-        super().__init__(data, y_name, u_name)
+class PEM_Poly(SysIdAlgBase):
+    def __init__(self, data, y_name, u_name, settings={}):
+        super().__init__(data, y_name, u_name, settings=settings)
 
     def ident(self, order):
         pass
@@ -44,9 +24,9 @@ class PEM_Poly(SysIdAlg):
         return "pem_poly"
 
 
-class PEM_SS(SysIdAlg):
-    def __init__(self, data, y_name, u_name):
-        super().__init__(data, y_name, u_name)
+class PEM_SS(SysIdAlgBase):
+    def __init__(self, data, y_name, u_name, settings={}):
+        super().__init__(data, y_name, u_name, settings=settings)
         alg = sysidalg.get_creator("po-moesp")
         # alg = sysidalg.get_creator('n4sid')
         self.alg_inst = alg(data, y_name, u_name)
@@ -60,7 +40,7 @@ class PEM_SS(SysIdAlg):
             mod.reshape(x)
             y_hat = mod.simulate(self.u)
             sse = self._sse(self.y, y_hat)
-            print("{:10.6g}".format(sse / sse0))
+            # print("{:10.6g}".format(sse / sse0))
             return sse / sse0
 
         x0 = mod.vectorize()
@@ -69,6 +49,12 @@ class PEM_SS(SysIdAlg):
         # res = scipy.optimize.minimize(fun,x0,method='BFGS')
 
         mod.reshape(res.x)
+
+        J = scipy.optimize.approx_fprime(res.x, fun).reshape(1, -1)
+        var_e = np.var(self.y - mod.simulate(self.u))
+        mod.cov = var_e * (J.T @ J)
+
+        print(J)
 
         return mod
 
@@ -80,29 +66,35 @@ class PEM_SS(SysIdAlg):
 class SysIdAlgFactory:
     def __init__(self):
         self.creators = {}
+        self.default_creator_name = None
 
-    def register_creator(self, creator):
+    def register_creator(self, creator, default=False):
         name = creator.name()
+        if default:
+            self.default_creator_name = name
         self.creators[name] = creator
 
-    def get_creator(self, name):
-        c = self.creators[name]
+    def get_creator(self, name=None):
+        if name:
+            c = self.creators[name]
+        else:
+            c = self.creators[self.default_creator_name]
         return c
 
 
 sysidalg = SysIdAlgFactory()
 
-from .subspace import N4SID, PO_MOESP
 from .arx import ARX
+from .subspace import N4SID, PO_MOESP
 
 sysidalg.register_creator(N4SID)
-sysidalg.register_creator(PO_MOESP)
+sysidalg.register_creator(PO_MOESP, default=True)
 sysidalg.register_creator(PEM_SS)
 sysidalg.register_creator(ARX)
 
 
-def sysid(data, y_name, u_name, order, method="bla"):
+def sysid(data, y_name, u_name, order, method=None, settings={}):
     alg = sysidalg.get_creator(method)
-    alg_inst = alg(data, y_name, u_name)
+    alg_inst = alg(data, y_name, u_name, settings=settings)
     mod = alg_inst.ident(order)
     return mod
