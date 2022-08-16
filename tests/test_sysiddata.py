@@ -20,17 +20,6 @@ def data():
     return data
 
 
-# t, u = SysIdData.generate_prbs(1000, 1e-3)
-# import matplotlib.pyplot as plt
-
-# fig, ax = plt.subplots(figsize=(16, 9))
-# # data.plot(ax)
-# # data.equidistant()
-# # data.plot(ax)
-# ax.plot(t,u)
-# ax.legend()
-
-
 def test_init():
     data = SysIdData(
         y=[1, 2, 3, 4, 5, 6], u=[1, 4, 9, 16, 25, 36], t=[1, 1.5, 2.5, 3.0, 3.3, 4.1]

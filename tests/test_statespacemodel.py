@@ -51,7 +51,6 @@ def test_from_PT1():
 
 
 def test_repr_str(model):
-    print(model.__repr__())
     s = """A:
 [[0.8 0.8]
  [0.  0.8]]
@@ -108,40 +107,42 @@ def test_step(model):
 def test_to_ss(model):
     ss = model.to_ss()
     assert isinstance(ss, scipy.signal.StateSpace)
-    print(ss.A)
     np.testing.assert_allclose(ss.A, [[0.8, 0.8], [0.0, 0.8]])
 
 
 def test_to_ss_continuous(model):
     ss = model.to_ss(continuous=True)
     assert isinstance(ss, scipy.signal.StateSpace)
-    print(ss.A)
     np.testing.assert_allclose(ss.A, [[-0.22222222, 0.98765432], [0.0, -0.22222222]])
 
 
 def test_to_ss_continuous_euler(model):
     ss = model.to_ss(continuous=True, method="euler")
     assert isinstance(ss, scipy.signal.StateSpace)
-    print(ss.A)
     np.testing.assert_allclose(ss.A, [[-0.2, 0.8], [0.0, -0.2]])
 
 
 def test_to_tf(model):
     tf = model.to_tf()
     assert isinstance(tf, scipy.signal.TransferFunction)
-    print(tf.den)
     np.testing.assert_allclose(tf.den, [1.0, -1.6, 0.64])
 
 
 def test_to_zpk(model):
     zpk = model.to_zpk()
     assert isinstance(zpk, scipy.signal.ZerosPolesGain)
-    print(zpk.poles)
     np.testing.assert_allclose(zpk.poles, [0.8 + 0.0j, 0.8 - 0.0j])
 
 
 def test_to_controllable_form(model):
     ss = model.to_controllable_form()
     assert isinstance(ss, StateSpaceModel)
-    print(ss.A)
     np.testing.assert_allclose(ss.A, [[1.6, -0.64], [1.0, 0.0]])
+
+
+def test_reduce_order(model):
+    red_mod, s = model.reduce_order(1)
+    print(red_mod.A)
+    np.testing.assert_allclose(red_mod.A, [[0.92569829]])
+    print(s)
+    np.testing.assert_allclose(s, [15.166669, 2.512348])
