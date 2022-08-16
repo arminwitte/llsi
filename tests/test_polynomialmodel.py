@@ -161,3 +161,42 @@ def test_repr_str(model):
     s = "b:\n[0.04761905 0.04761905]\na:\n[ 1.        -0.9047619]\n"
     assert model.__repr__() == s
     assert model.__str__() == s
+
+
+def test_impulse(model):
+    ti, i = model.impulse_response()
+    np.testing.assert_allclose(
+        i[:10],
+        [
+            4.76190500e-02,
+            9.07029522e-02,
+            8.20645753e-02,
+            7.42489011e-02,
+            6.71775768e-02,
+            6.07797120e-02,
+            5.49911678e-02,
+            4.97539134e-02,
+            4.50154452e-02,
+            4.07282598e-02,
+        ],
+    )
+
+
+def test_step(model):
+    tI, I = model.step_response()
+    print(I)
+    np.testing.assert_allclose(
+        I[:10],
+        [
+            0.04761905,
+            0.138322,
+            0.22038658,
+            0.29463548,
+            0.36181306,
+            0.42259277,
+            0.47758394,
+            0.52733785,
+            0.57235329,
+            0.61308155,
+        ],
+    )

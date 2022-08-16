@@ -47,3 +47,58 @@ def test_simulate(model):
 def test_from_PT1():
     mod = StateSpaceModel.from_PT1(1.0, 0.8, Ts=1.0)
     np.testing.assert_allclose(mod.A, [[0.2307691]], rtol=1e-6)
+
+
+def test_repr_str(model):
+    print(model.__repr__())
+    s = """A:
+[[0.8 0.8]
+ [0.  0.8]]
+B:
+[[1]
+ [1]]
+C:
+[[1 0]]
+D:
+0
+"""
+    assert model.__repr__() == s
+    assert model.__str__() == s
+
+
+def test_impulse(model):
+    ti, i = model.impulse_response()
+    np.testing.assert_allclose(
+        i[:10],
+        [
+            0.00000000e00,
+            1.00000000e00,
+            1.60000000e00,
+            1.92000000e00,
+            2.04800000e00,
+            2.04800000e00,
+            1.96608000e00,
+            1.83500800e00,
+            1.67772160e00,
+            1.50994944e00,
+        ],
+    )
+
+
+def test_step(model):
+    tI, I = model.step_response()
+    np.testing.assert_allclose(
+        I[:10],
+        [
+            0.0,
+            1.0,
+            2.6,
+            4.52,
+            6.568,
+            8.616,
+            10.58208,
+            12.417088,
+            14.0948096,
+            15.60475904,
+        ],
+    )

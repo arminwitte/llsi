@@ -46,7 +46,7 @@ class LTIModel(ABC):
             plt.plot()
 
         return t, y
-    
+
     def compare(self, y, u):
         y_hat = self.simulate(u)
         return 1.0 - self.NRMSE(y, y_hat)
