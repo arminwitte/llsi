@@ -15,8 +15,7 @@ coverage: test
 	coverage report
 
 build:
-	rm -rf dist/
 	python3 -m build
 	
 upload:
-	python3 -m twine dist/*
+	python3 -m twine --skip-existing dist/*
