@@ -16,34 +16,20 @@ class LTIModel(ABC):
         self.Ts = Ts
         self.info = {}
 
-    def impulse_response(self, N=100, plot=False):
+    def impulse_response(self, N=100):
         t = np.linspace(0, (N - 1) * self.Ts, N)
         u = np.zeros((N,))
         u[0] = 1 / self.Ts
 
         y = self.simulate(u)
 
-        if plot:
-            import matplotlib.pyplot as plt
-
-            fig, ax = plt.subplots(figsize=(16, 9))
-            ax.stem(t, y)
-            plt.plot()
-
         return t, y
 
-    def step_response(self, N=100, plot=False):
+    def step_response(self, N=100):
         t = np.linspace(0, (N - 1) * self.Ts, N)
         u = np.ones((N,))
 
         y = self.simulate(u)
-
-        if plot:
-            import matplotlib.pyplot as plt
-
-            fig, ax = plt.subplots(figsize=(16, 9))
-            ax.stem(t, y)
-            plt.plot()
 
         return t, y
 
