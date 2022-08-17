@@ -30,10 +30,18 @@ import matplotlib.pyplot as plt
 # fig, ax = plt.subplots()
 # mod1.plot_hsv(ax)
 
-mod1 = llsi.sysid(data,'Nu','Re',(3,),method='po-moesp')
+# mod1 = llsi.sysid(data,'Nu','Re',(3,),method='po-moesp')
+# ti1, i1 = mod1.impulse_response(plot=True)
+# fig, ax = plt.subplots()
+# mod1.plot_hsv(ax)
+
+mod1 = llsi.sysid(data,'Nu','Re',(2,3,0),method='arx')
 ti1, i1 = mod1.impulse_response(plot=True)
 fig, ax = plt.subplots()
-mod1.plot_hsv(ax)
+
+mod2 = llsi.sysid(data,'Nu','Re',(2,3,0),method='pem_poly')
+ti2, i2 = mod1.impulse_response(plot=True)
+fig, ax = plt.subplots()
 
 # mod1 = llsi.sysid(data,'Nu','Re',(3,),method='pem_ss')
 # ti1, i1 = mod1.impulse_response(plot=True)
@@ -100,6 +108,8 @@ if False:
     
 nrmse_fit = mod1.compare(data['Nu'],data['Re'])
 print(f"NRMSE-fit: {nrmse_fit}")
+nrmse_fit = mod2.compare(data['Nu'],data['Re'])
+print(f"NRMSE-fit: {nrmse_fit}")
 
 
 
@@ -109,9 +119,9 @@ print(f"NRMSE-fit: {nrmse_fit}")
 
 fig, ax = plt.subplots()
 ti1, i1 = mod1.impulse_response(plot=False)
-# ti2, i2 = mod2.impulse_response(plot=False)
+ti2, i2 = mod2.impulse_response(plot=False)
 plt.plot(ti1, i1)
-# plt.plot(ti2, i2,'r')
+plt.plot(ti2, i2,'r')
 
 print(i1[:5])
 # print(i2[:5])

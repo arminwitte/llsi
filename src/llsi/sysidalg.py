@@ -15,9 +15,34 @@ from .sysidalgbase import SysIdAlgBase
 class PEM_Poly(SysIdAlgBase):
     def __init__(self, data, y_name, u_name, settings={}):
         super().__init__(data, y_name, u_name, settings=settings)
+        alg = sysidalg.get_creator("arx")
+        # alg = sysidalg.get_creator('n4sid')
+        self.alg_inst = alg(data, y_name, u_name)
 
     def ident(self, order):
-        pass
+        mod = self.alg_inst.ident(order)
+        y_hat = mod.simulate(self.u)
+        sse0 = self._sse(self.y, y_hat)
+
+        def fun(x):
+            mod.reshape(x)
+            y_hat = mod.simulate(self.u)
+            sse = self._sse(self.y, y_hat)
+            print("{:10.6g}".format(sse / sse0))
+            return sse / sse0
+
+        x0 = mod.vectorize()
+        res = scipy.optimize.minimize(fun, x0)
+        # res = scipy.optimize.minimize(fun,x0,method='nelder-mead')
+        # res = scipy.optimize.minimize(fun,x0,method='BFGS')
+
+        mod.reshape(res.x)
+
+        J = scipy.optimize.approx_fprime(res.x, fun).reshape(1, -1)
+        var_e = np.var(self.y - mod.simulate(self.u))
+        mod.cov = var_e * (J.T @ J)
+
+        return mod
 
     @staticmethod
     def name():
@@ -90,6 +115,7 @@ from .subspace import N4SID, PO_MOESP
 sysidalg.register_creator(N4SID)
 sysidalg.register_creator(PO_MOESP, default=True)
 sysidalg.register_creator(PEM_SS)
+sysidalg.register_creator(PEM_Poly)
 sysidalg.register_creator(ARX)
 
 
