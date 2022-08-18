@@ -9,6 +9,7 @@ Created on Sun Apr  4 20:47:33 2021
 import numpy as np
 import scipy.optimize
 
+from .statespacemodel import StateSpaceModel
 from .sysidalgbase import SysIdAlgBase
 
 
@@ -88,6 +89,27 @@ class PEM_SS(SysIdAlgBase):
         return "pem_ss"
 
 
+class FIROR(SysIdAlgBase):
+    def __init__(self, data, y_name, u_name, settings={}):
+        super().__init__(data, y_name, u_name, settings=settings)
+        alg = sysidalg.get_creator("arx")
+        l = self.settings.get("lambda", 1e-3)
+        self.alg_inst = alg(data, y_name, u_name, settings={"lambda": l})
+
+    def ident(self, order):
+        fir_order = self.settings.get("fir_order", 100)
+        mod = self.alg_inst.ident((0, fir_order, 0))
+
+        red_mod = StateSpaceModel.from_fir(mod)
+        red_mod, s = red_mod.reduce_order(order)
+        print("s: ", s)
+        return red_mod
+
+    @staticmethod
+    def name():
+        return "firor"
+
+
 class SysIdAlgFactory:
     def __init__(self):
         self.creators = {}
@@ -117,6 +139,7 @@ sysidalg.register_creator(PO_MOESP, default=True)
 sysidalg.register_creator(PEM_SS)
 sysidalg.register_creator(PEM_Poly)
 sysidalg.register_creator(ARX)
+sysidalg.register_creator(FIROR)
 
 
 def sysid(data, y_name, u_name, order, method=None, settings={}):

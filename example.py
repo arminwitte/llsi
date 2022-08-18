@@ -35,11 +35,15 @@ import matplotlib.pyplot as plt
 # fig, ax = plt.subplots()
 # mod1.plot_hsv(ax)
 
-mod1 = llsi.sysid(data,'Nu','Re',(2,3,0),method='arx')
+mod1 = llsi.sysid(data,'Nu','Re',(0,100,0),method='arx',settings={"lambda":1e3})
 ti1, i1 = mod1.impulse_response(plot=True)
 fig, ax = plt.subplots()
 
-mod2 = llsi.sysid(data,'Nu','Re',(2,3,0),method='pem_poly')
+# mod2 = llsi.sysid(data,'Nu','Re',(2,3,0),method='pem_poly')
+# ti2, i2 = mod1.impulse_response(plot=True)
+# fig, ax = plt.subplots()
+
+mod2 = llsi.sysid(data,'Nu','Re',3,method='firor',settings={"lambda":1e2})
 ti2, i2 = mod1.impulse_response(plot=True)
 fig, ax = plt.subplots()
 
