@@ -101,6 +101,14 @@ class SysIdData:
             self.N = self.series[key].shape[0]
             self.Ts *= q
 
+    def lowpass(self, order, corner_frequency):
+        sos = scipy.signal.butter(
+            order, corner_frequency, "low", analog=False, fs=1.0 / self.Ts, output="sos"
+        )
+
+        for key in self.series.keys():
+            self.series[key] = scipy.signal.sosfilt(sos, self.series[key])
+
     @staticmethod
     def generate_prbs(N, Ts, seed=42):
         u = np.zeros((N,), dtype=float)

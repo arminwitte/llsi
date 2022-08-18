@@ -31,15 +31,29 @@ def test_po_moesp_deterministic(data_siso_deterministic):
     )
 
 
-# def test_pem_ss_deterministic(data_siso_deterministic):
-#     mod = sysid(data_siso_deterministic, "y", "u", (2), method="pem_ss")
-#     ti, i = mod.impulse_response(plot=False)
-#     print(mod.cov)
-#     np.testing.assert_allclose(i[:3], [0.0, 1.0, 10.6], rtol=1e-3, atol=1e-3)
+def test_pem_ss_deterministic(data_siso_deterministic):
+    mod = sysid(
+        data_siso_deterministic,
+        "y",
+        "u",
+        (2),
+        method="pem",
+        settings={"init": "po-moesp"},
+    )
+    ti, i = mod.impulse_response(plot=False)
+    print(mod.cov)
+    np.testing.assert_allclose(i[:3], [0.0, 1.0, 10.6], rtol=1e-3, atol=1e-3)
 
 
 def test_pem_poly_deterministic(data_siso_deterministic):
-    mod = sysid(data_siso_deterministic, "y", "u", (1, 2, 0), method="pem_poly")
+    mod = sysid(
+        data_siso_deterministic,
+        "y",
+        "u",
+        (1, 2, 0),
+        method="pem",
+        settings={"init": "arx"},
+    )
     ti, i = mod.impulse_response(plot=False)
     print(mod.cov)
     np.testing.assert_allclose(i[:3], [0.0, 1.0, 10.6], rtol=1e-3, atol=1e-3)

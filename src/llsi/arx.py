@@ -87,7 +87,6 @@ class ARX(SysIdAlgBase):
     @staticmethod
     def _lstsq_svd(Phi, y, l):
         U, s, Vh = scipy.linalg.svd(Phi, full_matrices=False)
-        print(s)
         Sigma = np.diag(1 / s)
 
         if l > 0:
