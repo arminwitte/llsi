@@ -87,7 +87,6 @@ class ARX(SysIdAlgBase):
     @staticmethod
     def _lstsq_svd(Phi, y, l):
         U, s, Vh = scipy.linalg.svd(Phi, full_matrices=False)
-        print(s)
         Sigma = np.diag(1 / s)
 
         if l > 0:
@@ -108,3 +107,17 @@ class ARX(SysIdAlgBase):
     @staticmethod
     def name():
         return "arx"
+
+
+class FIR(ARX):
+    def __init__(self, data, y_name, u_name, settings={}):
+        super().__init__(data, y_name, u_name, settings=settings)
+
+    def ident(self, order):
+        order = list(order)
+        order[0] = 0
+        return super().ident(order)
+
+    @staticmethod
+    def name():
+        return "fir"

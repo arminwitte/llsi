@@ -183,6 +183,10 @@ class StateSpaceModel(LTIModel):
         s : TYPE
             DESCRIPTION.
 
+        References
+        ----------
+        Stanisławski R., Rydel M., Latawiec K.J.: Modeling of discrete-time fractional- order state space systems using the balanced truncation method, Journal of the Franklin Institute, vol. 354, no. 7, 2017, pp. 3008-3020. http://doi.org/10.1016/j.jfranklin.2017.02.003
+
         """
         A = self.A
         B = self.B
@@ -211,9 +215,18 @@ class StateSpaceModel(LTIModel):
         V1 = V[:, :n]
         Sigma1 = np.diag(1 / s1)
 
-        # create transformation matrices
-        T_l = np.sqrt(Sigma1) @ U1.T @ R
-        T_r = S.T @ V1 @ np.sqrt(Sigma1)
+        # # Square root algorithm
+        # # create transformation matrices
+        # T_l = np.sqrt(Sigma1) @ U1.T @ R
+        # T_r = S.T @ V1 @ np.sqrt(Sigma1)
+
+        # balancing-free square root algorithm
+        W, X = scipy.linalg.qr(S.T @ U1, mode="economic")
+        Z, Y = scipy.linalg.qr(R.T @ V1, mode="economic")
+        UE, sE, VE = scipy.linalg.svd(Z.T @ W)
+        SigmaE = np.diag(1 / sE)
+        T_l = np.sqrt(SigmaE) @ UE.T @ Z.T
+        T_r = W @ VE @ np.sqrt(SigmaE)
 
         # apply transformation
         A_ = T_l @ A @ T_r
@@ -221,6 +234,24 @@ class StateSpaceModel(LTIModel):
         C_ = C @ T_r
 
         return StateSpaceModel(A=A_, B=B_, C=C_, D=self.D, Ts=self.Ts), s
+
+    @classmethod
+    def from_scipy(cls, mod):
+        ss = mod.ss()
+        mod_out = cls(A=ss.A, B=ss.B, C=ss.C, D=ss.D, Ts=ss.dt)
+        return mod_out
+
+    @classmethod
+    def from_fir(cls, mod):
+        b = mod.b
+        n = b.ravel().shape[0] - 1
+        A = np.diag(np.ones((n - 1,)), k=-1)
+        B = np.zeros((n, 1))
+        B[0] = 1.0
+        C = b[1:].reshape(1, -1)
+        D = b[0]
+        mod_out = cls(A=A, B=B, C=C, D=D, Ts=mod.Ts)
+        return mod_out
 
     def __repr__(self) -> str:
         s = f"A:\n{self.A}\n"

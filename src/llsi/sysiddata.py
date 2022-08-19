@@ -6,6 +6,8 @@ Created on Sun Apr  4 19:40:17 2021
 @author: armin
 """
 
+import copy
+
 import numpy as np
 import scipy.interpolate
 import scipy.signal
@@ -75,7 +77,7 @@ class SysIdData:
         for key, val in self.series.items():
             self.series[key] -= np.mean(val)
 
-    def crop(self, start=0, end=-1):
+    def crop(self, start=None, end=None):
         if self.t is not None:
             self.t = self.t[start:end]
         for key, val in self.series.items():
@@ -87,6 +89,30 @@ class SysIdData:
             self.series[key] = scipy.signal.decimate(val, q)
             self.N = self.series[key].shape[0]
             self.Ts *= q
+
+    def lowpass(self, order, corner_frequency):
+        sos = scipy.signal.butter(
+            order, corner_frequency, "low", analog=False, fs=1.0 / self.Ts, output="sos"
+        )
+
+        for key in self.series.keys():
+            self.series[key] = scipy.signal.sosfilt(sos, self.series[key])
+
+    def split(self, proportion=None, sample=None):
+        if not sample and not proportion:
+            proportion = 0.5
+
+        if proportion:
+            sample = int(round(self.N * proportion))
+
+        print(f"Splitting at {sample}")
+
+        data1 = copy.deepcopy(self)  # .crop(start=0,end=sample)
+        data1.crop(end=sample)
+        data2 = copy.deepcopy(self)  # .crop(start=sample)
+        data2.crop(start=sample)
+
+        return data1, data2
 
     @staticmethod
     def generate_prbs(N, Ts, seed=42):
