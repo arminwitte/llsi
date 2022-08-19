@@ -6,86 +6,6 @@ Created on Sun Apr  4 20:47:33 2021
 @author: armin
 """
 
-import numpy as np
-import scipy.optimize
-
-from .statespacemodel import StateSpaceModel
-from .sysidalgbase import SysIdAlgBase
-
-
-class PEM(SysIdAlgBase):
-    def __init__(self, data, y_name, u_name, settings={}):
-        super().__init__(data, y_name, u_name, settings=settings)
-        init = self.settings.get("init", "arx")
-        alg = sysidalg.get_creator(init)
-        # alg = sysidalg.get_creator('n4sid')
-        self.alg_inst = alg(data, y_name, u_name)
-
-    def ident(self, order):
-        mod = self.alg_inst.ident(order)
-        y_hat = mod.simulate(self.u)
-        sse0 = self._sse(self.y, y_hat)
-
-        def fun(x):
-            mod.reshape(x)
-            y_hat = mod.simulate(self.u)
-            sse = self._sse(self.y, y_hat)
-            # print("{:10.6g}".format(sse / sse0))
-            return sse / sse0
-
-        x0 = mod.vectorize()
-        res = scipy.optimize.minimize(fun, x0)
-        # res = scipy.optimize.minimize(fun,x0,method='nelder-mead')
-        # res = scipy.optimize.minimize(fun,x0,method='BFGS')
-
-        mod.reshape(res.x)
-
-        J = scipy.optimize.approx_fprime(res.x, fun).reshape(1, -1)
-        var_e = np.var(self.y - mod.simulate(self.u))
-        mod.cov = var_e * (J.T @ J)
-
-        return mod
-
-    @staticmethod
-    def name():
-        return "pem"
-
-
-class FIROR(SysIdAlgBase):
-    def __init__(self, data, y_name, u_name, settings={}):
-        super().__init__(data, y_name, u_name, settings=settings)
-        alg = sysidalg.get_creator("arx")
-        l = self.settings.get("lambda", 1e-3)
-        self.alg_inst = alg(data, y_name, u_name, settings={"lambda": l})
-
-    def ident(self, order):
-        fir_order = self.settings.get("fir_order", 100)
-        mod = self.alg_inst.ident((0, fir_order, 0))
-
-        red_mod = StateSpaceModel.from_fir(mod)
-        red_mod, s = red_mod.reduce_order(order)
-        print("s: ", s)
-        return red_mod
-
-    @staticmethod
-    def name():
-        return "firor"
-
-
-######################################################################################
-# CONVENIENCE CLASSES
-######################################################################################
-
-
-class OE(PEM):
-    def __init__(self, data, y_name, u_name, settings={}):
-        settings["init"] = "arx"
-        super().__init__(data, y_name, u_name, settings=settings)
-
-    @staticmethod
-    def name():
-        return "oe"
-
 
 ######################################################################################
 # FACTORY
@@ -114,6 +34,8 @@ class SysIdAlgFactory:
 sysidalg = SysIdAlgFactory()
 
 from .arx import ARX, FIR
+from .firor import FIROR
+from .pem import OE, PEM
 from .subspace import N4SID, PO_MOESP
 
 sysidalg.register_creator(N4SID)
@@ -123,6 +45,10 @@ sysidalg.register_creator(ARX)
 sysidalg.register_creator(FIROR)
 sysidalg.register_creator(OE)
 sysidalg.register_creator(FIR)
+
+######################################################################################
+# CONVENIENCE FUNCTION
+######################################################################################
 
 
 def sysid(data, y_name, u_name, order, method=None, settings={}):

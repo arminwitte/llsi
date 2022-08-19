@@ -22,6 +22,7 @@ print(data.time().shape)
 data.center()
 data.downsample(18)
 data.lowpass(1, 10)
+data, test_set = data.split(0.8)
 data.crop(start=1000)
 data.center()
 print(1/data.Ts)
@@ -115,9 +116,9 @@ if False:
     
     
     
-nrmse_fit = mod1.compare(data['Nu'],data['Re'])
+nrmse_fit = mod1.compare(test_set['Nu'],test_set['Re'])
 print(f"NRMSE-fit: {nrmse_fit}")
-nrmse_fit = mod2.compare(data['Nu'],data['Re'])
+nrmse_fit = mod2.compare(test_set['Nu'],test_set['Re'])
 print(f"NRMSE-fit: {nrmse_fit}")
 
 

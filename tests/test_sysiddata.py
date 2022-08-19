@@ -74,7 +74,29 @@ def test_downsample():
     )
 
 
-# add_series
-# remove
-# plot
-# show
+def test_split():
+    t, u = SysIdData.generate_prbs(1000, 1.0)
+    data = SysIdData(t=t, u=u)
+    data.equidistant()
+    data1, data2 = data.split()
+    assert data1.N == 500
+    assert data2.N == 500
+    assert data1["u"][0] == 1.0
+    assert data2["u"][0] == 0.0
+
+
+def test_add_series():
+    t, u = SysIdData.generate_prbs(1000, 1.0)
+    t, v = SysIdData.generate_prbs(1000, 1.0)
+    data = SysIdData(t=t, u=u)
+    data.add_series(v=v)
+    np.testing.assert_allclose(data["v"], v)
+
+
+def test_remove():
+    t, u = SysIdData.generate_prbs(1000, 1.0)
+    t, v = SysIdData.generate_prbs(1000, 1.0)
+    data = SysIdData(t=t, u=u, v=v)
+    data.remove("v")
+    with pytest.raises(KeyError):
+        a = data["v"]
