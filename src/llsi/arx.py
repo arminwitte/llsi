@@ -107,3 +107,17 @@ class ARX(SysIdAlgBase):
     @staticmethod
     def name():
         return "arx"
+
+
+class FIR(ARX):
+    def __init__(self, data, y_name, u_name, settings={}):
+        super().__init__(data, y_name, u_name, settings=settings)
+
+    def ident(self, order):
+        order = list(order)
+        order[0] = 0
+        return super().ident(order)
+
+    @staticmethod
+    def name():
+        return "fir"

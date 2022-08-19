@@ -72,6 +72,26 @@ class FIROR(SysIdAlgBase):
         return "firor"
 
 
+######################################################################################
+# CONVENIENCE CLASSES
+######################################################################################
+
+
+class OE(PEM):
+    def __init__(self, data, y_name, u_name, settings={}):
+        settings["init"] = "arx"
+        super().__init__(data, y_name, u_name, settings=settings)
+
+    @staticmethod
+    def name():
+        return "oe"
+
+
+######################################################################################
+# FACTORY
+######################################################################################
+
+
 class SysIdAlgFactory:
     def __init__(self):
         self.creators = {}
@@ -93,7 +113,7 @@ class SysIdAlgFactory:
 
 sysidalg = SysIdAlgFactory()
 
-from .arx import ARX
+from .arx import ARX, FIR
 from .subspace import N4SID, PO_MOESP
 
 sysidalg.register_creator(N4SID)
@@ -101,6 +121,8 @@ sysidalg.register_creator(PO_MOESP, default=True)
 sysidalg.register_creator(PEM)
 sysidalg.register_creator(ARX)
 sysidalg.register_creator(FIROR)
+sysidalg.register_creator(OE)
+sysidalg.register_creator(FIR)
 
 
 def sysid(data, y_name, u_name, order, method=None, settings={}):
