@@ -35,8 +35,8 @@ class Figure:
 
     def __exit__(self, exc_type, exc_value, exc_traceback):
         self.fig, self.ax = plt.subplots(
-            2 if self.counter < 4 else int(np.floor((self.counter + 1) / 2)),
-            2,
+            int(np.floor((self.counter + 1) / 2)),
+            1 if self.counter < 2 else 2,
             figsize=self.figsize,
         )
         for i in range(len(self.objects)):
@@ -53,7 +53,13 @@ class Figure:
             else:
                 fun = self.registry[plot_type]
 
-            fun(self.fig, self.ax[int(np.floor(ind / 2)), ind % 2], obj)
+            if self.counter == 1:
+                ax = self.ax
+            elif self.counter == 2:
+                ax = self.ax[ind]
+            else:
+                ax = self.ax[int(np.floor(ind / 2)), ind % 2]
+            fun(self.fig, ax, obj)
 
         plt.plot()
 
