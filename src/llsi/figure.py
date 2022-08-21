@@ -59,6 +59,7 @@ class Figure:
                 ax = self.ax[ind]
             else:
                 ax = self.ax[int(np.floor(ind / 2)), ind % 2]
+
             fun(self.fig, ax, obj)
 
         plt.plot()
@@ -108,3 +109,26 @@ class Figure:
         ax.set_title("Time series")
         ax.legend()
         ax.set_ylabel("time")
+
+    # @staticmethod
+    # def _compare(fig, ax, obj):
+
+    #     mods = []
+    #     data = []
+    #     for o in obj:
+    #         if isinstance(o, SysIdData):
+    #             data.append(o)
+    #         if isinstance(obj, LTIModel):
+    #             mods.append(o)
+
+    #     for d in data:
+    #         for m in mods:
+
+    #     t = data.time()
+
+    #     for key, val in data.series.items():
+    #         ax.plot(t, val, label=key)
+
+    #     ax.set_title("Time series")
+    #     ax.legend()
+    #     ax.set_ylabel("time")

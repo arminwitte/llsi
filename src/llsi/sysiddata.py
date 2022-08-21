@@ -80,6 +80,10 @@ class SysIdData:
     def crop(self, start=None, end=None):
         if self.t is not None:
             self.t = self.t[start:end]
+        else:
+            if start:
+                self.t_start += self.Ts * start
+
         for key, val in self.series.items():
             self.series[key] = val[start:end]
             self.N = self.series[key].shape[0]
