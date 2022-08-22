@@ -25,6 +25,7 @@ class Figure:
             "step": self._step,
             "hsv": self._hsv,
             "time_series": self._time_series,
+            "compare": self._compare,
         }
 
         self.figsize = figsize
@@ -65,6 +66,9 @@ class Figure:
         plt.plot()
 
     def plot(self, obj, plot_type=None):
+        if not isinstance(obj, (list, tuple)):
+            obj = [obj]
+
         for o in obj:
             self.objects.append(o)
             self.plot_types.append(plot_type)
@@ -110,25 +114,23 @@ class Figure:
         ax.legend()
         ax.set_ylabel("time")
 
-    # @staticmethod
-    # def _compare(fig, ax, obj):
+    @staticmethod
+    def _compare(fig, ax, obj):
 
-    #     mods = []
-    #     data = []
-    #     for o in obj:
-    #         if isinstance(o, SysIdData):
-    #             data.append(o)
-    #         if isinstance(obj, LTIModel):
-    #             mods.append(o)
+        mods = obj.get("mod")
+        data = obj.get("data")
+        y_name = obj.get("y_name")
+        u_name = obj.get("u_name")
 
-    #     for d in data:
-    #         for m in mods:
+        t = data.time()
+        ax.plot(t, data[y_name], label="orig.")
 
-    #     t = data.time()
+        for m in mods:
+            y_hat = m.simulate(data[u_name])
+            fit = m.compare(data[y_name], data[u_name])
+            ax.plot(t, y_hat, label=f"model (NRMSE-fit={fit:.3f})")
 
-    #     for key, val in data.series.items():
-    #         ax.plot(t, val, label=key)
-
-    #     ax.set_title("Time series")
-    #     ax.legend()
-    #     ax.set_ylabel("time")
+        ax.set_title("Comparison")
+        ax.legend()
+        ax.set_ylabel("time")
+        ax.set_ylabel(y_name)
