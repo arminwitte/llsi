@@ -5,13 +5,16 @@ build-backend = "hatchling.build"
 [project]
 name = "llsi"
 description = "A lightweight linear system identification tool"
-version = "0.1.0"
+version = "0.2.0"
 authors = [
   { name="Armin Witte"},
 ]
 readme = "README.md"
 license = { file="LICENSE" }
 requires-python = ">=3.7"
+keywords = [
+    "system identification",
+]
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
@@ -32,3 +35,6 @@ branch = true
 [tool.coverage.report]
 show_missing = true
 fail_under = 90
+
+[tool.isort]
+profile = "black"
