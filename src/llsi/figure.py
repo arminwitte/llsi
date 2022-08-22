@@ -45,15 +45,21 @@ class Figure:
             obj = self.objects[i]
             ind = self.place[i]
 
+            # handle default cases
             if not plot_type:
                 # deduce type
                 if isinstance(obj, SysIdData):
                     fun = self.registry["time_series"]
-                if isinstance(obj, LTIModel):
+                elif isinstance(obj, LTIModel):
                     fun = self.registry["impulse"]
+                else:
+                    print(
+                        f"for an object of type {type(obj)} a plot_type has to be specified explicitly!"
+                    )
             else:
                 fun = self.registry[plot_type]
 
+            # handle indexing of axes with different array sizes
             if self.counter == 1:
                 ax = self.ax
             elif self.counter == 2:
@@ -61,6 +67,7 @@ class Figure:
             else:
                 ax = self.ax[int(np.floor(ind / 2)), ind % 2]
 
+            # call plotting method
             fun(self.fig, ax, obj)
 
         plt.plot()
