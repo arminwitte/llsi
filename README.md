@@ -6,6 +6,7 @@ llsi offers easy acess to system identification algorithms. Currently implemente
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
 ## Usage
+### Identification
 1. Load data
 start with loading the heated wire dataset (found in the data/ folder at the root of this repo) using numpy
 ```python
@@ -37,6 +38,14 @@ or to a continuous time transfer function
 ```python
 ss = mod.to_tf(continuous=True)
 ```
+
+### Plotting
+Optionally, if matplotlib is installed, simple plots can be created using the llsi.Figure context manager:
+```python
+with llsi.Figure() as fig:
+    fig.plot(ss,'impulse')
+```
+will plot the impulse response of the model ss.
 
 ## Contribution
 Thank you for considering to contribute. Any exchange and help is welcome. However, I have to ask you to be patient with me responding.
