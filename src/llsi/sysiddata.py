@@ -77,22 +77,13 @@ class SysIdData:
         for key, val in self.series.items():
             self.series[key] -= np.mean(val)
 
-    def plot(self, ax):
-        t = self.time()
-
-        for key, val in self.series.items():
-            ax.plot(t, val, label=key)
-
-    def show(self):
-        import matplotlib.pyplot as plt
-
-        fig, ax = plt.subplots(figsize=(16, 9))
-        self.plot(ax)
-        plt.show()
-
     def crop(self, start=None, end=None):
         if self.t is not None:
             self.t = self.t[start:end]
+        else:
+            if start:
+                self.t_start += self.Ts * start
+
         for key, val in self.series.items():
             self.series[key] = val[start:end]
             self.N = self.series[key].shape[0]

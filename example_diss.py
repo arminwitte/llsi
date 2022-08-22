@@ -30,43 +30,11 @@ print(1/data.Ts)
 import matplotlib.pyplot as plt
 
 
-# mod1 = llsi.sysid(data,'Nu','Re',(3,),method='n4sid')
-# ti1, i1 = mod1.impulse_response(plot=True)
-# fig, ax = plt.subplots()
-# mod1.plot_hsv(ax)
-
-# mod1 = llsi.sysid(data,'Nu','Re',(3,),method='po-moesp')
-# ti1, i1 = mod1.impulse_response(plot=True)
-# fig, ax = plt.subplots()
-# mod1.plot_hsv(ax)
-
-mod1 = llsi.sysid(data,'Nu','Re',(0,100,0),method='arx',settings={"lambda":1e2})
-ti1, i1 = mod1.impulse_response(plot=True)
-fig, ax = plt.subplots()
-
-# mod2 = llsi.sysid(data,'Nu','Re',3,method='firor',settings={"lambda":1e2})
-# ti2, i2 = mod1.impulse_response(plot=True)
-# fig, ax = plt.subplots()
-
-mod2 = llsi.sysid(data,'Nu','Re',(3,3,0),method='pem',settings={"init":"arx"})
-ti2, i2 = mod1.impulse_response(plot=True)
-fig, ax = plt.subplots()
-# mod2.plot_hsv(ax)
-
-# mod2 = llsi.sysid(data,'Nu','Re',(2),method='po-moesp')
-# ti2, i2 = mod1.impulse_response(plot=True)
-# fig, ax = plt.subplots()
-# mod2.plot_hsv(ax)
-
-# print(mod1.to_controllable_form())
-
-# ss = mod1.to_ss()
-# print(ss)
-
-# tf = ss.to_tf()
-# zpk = ss.to_zpk()
-# ss_ = zpk.to_ss()
-# print(ss_)
+with llsi.Figure() as fig:
+    mod1 = llsi.sysid(data,'Nu','Re',(0,100,0),method='arx',settings={"lambda":1e2})
+    mod2 = llsi.sysid(data,'Nu','Re',(3,3,0),method='pem',settings={"init":"arx"})
+    fig.plot([mod1,mod2],'impulse')
+    fig.plot({"mod":[mod1,mod2],"data":test_set,"y_name":"Nu","u_name":"Re"},'compare')
 
 if False:
     import scipy
@@ -114,22 +82,10 @@ if False:
     
     plt.legend(['discrete','cont','euler','tf', 'zpk'])
     
-    
-    
-nrmse_fit = mod1.compare(test_set['Nu'],test_set['Re'])
-print(f"NRMSE-fit: {nrmse_fit}")
-nrmse_fit = mod2.compare(test_set['Nu'],test_set['Re'])
-print(f"NRMSE-fit: {nrmse_fit}")
-
-
-
-
-# mod2, hsv = mod1.reduce_order(2)
-
 
 fig, ax = plt.subplots()
-ti1, i1 = mod1.impulse_response(plot=False)
-ti2, i2 = mod2.impulse_response(300,plot=False)
+ti1, i1 = mod1.impulse_response()
+ti2, i2 = mod2.impulse_response(300)
 plt.plot(ti1[50:], i1[50:])
 plt.plot(ti2[50:], i2[50:],'r')
 plt.grid(True)

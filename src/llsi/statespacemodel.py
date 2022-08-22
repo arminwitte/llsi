@@ -105,10 +105,6 @@ class StateSpaceModel(LTIModel):
 
         return mod
 
-    def plot_hsv(self, ax):
-        hsv = self.info["Hankel singular values"]
-        ax.bar(np.arange(0, len(hsv), 1), hsv)
-
     def to_ss(self, continuous=False, method="bilinear") -> scipy.signal.StateSpace:
         from scipy import signal
 

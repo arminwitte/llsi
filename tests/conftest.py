@@ -9,7 +9,7 @@ Created on Tue Aug 16 10:24:49 2022
 import pytest
 import scipy.stats
 
-from llsi import StateSpaceModel, SysIdData
+from llsi import PolynomialModel, StateSpaceModel, SysIdData
 
 
 def generate_data(filt, noise=0.01):
@@ -26,18 +26,29 @@ def generate_data(filt, noise=0.01):
 
 
 @pytest.fixture
-def data_siso_deterministic():
-    filt = StateSpaceModel(A=[[0.8, 0.8], [0, 0.8]], B=[1, 1], C=[1, 0], D=0, Ts=1)
-    ti, i = filt.impulse_response(plot=False)
+def ss_mod():
+    return StateSpaceModel(A=[[0.8, 0.8], [0, 0.8]], B=[1, 1], C=[1, 0], D=0, Ts=1)
+
+
+@pytest.fixture
+def poly_mod(ss_mod):
+    tf = ss_mod.to_tf()
+    return PolynomialModel(a=tf.den, b=tf.num, Ts=1)
+
+
+@pytest.fixture
+def data_siso_deterministic(ss_mod):
+    filt = ss_mod
+    ti, i = filt.impulse_response()
     data = generate_data(filt, noise=1e-9)
     data.center()
     return data
 
 
 @pytest.fixture
-def data_siso_deterministic_stochastic():
-    filt = StateSpaceModel(A=[[0.8, 0.8], [0, 0.8]], B=[1, 1], C=[1, 0], D=0, Ts=1)
-    ti, i = filt.impulse_response(plot=False)
+def data_siso_deterministic_stochastic(ss_mod):
+    filt = ss_mod
+    ti, i = filt.impulse_response()
     data = generate_data(filt, noise=0.5)
     data.center
     return data

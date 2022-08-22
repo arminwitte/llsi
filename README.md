@@ -3,6 +3,8 @@ Lightweight Linear System Identification package.
 
 llsi offers easy acess to system identification algorithms. Currently implemented are "n4sid", "PO-MOESP", and a prediction error method for state space identification ("PEM_SS") It only depeds on numpy, scipy and optionally matplotlib.
 
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+
 ## Usage
 1. Load data
 start with loading the heated wire dataset (found in the data/ folder at the root of this repo) using numpy
