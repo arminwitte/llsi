@@ -30,11 +30,12 @@ class PEM(SysIdAlgBase):
             mod.reshape(x)
             y_hat = mod.simulate(self.u)
             sse = self._sse(self.y, y_hat)
-            # print("{:10.6g}".format(sse / sse0))
+            print("{:10.6g}".format(sse / sse0))
             return sse / sse0
 
         x0 = mod.vectorize()
-        res = scipy.optimize.minimize(fun, x0)
+        method = self.settings.get("minimizer", "BFGS")
+        res = scipy.optimize.minimize(fun, x0, method=method)
         # res = scipy.optimize.minimize(fun,x0,method='nelder-mead')
         # res = scipy.optimize.minimize(fun,x0,method='BFGS')
 
