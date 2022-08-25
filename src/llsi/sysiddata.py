@@ -151,16 +151,16 @@ class SysIdData:
         )
         return next_code
 
-    @classmethod
-    def from_excel(cls, filename, column_names=None):
-        import pandas as pd
+    # @classmethod
+    # def from_excel(cls, filename, column_names=None):
+    #     import pandas as pd
 
-        data = pd.read_excel(filename)
-        d = {}
-        for key in data.columns:
-            if key in column_names or column_names is None:
-                d[key] = data[key]
-                N = data[key].values.shape[0]
-        t = np.arange(0, N, 1)
-        sysiddata = cls(t=t, **d)
-        return sysiddata
+    #     data = pd.read_excel(filename)
+    #     d = {}
+    #     for key in data.columns:
+    #         if key in column_names or column_names is None:
+    #             d[key] = data[key]
+    #             N = data[key].values.shape[0]
+    #     t = np.arange(0, N, 1)
+    #     sysiddata = cls(t=t, **d)
+    #     return sysiddata

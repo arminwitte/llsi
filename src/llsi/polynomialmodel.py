@@ -45,13 +45,15 @@ class PolynomialModel(LTIModel):
                 if i - j - nk >= 0 and j < nb:
                     y[i] += b[j] * u[i - j - nk]
             for j in range(1, i + 1):
-                if i - j >= 0 and j < na:
-                    y[i] -= a[j] * y[i - j]
+                if i - j >= 0 and j < na:            
+                    with np.errstate(over="ignore", invalid="ignore"):
+                        y[i] -= a[j] * y[i - j]
 
         # vectorize for speed
         for i in range(n, N):
-            y[i] += b.T @ u[i - nk : i - nb - nk : -1]
-            y[i] -= a.T[1:] @ y[i - 1 : i - 1 - (na - 1) : -1]
+            with np.errstate(over="ignore", invalid="ignore"):
+                y[i] += b.T @ u[i - nk : i - nb - nk : -1]
+                y[i] -= a.T[1:] @ y[i - 1 : i - 1 - (na - 1) : -1]
         return y
 
     def vectorize(self):

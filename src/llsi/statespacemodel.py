@@ -82,8 +82,9 @@ class StateSpaceModel(LTIModel):
         y = []
         for u_ in u:
             x = x1
-            x1 = self.A @ x + self.B * u_
-            y_ = self.C @ x + self.D * u_
+            with np.errstate(over="ignore", invalid="ignore"):
+                x1 = self.A @ x + self.B * u_
+                y_ = self.C @ x + self.D * u_
             y.append(y_[0])
 
         return np.array(y).ravel()

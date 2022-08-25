@@ -26,9 +26,12 @@ def test_init():
     assert ss.Ts == 1.0
 
 
-def test_vectorize(model):
-    theta = model.vectorize()
-    np.testing.assert_allclose(theta, [0.8, 0.8, 0.0, 0.8, 1.0, 1.0, 1.0, 0.0, 0.0])
+def test_vectorize(ss_mod):
+    theta = ss_mod.vectorize()
+    print(theta)
+    np.testing.assert_allclose(
+        theta, [1.66, -0.83, 1.0, 0.0, 1.0, 0.0, 3.66, 0.17, 1.0]
+    )
 
 
 def test_reshape(model):
@@ -104,45 +107,65 @@ def test_step(model):
     )
 
 
-def test_to_ss(model):
-    ss = model.to_ss()
+def test_to_ss(ss_mod):
+    ss = ss_mod.to_ss()
     assert isinstance(ss, scipy.signal.StateSpace)
-    np.testing.assert_allclose(ss.A, [[0.8, 0.8], [0.0, 0.8]])
+    tf = ss.to_tf()
+    ss = tf.to_ss()
+    print(ss.A)
+    np.testing.assert_allclose(ss.A, [[1.66, -0.83], [1.0, 0.0]])
 
 
-def test_to_ss_continuous(model):
-    ss = model.to_ss(continuous=True)
+def test_to_ss_continuous(ss_mod):
+    ss = ss_mod.to_ss(continuous=True)
     assert isinstance(ss, scipy.signal.StateSpace)
-    np.testing.assert_allclose(ss.A, [[-0.22222222, 0.98765432], [0.0, -0.22222222]])
+
+    print(ss.A)
+    np.testing.assert_allclose(
+        ss.A, [[0.85386819, -0.9512894], [1.14613181, -1.0487106]]
+    )
 
 
-def test_to_ss_continuous_euler(model):
-    ss = model.to_ss(continuous=True, method="euler")
+#     tf = ss.to_tf()
+#     ss = tf.to_ss()
+#     np.testing.assert_allclose(ss.A, [[-0.19484241, -0.19484241],
+#  [ 1.,          0.        ]]
+# )
+
+
+def test_to_ss_continuous_euler(ss_mod):
+    ss = ss_mod.to_ss(continuous=True, method="euler")
     assert isinstance(ss, scipy.signal.StateSpace)
-    np.testing.assert_allclose(ss.A, [[-0.2, 0.8], [0.0, -0.2]])
+    print(ss.A)
+    np.testing.assert_allclose(ss.A, [[0.66, -0.83], [1.0, -1.0]])
+
+    tf = ss.to_tf()
+    ss = tf.to_ss()
+    np.testing.assert_allclose(ss.A, [[-0.34, -0.17], [1.0, 0.0]])
 
 
-def test_to_tf(model):
-    tf = model.to_tf()
+def test_to_tf(ss_mod):
+    tf = ss_mod.to_tf()
     assert isinstance(tf, scipy.signal.TransferFunction)
-    np.testing.assert_allclose(tf.den, [1.0, -1.6, 0.64])
+    np.testing.assert_allclose(tf.den, [1.0, -1.66, 0.83])
 
 
-def test_to_zpk(model):
-    zpk = model.to_zpk()
+def test_to_zpk(ss_mod):
+    zpk = ss_mod.to_zpk()
     assert isinstance(zpk, scipy.signal.ZerosPolesGain)
-    np.testing.assert_allclose(zpk.poles, [0.8 + 0.0j, 0.8 - 0.0j])
+    print(zpk.poles)
+    np.testing.assert_allclose(zpk.poles, [0.83 + 0.3756328j, 0.83 - 0.3756328j])
 
 
-def test_to_controllable_form(model):
-    ss = model.to_controllable_form()
+def test_to_controllable_form(ss_mod):
+    ss = ss_mod.to_controllable_form()
     assert isinstance(ss, StateSpaceModel)
-    np.testing.assert_allclose(ss.A, [[1.6, -0.64], [1.0, 0.0]])
+    np.testing.assert_allclose(ss.A, [[1.66, -0.83], [1.0, 0.0]])
 
 
-def test_reduce_order(model):
-    red_mod, s = model.reduce_order(1)
+def test_reduce_order(ss_mod):
+    red_mod, s = ss_mod.reduce_order(1)
     print(red_mod.A)
-    np.testing.assert_allclose(red_mod.A, [[0.92569829]])
+    np.testing.assert_allclose(red_mod.A, [[0.84831905]])
     print(s)
-    np.testing.assert_allclose(s, [15.166669, 2.512348])
+    np.testing.assert_allclose(s, [33.17635127, 21.41164539])

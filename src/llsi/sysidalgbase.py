@@ -8,7 +8,7 @@ Created on Sun Apr  4 20:47:33 2021
 
 from abc import ABC, abstractmethod, abstractstaticmethod
 
-# import numpy as np
+import numpy as np
 
 
 class SysIdAlgBase(ABC):
@@ -29,4 +29,6 @@ class SysIdAlgBase(ABC):
     @staticmethod
     def _sse(y, y_hat):
         e = y - y_hat
-        return e.T @ e
+        with np.errstate(over="ignore", invalid="ignore"):
+            sse = e.T @ e
+        return sse

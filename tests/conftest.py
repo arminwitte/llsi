@@ -15,12 +15,12 @@ from llsi import PolynomialModel, StateSpaceModel, SysIdData
 
 def generate_data(filt, noise=0.01):
     t, u = SysIdData.generate_prbs(10000, 1.0)
-    
+
     # generate seed
     gen = np.random.Generator(np.random.PCG64(42))
     norm = scipy.stats.norm
-    norm.random_state=gen
-    
+    norm.random_state = gen
+
     e = noise * norm.rvs(size=10000)
 
     y = filt.simulate(u) + e
