@@ -73,11 +73,12 @@ def test_downsample():
         data["u"][14:17], [0.206036, 0.59716, 0.923016], rtol=1e-6
     )
 
+
 def test_lowpass():
     t, u = SysIdData.generate_prbs(1000, 1.0)
     data = SysIdData(t=t, u=u)
     data.equidistant()
-    data.lowpass(1,0.1)
+    data.lowpass(1, 0.1)
     print(data["u"][21:25])
     np.testing.assert_allclose(
         data["u"][21:25], [0.99999947, 0.75476245, 0.62980795, 0.56614046], rtol=1e-6

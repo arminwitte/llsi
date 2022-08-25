@@ -45,7 +45,7 @@ class PolynomialModel(LTIModel):
                 if i - j - nk >= 0 and j < nb:
                     y[i] += b[j] * u[i - j - nk]
             for j in range(1, i + 1):
-                if i - j >= 0 and j < na:            
+                if i - j >= 0 and j < na:
                     with np.errstate(over="ignore", invalid="ignore"):
                         y[i] -= a[j] * y[i - j]
 
