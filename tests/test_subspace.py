@@ -11,37 +11,32 @@ import numpy as np
 from llsi.subspace import N4SID, PO_MOESP
 
 
-def test_n4sid(data_siso_deterministic):
+def test_n4sid(data_siso_deterministic, ss_mod):
     identifyer = N4SID(data_siso_deterministic, "y", "u")
     mod = identifyer.ident(2)
     print(mod.info["Hankel singular values"])
     np.testing.assert_allclose(
         mod.info["Hankel singular values"],
-        [6.34829911e02, 7.96860814e01, 1.47245544e-01, 5.67247918e-09, 3.30006332e-09],
-        rtol=1e-6,
+        [1.44074715e+03, 7.11128485e+02, 2.03261693e-01, 3.69458451e-09,
+ 3.36570175e-09], rtol=1e-6,
         atol=1e-6,
     )
     np.testing.assert_allclose(
-        mod.to_controllable_form().A, [[1.6, -0.64], [1.0, 0.0]], rtol=1e-1, atol=1e-1
+        mod.to_controllable_form().A, ss_mod.A, rtol=1e-1, atol=1e-1
     )
 
 
-def test_po_moesp(data_siso_deterministic):
+def test_po_moesp(data_siso_deterministic, ss_mod):
     identifyer = PO_MOESP(data_siso_deterministic, "y", "u")
     mod = identifyer.ident(2)
     print(mod.info["Hankel singular values"])
     np.testing.assert_allclose(
         mod.info["Hankel singular values"],
-        [
-            6.34705690e-02,
-            7.96133156e-03,
-            1.47245160e-05,
-            4.94276398e-13,
-            3.86270211e-13,
-        ],
+        [1.43920126e-01, 7.10890502e-02, 2.03261254e-05, 2.97663946e-13,
+ 2.06566781e-13],
         rtol=1e-6,
         atol=1e-6,
     )
     np.testing.assert_allclose(
-        mod.to_controllable_form().A, [[1.6, -0.64], [1.0, 0.0]], rtol=1e-3, atol=1e-3
+        mod.to_controllable_form().A, ss_mod.A, rtol=1e-3, atol=1e-3
     )

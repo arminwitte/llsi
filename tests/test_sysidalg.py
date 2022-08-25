@@ -132,7 +132,7 @@ def test_fir_deterministic(data_siso_deterministic, poly_mod):
 
 
 def test_oe_deterministic(data_siso_deterministic, poly_mod):
-    mod = sysid(data_siso_deterministic, "y", "u", (2, 3, 0), method="oe")
+    mod = sysid(data_siso_deterministic, "y", "u", (2, 3, 0), method="oe", settings={"minimizer":"powell"})
 
     # parameters
     np.testing.assert_allclose(mod.a, poly_mod.a, rtol=1e-5, atol=1e-5)

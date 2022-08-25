@@ -11,27 +11,27 @@ import numpy as np
 from llsi.arx import ARX
 
 
-def test_arx(data_siso_deterministic):
+def test_arx(data_siso_deterministic, poly_mod):
     identifyer = ARX(data_siso_deterministic, "y", "u")
     mod = identifyer.ident((2, 3, 0))
     print(mod.a)
-    np.testing.assert_allclose(mod.a, [1.0, -1.6, 0.64], rtol=1e-5, atol=1e-5)
+    np.testing.assert_allclose(mod.a, poly_mod.a, rtol=1e-5, atol=1e-5)
 
 
-def test_arx_regul(data_siso_deterministic):
+def test_arx_regul(data_siso_deterministic, poly_mod):
     identifyer = ARX(data_siso_deterministic, "y", "u", settings={"lambda": 1e-3})
     mod = identifyer.ident((2, 3, 0))
     print(mod.a)
-    np.testing.assert_allclose(mod.a, [1.0, -1.6, 0.64], rtol=1e-5, atol=1e-5)
+    np.testing.assert_allclose(mod.a, poly_mod.a, rtol=1e-5, atol=1e-5)
 
 
-def test_arx_cov(data_siso_deterministic_stochastic):
+def test_arx_cov(data_siso_deterministic_stochastic, poly_mod):
     identifyer = ARX(
         data_siso_deterministic_stochastic, "y", "u", settings={"lambda": 1e-3}
     )
     mod = identifyer.ident((2, 3, 0))
     print(mod.a)
-    np.testing.assert_allclose(mod.a, [1.0, -0.76, -0.16], rtol=1e-1, atol=1e-1)
+    np.testing.assert_allclose(mod.a, poly_mod.a, rtol=1e-1, atol=1e-1)
     print(mod.cov)
     np.testing.assert_allclose(
         mod.cov,
@@ -77,7 +77,7 @@ def test_arx_cov(data_siso_deterministic_stochastic):
     )
 
 
-def test_arx_pinv(data_siso_deterministic_stochastic):
+def test_arx_pinv(data_siso_deterministic_stochastic, poly_mod):
     identifyer = ARX(
         data_siso_deterministic_stochastic,
         "y",
@@ -86,7 +86,7 @@ def test_arx_pinv(data_siso_deterministic_stochastic):
     )
     mod = identifyer.ident((2, 3, 0))
     print(mod.a)
-    np.testing.assert_allclose(mod.a, [1.0, -0.76, -0.16], rtol=1e-1, atol=1e-1)
+    np.testing.assert_allclose(mod.a, poly_mod.a, rtol=1e-1, atol=1e-1)
     print(mod.cov)
     np.testing.assert_allclose(
         mod.cov,
@@ -132,7 +132,7 @@ def test_arx_pinv(data_siso_deterministic_stochastic):
     )
 
 
-def test_arx_lstsq(data_siso_deterministic_stochastic):
+def test_arx_lstsq(data_siso_deterministic_stochastic, poly_mod):
     identifyer = ARX(
         data_siso_deterministic_stochastic,
         "y",
@@ -141,7 +141,7 @@ def test_arx_lstsq(data_siso_deterministic_stochastic):
     )
     mod = identifyer.ident((2, 3, 0))
     print(mod.a)
-    np.testing.assert_allclose(mod.a, [1.0, -0.76, -0.16], rtol=1e-1, atol=1e-1)
+    np.testing.assert_allclose(mod.a, poly_mod.a, rtol=1e-1, atol=1e-1)
     print(mod.cov)
     np.testing.assert_allclose(
         mod.cov,
@@ -187,7 +187,7 @@ def test_arx_lstsq(data_siso_deterministic_stochastic):
     )
 
 
-def test_arx_qr(data_siso_deterministic_stochastic):
+def test_arx_qr(data_siso_deterministic_stochastic, poly_mod):
     identifyer = ARX(
         data_siso_deterministic_stochastic,
         "y",
@@ -196,7 +196,7 @@ def test_arx_qr(data_siso_deterministic_stochastic):
     )
     mod = identifyer.ident((2, 3, 0))
     print(mod.a)
-    np.testing.assert_allclose(mod.a, [1.0, -0.76, -0.16], rtol=1e-1, atol=1e-1)
+    np.testing.assert_allclose(mod.a, poly_mod.a, rtol=1e-1, atol=1e-1)
     print(mod.cov)
     np.testing.assert_allclose(
         mod.cov,
