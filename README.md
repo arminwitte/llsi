@@ -1,9 +1,10 @@
 # llsi
 Lightweight Linear System Identification package.
 
-llsi offers easy acess to system identification algorithms. Currently implemented are "n4sid", "PO-MOESP", and a prediction error method for state space identification ("PEM_SS") It only depeds on numpy, scipy and optionally matplotlib.
+llsi offers easy acess to system identification algorithms. Currently implemented are *n4sid*, *PO-MOESP* for state space identification, and *arx* for the identification of transfer function models. Additionally, a prediction error method (*pem*) exists for the identification of output-error (*oe*) models or iterative improvement of state-space models. llsi only depeds on numpy, scipy and optionally matplotlib.
 
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![Imports: isort](https://img.shields.io/badge/%20imports-isort-%231674b1?style=flat&labelColor=ef8336)](https://pycqa.github.io/isort/)
 
 ## Usage
 ### Identification
