@@ -9,6 +9,7 @@ Created on Mon Apr  5 00:40:00 2021
 from abc import ABC, abstractmethod
 
 import numpy as np
+import scipy.signal
 
 
 class LTIModel(ABC):
@@ -72,6 +73,31 @@ class LTIModel(ABC):
         else:
             raise ValueError(f"Unknown normalization method {normalization}")
         return nrmse
+
+    @staticmethod
+    def residual_analysis(self, y, y_hat):
+        e = LTIModel.residuals(y, y_hat)
+
+        pass
+
+    @staticmethod
+    def crosscorrelation(a, b, N=10):
+        corr = scipy.signal.correlate(a, b)
+        lags = scipy.signal.correlation_lags(len(a), len(b))
+        corr /= np.max(corr)
+        zero = len(corr) // 2
+
+        return lags[zero - N : zero + N + 1], corr[zero - N : zero + N + 1]
+        # return lags, corr
+
+    @staticmethod
+    def autocorrelation(a, N=10):
+        corr = scipy.signal.correlate(a, a)
+        lags = scipy.signal.correlation_lags(len(a), len(a))
+        corr /= np.max(corr)
+        zero = len(corr) // 2
+
+        return lags[zero : zero + N + 1], corr[zero : zero + N + 1]
 
     @abstractmethod
     def simulate(u):

@@ -26,6 +26,8 @@ class Figure:
             "hsv": self._hsv,
             "time_series": self._time_series,
             "compare": self._compare,
+            "autocorr": self._autocorr,
+            "crosscorr": self._crosscorr,
         }
 
         self.figsize = figsize
@@ -141,3 +143,42 @@ class Figure:
         ax.legend()
         ax.set_ylabel("time")
         ax.set_ylabel(y_name)
+
+    @staticmethod
+    def _autocorr(fig, ax, obj):
+
+        mods = obj.get("mod")
+        data = obj.get("data")
+        y_name = obj.get("y_name")
+        u_name = obj.get("u_name")
+
+        for m in mods:
+            y_hat = m.simulate(data[u_name])
+            e = m.residuals(data[y_name], y_hat)
+            lags, corr = m.autocorrelation(e)
+            ax.stem(lags, corr, label="autocorrelation")
+
+        ax.set_title("Comparison")
+        ax.legend()
+        ax.set_ylabel("time")
+        ax.set_ylabel(y_name)
+
+    @staticmethod
+    def _crosscorr(fig, ax, obj):
+
+        mods = obj.get("mod")
+        data = obj.get("data")
+        y_name = obj.get("y_name")
+        u_name = obj.get("u_name")
+
+        for m in mods:
+            y_hat = m.simulate(data[u_name])
+            e = m.residuals(data[y_name], y_hat)
+            lags, corr = m.crosscorrelation(e, y_hat)
+            ax.stem(lags, corr, label="crosscorrelation")
+
+        ax.set_title("Crosscorrelation")
+        ax.legend()
+        # ax.set_ylabel("time")
+        ax.set_xlabel("lag")
+        # ax.set_ylabel(y_name)

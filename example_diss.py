@@ -32,9 +32,12 @@ import matplotlib.pyplot as plt
 
 with llsi.Figure() as fig:
     mod1 = llsi.sysid(data,'Nu','Re',(0,100,0),method='arx',settings={"lambda":1e2})
-    mod2 = llsi.sysid(data,'Nu','Re',(3,3,0),method='pem',settings={"init":"arx"})
+    mod2 = llsi.sysid(data,'Nu','Re',(2),method='po-moesp')
+    # mod2 = llsi.sysid(data,'Nu','Re',(3,3,0),method='pem',settings={"init":"arx"})
     fig.plot([mod1,mod2],'impulse')
     fig.plot({"mod":[mod1,mod2],"data":test_set,"y_name":"Nu","u_name":"Re"},'compare')
+    fig.plot({"mod":[mod1,mod2],"data":test_set,"y_name":"Nu","u_name":"Re"},'autocorr')
+    fig.plot({"mod":[mod1,mod2],"data":test_set,"y_name":"Nu","u_name":"Re"},'crosscorr')
 
 if False:
     import scipy

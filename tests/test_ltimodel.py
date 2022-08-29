@@ -7,7 +7,6 @@ Created on Sun Aug  7 00:01:33 2022
 """
 import numpy as np
 import pytest
-import scipy.signal
 
 from llsi.ltimodel import LTIModel
 
@@ -52,3 +51,24 @@ def test_MSE(e):
 def test_RMSE(e):
     print(LTIModel.RMSE(e))
     np.testing.assert_allclose(LTIModel.RMSE(e), [0.1])
+
+
+def test_crosscorrelation(e):
+    a = np.array([-1.0, 1.0, -1.0, 1.0, -1.0, 1.0, -1.0, 1.0, -1.0, 1.0])
+    b = np.array([-1.0, 1.0, -1.0, -1.0, 1.0, -1.0, -1.0, -1.0, 1.0, 1.0])
+    lags, corr = LTIModel.crosscorrelation(a, b, N=3)
+    print(lags)
+    print(corr)
+    np.testing.assert_allclose(lags, [-3, -2, -1, 0, 1, 2, 3])
+    np.testing.assert_allclose(
+        corr, [1.0, -0.66666667, 0.33333333, 0.0, 0.33333333, 0.0, -0.33333333]
+    )
+
+
+def test_autocorrelation(e):
+    b = np.array([-1.0, 1.0, -1.0, -1.0, 1.0, -1.0, -1.0, -1.0, 1.0, 1.0])
+    lags, corr = LTIModel.autocorrelation(b, N=3)
+    print(lags)
+    print(corr)
+    np.testing.assert_allclose(lags, [0, 1, 2, 3])
+    np.testing.assert_allclose(corr, [1.0, -0.1, -0.2, 0.1])

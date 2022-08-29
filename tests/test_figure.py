@@ -44,3 +44,10 @@ def test_data(data_siso_deterministic_stochastic):
         fig.plot([data_siso_deterministic_stochastic])
 
     assert isinstance(fig.fig, plt.Figure)
+
+
+def test_data(data_siso_deterministic_stochastic):
+    with Figure() as fig:
+        fig.plot([data_siso_deterministic_stochastic])
+
+    assert isinstance(fig.fig, plt.Figure)
