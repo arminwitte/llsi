@@ -46,8 +46,46 @@ def test_data(data_siso_deterministic_stochastic):
     assert isinstance(fig.fig, plt.Figure)
 
 
-def test_data(data_siso_deterministic_stochastic):
+def test_autocorr(data_siso_deterministic_stochastic, ss_mod):
     with Figure() as fig:
-        fig.plot([data_siso_deterministic_stochastic])
+        fig.plot(
+            {
+                "mod": [ss_mod],
+                "data": data_siso_deterministic_stochastic,
+                "y_name": "y",
+                "u_name": "u",
+            },
+            "autocorr",
+        )
+
+    assert isinstance(fig.fig, plt.Figure)
+
+
+def test_crosscorr(data_siso_deterministic_stochastic, ss_mod):
+    with Figure() as fig:
+        fig.plot(
+            {
+                "mod": [ss_mod],
+                "data": data_siso_deterministic_stochastic,
+                "y_name": "y",
+                "u_name": "u",
+            },
+            "crosscorr",
+        )
+
+    assert isinstance(fig.fig, plt.Figure)
+
+
+def test_compare(data_siso_deterministic_stochastic, ss_mod, poly_mod):
+    with Figure() as fig:
+        fig.plot(
+            {
+                "mod": [ss_mod, poly_mod],
+                "data": data_siso_deterministic_stochastic,
+                "y_name": "y",
+                "u_name": "u",
+            },
+            "compare",
+        )
 
     assert isinstance(fig.fig, plt.Figure)

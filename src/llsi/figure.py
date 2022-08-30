@@ -19,6 +19,7 @@ class Figure:
         self.objects = []
         self.plot_types = []
         self.place = []
+        self.colors = []
 
         self.registry = {
             "impulse": self._impulse,
@@ -33,6 +34,9 @@ class Figure:
         self.figsize = figsize
         self.counter = 0
 
+        # prop_cycle = plt.rcParams['axes.prop_cycle']
+        # self.colors = prop_cycle.by_key()['color']
+
     def __enter__(self):
         return self
 
@@ -46,6 +50,7 @@ class Figure:
             plot_type = self.plot_types[i]
             obj = self.objects[i]
             ind = self.place[i]
+            color = self.colors[i]
 
             # handle default cases
             if not plot_type:
@@ -70,7 +75,7 @@ class Figure:
                 ax = self.ax[int(np.floor(ind / 2)), ind % 2]
 
             # call plotting method
-            fun(self.fig, ax, obj)
+            fun(self.fig, ax, obj, color)
 
         plt.plot()
 
@@ -78,18 +83,23 @@ class Figure:
         if not isinstance(obj, (list, tuple)):
             obj = [obj]
 
+        obj_counter = 0
         for o in obj:
             self.objects.append(o)
             self.plot_types.append(plot_type)
             self.place.append(self.counter)
+            self.colors.append(obj_counter)
+            obj_counter += 1
 
         self.counter += 1
 
     @staticmethod
-    def _impulse(fig, ax, lti_mod):
+    def _impulse(fig, ax, lti_mod, color):
         if isinstance(lti_mod, LTIModel):
             t, y = lti_mod.impulse_response()
-            ax.stem(t, y)
+            markerfmt = "".join(("C", str(color), "o"))
+            markerline, stemlines, baseline = ax.stem(t, y, markerfmt=markerfmt)
+            plt.setp(stemlines, "color", plt.getp(markerline, "color"))
 
             # Add some text for labels, title and custom x-axis tick labels, etc.
             # ax.set_ylabel('Scores')
@@ -98,14 +108,14 @@ class Figure:
             # ax.legend()
 
     @staticmethod
-    def _step(fig, ax, lti_mod):
+    def _step(fig, ax, lti_mod, color):
         if isinstance(lti_mod, LTIModel):
             t, y = lti_mod.step_response()
             ax.step(t, y)
             ax.set_title("Step response")
 
     @staticmethod
-    def _hsv(fig, ax, ss_mod):
+    def _hsv(fig, ax, ss_mod, color):
         if isinstance(ss_mod, StateSpaceModel):
             hsv = ss_mod.info["Hankel singular values"]
             hsv_scaled = hsv / np.sum(hsv)
@@ -113,7 +123,7 @@ class Figure:
             ax.set_title("Hankel Singular Values")
 
     @staticmethod
-    def _time_series(fig, ax, data):
+    def _time_series(fig, ax, data, color):
         t = data.time()
 
         for key, val in data.series.items():
@@ -124,7 +134,7 @@ class Figure:
         ax.set_ylabel("time")
 
     @staticmethod
-    def _compare(fig, ax, obj):
+    def _compare(fig, ax, obj, color):
 
         mods = obj.get("mod")
         data = obj.get("data")
@@ -145,18 +155,24 @@ class Figure:
         ax.set_ylabel(y_name)
 
     @staticmethod
-    def _autocorr(fig, ax, obj):
+    def _autocorr(fig, ax, obj, color):
 
         mods = obj.get("mod")
         data = obj.get("data")
         y_name = obj.get("y_name")
         u_name = obj.get("u_name")
 
+        color = 0
         for m in mods:
             y_hat = m.simulate(data[u_name])
             e = m.residuals(data[y_name], y_hat)
             lags, corr = m.autocorrelation(e)
-            ax.stem(lags, corr, label="autocorrelation")
+            markerfmt = "".join(("C", str(color), "o"))
+            markerline, stemlines, baseline = ax.stem(
+                lags, corr, label="autocorrelation", markerfmt=markerfmt
+            )
+            plt.setp(stemlines, "color", plt.getp(markerline, "color"))
+            color += 1
 
         ax.set_title("Comparison")
         ax.legend()
@@ -164,18 +180,24 @@ class Figure:
         ax.set_ylabel(y_name)
 
     @staticmethod
-    def _crosscorr(fig, ax, obj):
+    def _crosscorr(fig, ax, obj, color):
 
         mods = obj.get("mod")
         data = obj.get("data")
         y_name = obj.get("y_name")
         u_name = obj.get("u_name")
 
+        color = 0
         for m in mods:
             y_hat = m.simulate(data[u_name])
             e = m.residuals(data[y_name], y_hat)
             lags, corr = m.crosscorrelation(e, y_hat)
-            ax.stem(lags, corr, label="crosscorrelation")
+            markerfmt = "".join(("C", str(color), "o"))
+            markerline, stemlines, baseline = ax.stem(
+                lags, corr, label="crosscorrelation", markerfmt=markerfmt
+            )
+            plt.setp(stemlines, "color", plt.getp(markerline, "color"))
+            color += 1
 
         ax.set_title("Crosscorrelation")
         ax.legend()
