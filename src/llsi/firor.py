@@ -18,10 +18,9 @@ class FIROR(SysIdAlgBase):
         l = self.settings.get("lambda", 1e-3)
         self.alg_inst = alg(data, y_name, u_name, settings={"lambda": l})
 
-    def ident(self, order):
+    def _ident(self, order):
         fir_order = self.settings.get("fir_order", 100)
-        mod = self.alg_inst.ident((0, fir_order, 0))
-
+        mod = self.alg_inst._ident((0, fir_order, 0))
         red_mod = StateSpaceModel.from_fir(mod)
         red_mod, s = red_mod.reduce_order(order)
         print("s: ", s)

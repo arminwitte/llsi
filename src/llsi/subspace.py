@@ -37,7 +37,7 @@ class N4SID(SubspaceIdent):
         # estimate extended observability matrix and states. Then estimate A, B, C, and D in one go.
         # (Tangirala 2014)
 
-    def ident(self, order):
+    def _ident(self, order):
         if isinstance(order, (tuple, list)):
             n = order[0]
         else:
@@ -110,7 +110,7 @@ class PO_MOESP(SubspaceIdent):
         # estimate extended observability matrix and states. Then estimate A, B, C, and D in one go.
         # (Tangirala 2014)
 
-    def ident(self, order):
+    def _ident(self, order):
         # Tangirala 2014
         # Algorithm 23.3
         if isinstance(order, (tuple, list)):

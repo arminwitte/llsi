@@ -21,8 +21,8 @@ class PEM(SysIdAlgBase):
         # alg = sysidalg.get_creator('n4sid')
         self.alg_inst = alg(data, y_name, u_name)
 
-    def ident(self, order):
-        mod = self.alg_inst.ident(order)
+    def _ident(self, order):
+        mod = self.alg_inst._ident(order)
         y_hat = mod.simulate(self.u)
         sse0 = self._sse(self.y, y_hat)
 
@@ -42,7 +42,11 @@ class PEM(SysIdAlgBase):
 
         mod.reshape(res.x)
 
-        J = scipy.optimize.approx_fprime(res.x, fun).reshape(1, -1)
+        try:
+            J = res.jac.reshape(1, -1)
+        except AttributeError:
+            J = scipy.optimize.approx_fprime(res.x, fun).reshape(1, -1)
+
         var_e = np.var(self.y - mod.simulate(self.u))
         mod.cov = var_e * (J.T @ J)
 

@@ -142,12 +142,13 @@ class Figure:
         u_name = obj.get("u_name")
 
         t = data.time()
-        ax.plot(t, data[y_name], label="orig.")
 
         for m in mods:
             y_hat = m.simulate(data[u_name])
             fit = m.compare(data[y_name], data[u_name])
             ax.plot(t, y_hat, label=f"model (NRMSE-fit={fit:.3f})")
+
+        ax.plot(t, data[y_name], "k", label="orig.")
 
         ax.set_title("Comparison")
         ax.legend()

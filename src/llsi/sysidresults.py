@@ -6,22 +6,24 @@ Created on Sun Aug 28 11:25:22 2022
 @author: armin
 """
 
-from typing import TypedDict
+# from typing import TypedDict, Union
 
-import numpy as np
+# import numpy as np
 
-from .polynomialmodel import PolynomialModel
-from .statespacemodel import StateSpaceModel
+# from .polynomialmodel import PolynomialModel
+# from .statespacemodel import StateSpaceModel
+# from .ltimodel import LTIModel
+
+# class SysIdResultsDict(TypedDict):
+#     mod: LTIModel#Union(StateSpaceModel,PolynomialModel)
+#     residuals: np.ndarray
+#     message: str
+#     success: bool
 
 
-class SysIdResultsDict(TypedDict):
-    mod: StateSpaceModel | PolynomialModel
-    residuals: np.ndarray
-    message: str
-
-
-# class SysIdResults:
-#     def __init__(self, **kwargs):
-#         self.mod = kwargs.get("mod")
-#         self.residuals = kwargs.get("residuals")
-#         self.message = kwargs.get("message")
+class SysIdResults:
+    def __init__(self, **kwargs):
+        self.mod = kwargs.get("mod")
+        self.residuals = kwargs.get("residuals")
+        self.message = kwargs.get("message", "")
+        self.success = kwargs.get("success", False)

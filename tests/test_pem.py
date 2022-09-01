@@ -18,7 +18,8 @@ def test_pem_ss(data_siso_deterministic, ss_mod):
         "u",
         settings={"init": "po-moesp", "minimizer": "BFGS"},
     )
-    mod = identifyer.ident(2)
+    res = identifyer.ident(2)
+    mod = res.mod
     mod = mod.to_controllable_form()
     print(mod.A)
     np.testing.assert_allclose(mod.A, ss_mod.A, rtol=1e-3, atol=1e-3)
@@ -31,6 +32,7 @@ def test_oe(data_siso_deterministic_stochastic, poly_mod):
         "u",
         settings={"minimizer": "BFGS"},
     )
-    mod = identifyer.ident((2, 3, 0))
+    res = identifyer.ident((2, 3, 0))
+    mod = res.mod
     print(mod.a)
     np.testing.assert_allclose(mod.a, poly_mod.a, rtol=1e-1, atol=1e-1)

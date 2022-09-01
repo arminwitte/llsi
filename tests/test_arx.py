@@ -13,14 +13,16 @@ from llsi.arx import ARX
 
 def test_arx(data_siso_deterministic, poly_mod):
     identifyer = ARX(data_siso_deterministic, "y", "u")
-    mod = identifyer.ident((2, 3, 0))
+    res = identifyer.ident((2, 3, 0))
+    mod = res.mod
     print(mod.a)
     np.testing.assert_allclose(mod.a, poly_mod.a, rtol=1e-5, atol=1e-5)
 
 
 def test_arx_regul(data_siso_deterministic, poly_mod):
     identifyer = ARX(data_siso_deterministic, "y", "u", settings={"lambda": 1e-3})
-    mod = identifyer.ident((2, 3, 0))
+    res = identifyer.ident((2, 3, 0))
+    mod = res.mod
     print(mod.a)
     np.testing.assert_allclose(mod.a, poly_mod.a, rtol=1e-5, atol=1e-5)
 
@@ -29,7 +31,8 @@ def test_arx_cov(data_siso_deterministic_stochastic, poly_mod):
     identifyer = ARX(
         data_siso_deterministic_stochastic, "y", "u", settings={"lambda": 1e-3}
     )
-    mod = identifyer.ident((2, 3, 0))
+    res = identifyer.ident((2, 3, 0))
+    mod = res.mod
     print(mod.a)
     np.testing.assert_allclose(mod.a, poly_mod.a, rtol=1e-1, atol=1e-1)
     print(mod.cov)
@@ -84,7 +87,8 @@ def test_arx_pinv(data_siso_deterministic_stochastic, poly_mod):
         "u",
         settings={"lstsq_method": "pinv"},
     )
-    mod = identifyer.ident((2, 3, 0))
+    res = identifyer.ident((2, 3, 0))
+    mod = res.mod
     print(mod.a)
     np.testing.assert_allclose(mod.a, poly_mod.a, rtol=1e-1, atol=1e-1)
     print(mod.cov)
@@ -139,7 +143,8 @@ def test_arx_lstsq(data_siso_deterministic_stochastic, poly_mod):
         "u",
         settings={"lstsq_method": "lstsq"},
     )
-    mod = identifyer.ident((2, 3, 0))
+    res = identifyer.ident((2, 3, 0))
+    mod = res.mod
     print(mod.a)
     np.testing.assert_allclose(mod.a, poly_mod.a, rtol=1e-1, atol=1e-1)
     print(mod.cov)
@@ -194,7 +199,8 @@ def test_arx_qr(data_siso_deterministic_stochastic, poly_mod):
         "u",
         settings={"lstsq_method": "qr"},
     )
-    mod = identifyer.ident((2, 3, 0))
+    res = identifyer.ident((2, 3, 0))
+    mod = res.mod
     print(mod.a)
     np.testing.assert_allclose(mod.a, poly_mod.a, rtol=1e-1, atol=1e-1)
     print(mod.cov)

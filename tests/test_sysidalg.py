@@ -18,7 +18,8 @@ from llsi import sysid
 
 
 def test_n4sid_deterministic(data_siso_deterministic, ss_mod):
-    mod = sysid(data_siso_deterministic, "y", "u", (2), method="n4sid")
+    res = sysid(data_siso_deterministic, "y", "u", (2), method="n4sid")
+    mod = res.mod
 
     # parameters
     mod_ = mod.to_controllable_form()
@@ -39,7 +40,8 @@ def test_n4sid_deterministic(data_siso_deterministic, ss_mod):
 
 
 def test_po_moesp_deterministic(data_siso_deterministic, ss_mod):
-    mod = sysid(data_siso_deterministic, "y", "u", (2), method="po-moesp")
+    res = sysid(data_siso_deterministic, "y", "u", (2), method="po-moesp")
+    mod = res.mod
 
     # parameters
     mod_ = mod.to_controllable_form()
@@ -87,7 +89,7 @@ def test_po_moesp_deterministic(data_siso_deterministic, ss_mod):
 
 
 def test_firor_deterministic(data_siso_deterministic, ss_mod):
-    mod = sysid(
+    res = sysid(
         data_siso_deterministic,
         "y",
         "u",
@@ -95,6 +97,7 @@ def test_firor_deterministic(data_siso_deterministic, ss_mod):
         method="firor",
         settings={"lambda": 1e0, "fir_order": 50},
     )
+    mod = res.mod
 
     # parameters
     mod_ = mod.to_controllable_form()
@@ -111,7 +114,8 @@ def test_firor_deterministic(data_siso_deterministic, ss_mod):
 
 
 def test_arx_deterministic(data_siso_deterministic, poly_mod):
-    mod = sysid(data_siso_deterministic, "y", "u", (2, 3, 0), method="arx")
+    res = sysid(data_siso_deterministic, "y", "u", (2, 3, 0), method="arx")
+    mod = res.mod
 
     # parameters
     np.testing.assert_allclose(mod.a, poly_mod.a, rtol=1e-5, atol=1e-5)
@@ -123,7 +127,8 @@ def test_arx_deterministic(data_siso_deterministic, poly_mod):
 
 
 def test_fir_deterministic(data_siso_deterministic, poly_mod):
-    mod = sysid(data_siso_deterministic, "y", "u", (0, 100, 0), method="fir")
+    res = sysid(data_siso_deterministic, "y", "u", (0, 100, 0), method="fir")
+    mod = res.mod
 
     # impulse response
     ti, i = mod.impulse_response()
@@ -132,7 +137,7 @@ def test_fir_deterministic(data_siso_deterministic, poly_mod):
 
 
 def test_oe_deterministic(data_siso_deterministic, poly_mod):
-    mod = sysid(
+    res = sysid(
         data_siso_deterministic,
         "y",
         "u",
@@ -140,6 +145,7 @@ def test_oe_deterministic(data_siso_deterministic, poly_mod):
         method="oe",
         settings={"minimizer": "powell"},
     )
+    mod = res.mod
 
     # parameters
     np.testing.assert_allclose(mod.a, poly_mod.a, rtol=1e-5, atol=1e-5)
@@ -158,7 +164,8 @@ def test_oe_deterministic(data_siso_deterministic, poly_mod):
 
 
 def test_n4sid_deterministic_stochastic(data_siso_deterministic_stochastic, ss_mod):
-    mod = sysid(data_siso_deterministic_stochastic, "y", "u", (2), method="n4sid")
+    res = sysid(data_siso_deterministic_stochastic, "y", "u", (2), method="n4sid")
+    mod = res.mod
 
     # parameters
     mod_ = mod.to_controllable_form()
@@ -179,7 +186,8 @@ def test_n4sid_deterministic_stochastic(data_siso_deterministic_stochastic, ss_m
 
 
 def test_po_moesp_deterministic_stochastic(data_siso_deterministic_stochastic, ss_mod):
-    mod = sysid(data_siso_deterministic_stochastic, "y", "u", (2), method="po-moesp")
+    res = sysid(data_siso_deterministic_stochastic, "y", "u", (2), method="po-moesp")
+    mod = res.mod
 
     # parameters
     mod_ = mod.to_controllable_form()
@@ -227,7 +235,7 @@ def test_po_moesp_deterministic_stochastic(data_siso_deterministic_stochastic, s
 
 
 def test_firor_deterministic_stochastic(data_siso_deterministic_stochastic, ss_mod):
-    mod = sysid(
+    res = sysid(
         data_siso_deterministic_stochastic,
         "y",
         "u",
@@ -235,6 +243,7 @@ def test_firor_deterministic_stochastic(data_siso_deterministic_stochastic, ss_m
         method="firor",
         settings={"lambda": 1e0, "fir_order": 50},
     )
+    mod = res.mod
 
     # parameters
     mod_ = mod.to_controllable_form()
@@ -251,7 +260,8 @@ def test_firor_deterministic_stochastic(data_siso_deterministic_stochastic, ss_m
 
 
 def test_arx_deterministic_stochastic(data_siso_deterministic_stochastic, poly_mod):
-    mod = sysid(data_siso_deterministic_stochastic, "y", "u", (2, 3, 0), method="arx")
+    res = sysid(data_siso_deterministic_stochastic, "y", "u", (2, 3, 0), method="arx")
+    mod = res.mod
 
     # parameters
     np.testing.assert_allclose(mod.a, poly_mod.a, rtol=5e-2, atol=5e-2)
@@ -263,7 +273,8 @@ def test_arx_deterministic_stochastic(data_siso_deterministic_stochastic, poly_m
 
 
 def test_fir_deterministic_stochastic(data_siso_deterministic_stochastic, poly_mod):
-    mod = sysid(data_siso_deterministic_stochastic, "y", "u", (0, 100, 0), method="fir")
+    res = sysid(data_siso_deterministic_stochastic, "y", "u", (0, 100, 0), method="fir")
+    mod = res.mod
 
     # impulse response
     ti, i = mod.impulse_response()
@@ -272,7 +283,7 @@ def test_fir_deterministic_stochastic(data_siso_deterministic_stochastic, poly_m
 
 
 def test_oe_deterministic_stochastic(data_siso_deterministic_stochastic, poly_mod):
-    mod = sysid(
+    res = sysid(
         data_siso_deterministic_stochastic,
         "y",
         "u",
@@ -280,6 +291,7 @@ def test_oe_deterministic_stochastic(data_siso_deterministic_stochastic, poly_mo
         method="oe",
         settings={"minimizer": "nelder-mead"},
     )
+    mod = res.mod
 
     # parameters
     np.testing.assert_allclose(mod.a, poly_mod.a, rtol=1e-3, atol=1e-3)

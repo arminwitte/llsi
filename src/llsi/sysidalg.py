@@ -6,7 +6,6 @@ Created on Sun Apr  4 20:47:33 2021
 @author: armin
 """
 
-
 ######################################################################################
 # FACTORY
 ######################################################################################
@@ -51,8 +50,13 @@ sysidalg.register_creator(FIR)
 ######################################################################################
 
 
-def sysid(data, y_name, u_name, order, method=None, settings={}):
+def sysid(data, y_name, u_name, order, method=None, settings={}, model_only=False):
     alg = sysidalg.get_creator(method)
     alg_inst = alg(data, y_name, u_name, settings=settings)
-    mod = alg_inst.ident(order)
-    return mod
+    # mod = alg_inst.ident(order)
+    res = alg_inst.ident(order)
+
+    if model_only:
+        return res.mod
+
+    return res

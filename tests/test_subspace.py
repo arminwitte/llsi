@@ -13,7 +13,8 @@ from llsi.subspace import N4SID, PO_MOESP
 
 def test_n4sid(data_siso_deterministic, ss_mod):
     identifyer = N4SID(data_siso_deterministic, "y", "u")
-    mod = identifyer.ident(2)
+    res = identifyer.ident(2)
+    mod = res.mod
     print(mod.info["Hankel singular values"])
     np.testing.assert_allclose(
         mod.info["Hankel singular values"],
@@ -28,7 +29,8 @@ def test_n4sid(data_siso_deterministic, ss_mod):
 
 def test_po_moesp(data_siso_deterministic, ss_mod):
     identifyer = PO_MOESP(data_siso_deterministic, "y", "u")
-    mod = identifyer.ident(2)
+    res = identifyer.ident(2)
+    mod = res.mod
     print(mod.info["Hankel singular values"])
     np.testing.assert_allclose(
         mod.info["Hankel singular values"],
