@@ -31,60 +31,15 @@ import matplotlib.pyplot as plt
 
 
 with llsi.Figure() as fig:
-    mod1 = llsi.sysid(data,'Nu','Re',(0,100,0),method='arx',settings={"lambda":1e2})
-    # mod2 = llsi.sysid(data,'Nu','Re',(2),method='po-moesp')
-    mod2 = llsi.sysid(data,'Nu','Re',(3,3,0),method='pem',settings={"init":"arx","minimizer":"BFGS"})
+    res1 = llsi.sysid(data,'Nu','Re',(0,100,0),method='arx',settings={"lambda":1e2})
+    # res2 = llsi.sysid(data,'Nu','Re',(2),method='po-moesp')
+    res2 = llsi.sysid(data,'Nu','Re',(3,3,0),method='pem',settings={"init":"arx","minimizer":"BFGS"})
+    mod1 = res1.mod
+    mod2 = res2.mod
     fig.plot([mod1,mod2],'impulse')
     fig.plot({"mod":[mod1,mod2],"data":test_set,"y_name":"Nu","u_name":"Re"},'compare')
     fig.plot({"mod":[mod1,mod2],"data":test_set,"y_name":"Nu","u_name":"Re"},'autocorr')
     fig.plot({"mod":[mod1,mod2],"data":test_set,"y_name":"Nu","u_name":"Re"},'crosscorr')
-
-if False:
-    import scipy
-    t, y = scipy.signal.dimpulse(mod1.to_ss())
-    
-    fig, ax = plt.subplots()
-    plt.plot(t, np.squeeze(y))
-    plt.grid()
-    plt.xlabel('n [samples]')
-    plt.ylabel('Amplitude')
-    
-    
-    t, y = scipy.signal.impulse(mod1.to_ss(continuous = True))
-    
-    # fig, ax = plt.subplots()
-    plt.plot(t[1:], np.squeeze(y)[1:])
-    plt.grid()
-    plt.xlabel('n [samples]')
-    plt.ylabel('Amplitude')
-    
-    
-    t, y = scipy.signal.impulse(mod1.to_ss(continuous = True,method='euler'))
-    
-    # fig, ax = plt.subplots()
-    plt.plot(t[1:], np.squeeze(y)[1:])
-    plt.grid()
-    plt.xlabel('n [samples]')
-    plt.ylabel('Amplitude')
-    
-    t, y = scipy.signal.dimpulse(mod1.to_tf())
-    plt.plot(t[1:], np.squeeze(y)[1:])
-    plt.grid()
-    plt.xlabel('n [samples]')
-    plt.ylabel('Amplitude')
-    
-    t, y = scipy.signal.dimpulse(mod1.to_zpk())
-    plt.plot(t[1:], np.squeeze(y)[1:])
-    plt.grid()
-    plt.xlabel('n [samples]')
-    plt.ylabel('Amplitude')
-    
-    
-    
-    
-    
-    plt.legend(['discrete','cont','euler','tf', 'zpk'])
-    
 
 fig, ax = plt.subplots()
 ti1, i1 = mod1.impulse_response()

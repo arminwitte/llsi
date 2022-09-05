@@ -28,8 +28,10 @@ test_set.center()
 
 with llsi.Figure() as fig:
     fig.plot(data)
-    mod1 = llsi.sysid(data,'Nu','Re',(2,),method='po-moesp')
-    mod2 = llsi.sysid(data,'Nu','Re',(2,),method='n4sid')
+    res1 = llsi.sysid(data,'Nu','Re',(2,),method='po-moesp')
+    res2 = llsi.sysid(data,'Nu','Re',(2,),method='n4sid')
+    mod1 = res1.mod
+    mod2 = res2.mod
     fig.plot([mod1,mod2],'impulse')
     fig.plot([mod1,mod2],'step')
     fig.plot([mod1,mod2],'hsv')
