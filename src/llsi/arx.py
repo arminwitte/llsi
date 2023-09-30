@@ -24,14 +24,14 @@ class ARX(SysIdAlgBase):
         # theta = scipy.linalg.pinv(Phi) @ y
         # theta, res, rank, s = scipy.linalg.lstsq(Phi, y)
 
-        lstsq_method = self.settings.get("lstsq_method", "svd")
+        lstsq_method = self.settings.get("lstsq_method", "qr")
         l = self.settings.get("lambda", 0.0)
         if lstsq_method in "pinv":
             theta, cov = self._lstsq_pinv(Phi, y)
         elif lstsq_method in "lstsq":
             theta, cov = self._lstsq_lstsq(Phi, y)
         elif lstsq_method in "qr":
-            theta, cov = self._lstsq_qr(Phi, y)
+            theta, cov = self._lstsq_qr(Phi, y, l)
         elif lstsq_method in "svd":
             theta, cov = self._lstsq_svd(Phi, y, l)
         # print(theta)
@@ -75,9 +75,11 @@ class ARX(SysIdAlgBase):
         return theta, cov
 
     @staticmethod
-    def _lstsq_qr(Phi, y):
-        Q, R = scipy.linalg.qr(Phi, mode="economic")
-        theta = scipy.linalg.solve_triangular(R, Q.T @ y)
+    def _lstsq_qr(Phi, y, l):
+        Phi_ = np.vstack([Phi,l*np.eye(Phi.shape[1])])
+        y_ = np.vstack([y.reshape(-1,1),np.zeros((Phi.shape[1],1))]).ravel()
+        Q, R = scipy.linalg.qr(Phi_, mode="economic")
+        theta = scipy.linalg.solve_triangular(R, Q.T @ y_)
 
         e = y - (Phi @ theta)
         var_e = np.var(e)
