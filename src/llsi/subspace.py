@@ -70,21 +70,27 @@ class N4SID(SubspaceIdent):
         L32 = L[3 * r : 4 * r, r : 3 * r]
 
         Gamma_r = L32 @ np.linalg.pinv(L22) @ Wp  # oblique projection
-        U_, s_, V_ = scipy.linalg.svd(Gamma_r, full_matrices=True)
+        U_, s_, V_ = scipy.linalg.svd(Gamma_r, full_matrices=False)
+        # print(U_.shape, s_.shape, V_.shape)
 
         self.singular_values = s_
 
         # U1 = U_[:,0:n]
         # U2 = U_[:,n:r]
         Sigma_sqrt = np.diag(np.sqrt(s_[:n]))
+        # Sigma_sqrt = np.zeros(Gamma_r.shape, s_.dtype)
+        # np.fill_diagonal(Sigma_sqrt, np.sqrt(s_))
+        # Sigma_sqrt = Sigma_sqrt[:n, :]
         # Sigma_sqrt = scipy.linalg.diagsvd(s_, *Gamma_r.shape)
-        V1 = V_[:, 0:n]
+        V1 = V_[0:n, :]
+        # V1 = V_[:, :n]
         # V2 = V_[:,n:r]
 
         # Or = U1 @ Sigma_sqrt # extended observability matrix
         # print(Or)
-
-        Xf = Sigma_sqrt @ V1.T  # state matrix
+        # print(Sigma_sqrt.shape, V1.shape)
+        Xf = Sigma_sqrt @ V1  # state matrix # TANGIRALA SAYS IT SHOULD BE TRANSPOSED !?!
+        # print(Xf.shape)
         Y_ = np.vstack((Xf[:, 1:s], self.y[r : r + s - 1].T))
         X_ = np.vstack((Xf[:, 0 : s - 1], self.u[r : r + s - 1].T))
         Theta = Y_ @ np.linalg.pinv(X_)
@@ -135,8 +141,8 @@ class PO_MOESP(SubspaceIdent):
 
         Wp = np.vstack((Up, Yp))
         # Wf = np.vstack((Uf,Yf))
-        Psi = 1.0 / N * np.vstack((np.vstack((Uf, Wp)), Yf))
-        # Psi = np.vstack((np.vstack((Uf,Wp)),Yf))
+        # Psi = 1.0 / N * np.vstack((np.vstack((Uf, Wp)), Yf))
+        Psi = np.vstack((np.vstack((Uf,Wp)),Yf))
 
         L, Q = self.lq(Psi)
 
@@ -161,9 +167,9 @@ class PO_MOESP(SubspaceIdent):
         # V1 = V_[:,0:n]
         # V2 = V_[:,n:r]
 
-        Or = U1  # @ Sigma_sqrt # extended observability matrix
+        Or = U1 @ Sigma_sqrt # extended observability matrix
 
-        C = Or[0, :]  # TODO: might be wrong!!!
+        C = Or[0, :]# TODO: might be wrong!!!
         A = scipy.linalg.pinv(Or[0:-1, :]) @ Or[1:, :]
         # A = scipy.linalg.lstsq(Or[0:-1,:],Or[1:,:])
         # print(A)
