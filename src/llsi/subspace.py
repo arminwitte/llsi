@@ -23,6 +23,54 @@ class SubspaceIdent(SysIdAlgBase):
             A.append(x[i : -n + i].T)
 
         return np.array(A)
+    
+    def _abcd_state(self, Xf, s, n, r):
+
+        N = Xf[:, 1:].shape[1]
+        Y_ = np.vstack((Xf[:, 1:], self.y[r : N + r].T))
+        X_ = np.vstack((Xf[:, 0 : - 1], self.u[r : N + r].T))
+        Theta = Y_ @ np.linalg.pinv(X_)
+        A = Theta[:n, :n]
+        B = Theta[:n, n].ravel()
+        C = Theta[n, :n].ravel()
+        D = Theta[n, n]
+        return A, B, C, D
+
+    def _abcd_observability_matrix(self, U1, U2, L11, L31, Sigma_sqrt, n, r):
+        Or = U1 @ Sigma_sqrt # extended observability matrix
+
+        C = Or[0, :]# TODO: might be wrong!!!
+        A = scipy.linalg.pinv(Or[0:-1, :]) @ Or[1:, :]
+        # A = scipy.linalg.lstsq(Or[0:-1,:],Or[1:,:])
+        # print(A)
+
+        P = U2.T
+        # print(P)
+        A1_ = P.ravel(order="F")
+
+        nn = A1_.shape[0]
+        ny = 1
+        A_ = np.zeros((nn, ny + n))
+        A_[:, 0:ny] = A1_.reshape(-1, ny)
+
+        for i in range(1, r):
+            Pi = P[:, i:r]
+            Oi = Or[0 : r - i, :]
+            Ni = Pi @ Oi
+            j = (i - 1) * (r - n)
+            A_[j : j + Ni.shape[0], ny : ny + Ni.shape[1]] = Ni
+
+        # print(A_)
+
+        M = (U2.T @ L31 @ np.linalg.inv(L11)).ravel(order="F")
+
+        x_, *_ = scipy.linalg.lstsq(A_, M)
+        # x_ = scipy.linalg.pinv(A_) @ M
+
+        D = x_[0:ny]
+        B = x_[ny : ny + n]
+
+        return A, B, C, D
 
     @staticmethod
     def lq(A):
@@ -62,21 +110,23 @@ class N4SID(SubspaceIdent):
 
         L, Q = self.lq(Psi)
 
-        # L11 = L[  0:r  ,0:r]
+        L11 = L[  0:r  ,0:r]
         # L12 = L[  0:r  ,r:2*r]
         # L21 = L[  r:3*r,0:r]
         L22 = L[r : 3 * r, r : 3 * r]
-        # L31 = L[3*r:4*r,0:r]
+        L31 = L[3*r:4*r,0:r]
         L32 = L[3 * r : 4 * r, r : 3 * r]
 
+        # print(L32.shape, np.linalg.pinv(L22).shape, Wp.shape)
         Gamma_r = L32 @ np.linalg.pinv(L22) @ Wp  # oblique projection
+        # print(Gamma_r.shape)
         U_, s_, V_ = scipy.linalg.svd(Gamma_r, full_matrices=False)
         # print(U_.shape, s_.shape, V_.shape)
 
         self.singular_values = s_
 
-        # U1 = U_[:,0:n]
-        # U2 = U_[:,n:r]
+        U1 = U_[:,0:n]
+        U2 = U_[:,n:r]
         Sigma_sqrt = np.diag(np.sqrt(s_[:n]))
         # Sigma_sqrt = np.zeros(Gamma_r.shape, s_.dtype)
         # np.fill_diagonal(Sigma_sqrt, np.sqrt(s_))
@@ -86,18 +136,11 @@ class N4SID(SubspaceIdent):
         # V1 = V_[:, :n]
         # V2 = V_[:,n:r]
 
-        # Or = U1 @ Sigma_sqrt # extended observability matrix
-        # print(Or)
-        # print(Sigma_sqrt.shape, V1.shape)
-        Xf = Sigma_sqrt @ V1  # state matrix # TANGIRALA SAYS IT SHOULD BE TRANSPOSED !?!
-        # print(Xf.shape)
-        Y_ = np.vstack((Xf[:, 1:s], self.y[r : r + s - 1].T))
-        X_ = np.vstack((Xf[:, 0 : s - 1], self.u[r : r + s - 1].T))
-        Theta = Y_ @ np.linalg.pinv(X_)
-        A = Theta[:n, :n]
-        B = Theta[:n, n].ravel()
-        C = Theta[n, :n].ravel()
-        D = Theta[n, n]
+        Or = U1 @ Sigma_sqrt # extended observability matrix
+        Xf = Sigma_sqrt @ V1 # state matrix # TANGIRALA SAYS IT SHOULD BE TRANSPOSED !?!
+
+        A, B, C, D = self._abcd_state(Xf, s, n, r)
+        # A, B, C, D = self._abcd_observability_matrix(self, U1, U2, L11, L31, Sigma_sqrt, n, r):
 
         mod = StateSpaceModel(A=A, B=B, C=C, D=D, Ts=self.Ts)
         mod.info["Hankel singular values"] = s_
@@ -155,6 +198,7 @@ class PO_MOESP(SubspaceIdent):
 
         # Gamma_r = 1./np.sqrt(N) * L32
         Gamma_r = L32
+        # print(Gamma_r.shape)
         U_, s_, V_ = scipy.linalg.svd(Gamma_r, full_matrices=False)
 
         self.singular_values = s_
@@ -164,41 +208,45 @@ class PO_MOESP(SubspaceIdent):
         U1 = U_[:, 0:n]
         U2 = U_[:, n:r]
         Sigma_sqrt = np.diag(np.sqrt(s_[:n]))
+        V1 = V_[:n,:]
         # V1 = V_[:,0:n]
         # V2 = V_[:,n:r]
 
-        Or = U1 @ Sigma_sqrt # extended observability matrix
+        # Or = U1 @ Sigma_sqrt # extended observability matrix
 
-        C = Or[0, :]# TODO: might be wrong!!!
-        A = scipy.linalg.pinv(Or[0:-1, :]) @ Or[1:, :]
-        # A = scipy.linalg.lstsq(Or[0:-1,:],Or[1:,:])
-        # print(A)
+        # C = Or[0, :]# TODO: might be wrong!!!
+        # A = scipy.linalg.pinv(Or[0:-1, :]) @ Or[1:, :]
+        # # A = scipy.linalg.lstsq(Or[0:-1,:],Or[1:,:])
+        # # print(A)
 
-        P = U2.T
-        # print(P)
-        A1_ = P.ravel(order="F")
+        # P = U2.T
+        # # print(P)
+        # A1_ = P.ravel(order="F")
 
-        nn = A1_.shape[0]
-        ny = 1
-        A_ = np.zeros((nn, ny + n))
-        A_[:, 0:ny] = A1_.reshape(-1, ny)
+        # nn = A1_.shape[0]
+        # ny = 1
+        # A_ = np.zeros((nn, ny + n))
+        # A_[:, 0:ny] = A1_.reshape(-1, ny)
 
-        for i in range(1, r):
-            Pi = P[:, i:r]
-            Oi = Or[0 : r - i, :]
-            Ni = Pi @ Oi
-            j = (i - 1) * (r - n)
-            A_[j : j + Ni.shape[0], ny : ny + Ni.shape[1]] = Ni
+        # for i in range(1, r):
+        #     Pi = P[:, i:r]
+        #     Oi = Or[0 : r - i, :]
+        #     Ni = Pi @ Oi
+        #     j = (i - 1) * (r - n)
+        #     A_[j : j + Ni.shape[0], ny : ny + Ni.shape[1]] = Ni
 
-        # print(A_)
+        # # print(A_)
 
-        M = (U2.T @ L31 @ np.linalg.inv(L11)).ravel(order="F")
+        # M = (U2.T @ L31 @ np.linalg.inv(L11)).ravel(order="F")
 
-        x_, *_ = scipy.linalg.lstsq(A_, M)
-        # x_ = scipy.linalg.pinv(A_) @ M
+        # x_, *_ = scipy.linalg.lstsq(A_, M)
+        # # x_ = scipy.linalg.pinv(A_) @ M
 
-        D = x_[0:ny]
-        B = x_[ny : ny + n]
+        # D = x_[0:ny]
+        # B = x_[ny : ny + n]
+
+        A, B, C, D = self._abcd_observability_matrix(U1, U2, L11, L31, Sigma_sqrt, n, r)
+        # A, B, C, D = self._abcd_state(Sigma_sqrt, V1, s, n, r)
 
         mod = StateSpaceModel(A=A, B=B, C=C, D=D, Ts=self.Ts)
         mod.info["Hankel singular values"] = s_

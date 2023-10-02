@@ -25,18 +25,23 @@ class PEM(SysIdAlgBase):
         mod = self.alg_inst.ident(order)
         y_hat = mod.simulate(self.u)
         sse0 = self._sse(self.y, y_hat)
+        lambda_l1 = self.settings.get("lambda_l1",0.)
+        lambda_l2 = self.settings.get("lambda_l2",0.)
 
         def fun(x):
             mod.reshape(x)
             y_hat = mod.simulate(self.u)
             sse = self._sse(self.y, y_hat)
             sse = np.nan_to_num(sse, nan=1e300)
-            print("{:10.6g}".format(sse / sse0))
-            return sse / sse0
+            # print("{:10.6g}".format(sse / sse0))
+            # return sse / sse0
+            J = sse + lambda_l1 * np.sum(np.abs(x)) + lambda_l2 * x.T @ x
+            print("{:10.6g}".format(J))
+            return J
 
         x0 = mod.vectorize()
         method = self.settings.get("minimizer", "nelder-mead")
-        res = scipy.optimize.minimize(fun, x0, method=method)
+        res = scipy.optimize.minimize(fun, x0, method=method, options={"maxiter":100})
         # res = scipy.optimize.minimize(fun,x0,method='nelder-mead')
         # res = scipy.optimize.minimize(fun,x0,method='BFGS')
 
