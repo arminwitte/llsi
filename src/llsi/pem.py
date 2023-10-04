@@ -41,7 +41,7 @@ class PEM(SysIdAlgBase):
 
         x0 = mod.vectorize()
         method = self.settings.get("minimizer", "nelder-mead")
-        res = scipy.optimize.minimize(fun, x0, method=method, options={"maxiter":100})
+        res = scipy.optimize.minimize(fun, x0, method=method, options={"maxiter":100, "maxfev":100})
         # res = scipy.optimize.minimize(fun,x0,method='nelder-mead')
         # res = scipy.optimize.minimize(fun,x0,method='BFGS')
 
