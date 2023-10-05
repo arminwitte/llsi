@@ -8,6 +8,7 @@ Created on Fri Apr  2 22:54:53 2021
 
 import numpy as np
 import scipy.linalg
+import json
 
 from .ltimodel import LTIModel
 
@@ -253,6 +254,35 @@ class StateSpaceModel(LTIModel):
         D = b[0]
         mod_out = cls(A=A, B=B, C=C, D=D, Ts=mod.Ts)
         return mod_out
+    
+    def to_json(self, filename=None):
+        data = {}
+        data["A"] = self.A.tolist()
+        data["B"] = self.B.tolist()
+        data["C"] = self.C.tolist()
+        data["D"] = self.D.tolist()
+        data["Ts"] = self.Ts
+        try:
+            data["info"] = self.info.__repr__()
+        except:
+            data["info"] = {}
+        data["Nx"] = self.Nx
+
+        if filename is not None:
+            with open(filename,"w") as f:
+                json.dump(data,f)
+                return
+            
+        return json.dumps(data)
+    
+    @classmethod
+    def from_json(cls, filename):
+        with open(filename, "r") as f:
+            data = json.load(f)
+        mod = StateSpaceModel(A=data["A"], B=data["B"], C=data["C"], D=data["D"], Ts=data["Ts"], Nx = data["Nx"])
+        mod.info = data["info"]
+        return mod
+
 
     def __repr__(self) -> str:
         s = f"A:\n{self.A}\n"
