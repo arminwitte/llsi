@@ -76,8 +76,8 @@ class ARX(SysIdAlgBase):
 
     @staticmethod
     def _lstsq_qr(Phi, y, l):
-        Phi_ = np.vstack([Phi,l*np.eye(Phi.shape[1])])
-        y_ = np.vstack([y.reshape(-1,1),np.zeros((Phi.shape[1],1))]).ravel()
+        Phi_ = np.vstack([Phi, l * np.eye(Phi.shape[1])])
+        y_ = np.vstack([y.reshape(-1, 1), np.zeros((Phi.shape[1], 1))]).ravel()
         Q, R = scipy.linalg.qr(Phi_, mode="economic")
         theta = scipy.linalg.solve_triangular(R, Q.T @ y_)
 

@@ -25,8 +25,8 @@ class PEM(SysIdAlgBase):
         mod = self.alg_inst.ident(order)
         y_hat = mod.simulate(self.u)
         sse0 = self._sse(self.y, y_hat)
-        lambda_l1 = self.settings.get("lambda_l1",0.)
-        lambda_l2 = self.settings.get("lambda_l2",0.)
+        lambda_l1 = self.settings.get("lambda_l1", 0.0)
+        lambda_l2 = self.settings.get("lambda_l2", 0.0)
 
         def fun(x):
             mod.reshape(x)
@@ -41,7 +41,9 @@ class PEM(SysIdAlgBase):
 
         x0 = mod.vectorize()
         method = self.settings.get("minimizer", "nelder-mead")
-        res = scipy.optimize.minimize(fun, x0, method=method, options={"maxiter":100, "maxfev":100})
+        res = scipy.optimize.minimize(
+            fun, x0, method=method, options={"maxiter": 100, "maxfev": 100}
+        )
         # res = scipy.optimize.minimize(fun,x0,method='nelder-mead')
         # res = scipy.optimize.minimize(fun,x0,method='BFGS')
 

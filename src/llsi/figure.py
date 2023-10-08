@@ -30,7 +30,7 @@ class Figure:
 
         self.figsize = figsize
         self.counter = 0
-        self.colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
+        self.colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
 
     def __enter__(self):
         return self
@@ -76,7 +76,7 @@ class Figure:
                 color_index = 0
 
             # call plotting method
-            fun(self.fig, ax, obj, col=self.colors[color_index+1])
+            fun(self.fig, ax, obj, col=self.colors[color_index + 1])
 
         plt.plot()
 
@@ -92,12 +92,12 @@ class Figure:
         self.counter += 1
 
     @staticmethod
-    def _impulse(fig, ax, lti_mod, col=u"#1f77b4"):
+    def _impulse(fig, ax, lti_mod, col="#1f77b4"):
         if isinstance(lti_mod, LTIModel):
             t, y = lti_mod.impulse_response()
             markerline, stemlines, baseline = ax.stem(t, y)
-            plt.setp(stemlines, 'color', col)
-            plt.setp(markerline, 'color', col)
+            plt.setp(stemlines, "color", col)
+            plt.setp(markerline, "color", col)
 
             # Add some text for labels, title and custom x-axis tick labels, etc.
             # ax.set_ylabel('Scores')
@@ -106,14 +106,14 @@ class Figure:
             # ax.legend()
 
     @staticmethod
-    def _step(fig, ax, lti_mod, col=u"#1f77b4"):
+    def _step(fig, ax, lti_mod, col="#1f77b4"):
         if isinstance(lti_mod, LTIModel):
             t, y = lti_mod.step_response()
             ax.step(t, y, color=col)
             ax.set_title("Step response")
 
     @staticmethod
-    def _hsv(fig, ax, ss_mod, col=u"#1f77b4"):
+    def _hsv(fig, ax, ss_mod, col="#1f77b4"):
         if isinstance(ss_mod, StateSpaceModel):
             hsv = ss_mod.info["Hankel singular values"]
             hsv_scaled = hsv / np.sum(hsv)
@@ -121,7 +121,7 @@ class Figure:
             ax.set_title("Hankel Singular Values")
 
     @staticmethod
-    def _time_series(fig, ax, data, col=u"#1f77b4"):
+    def _time_series(fig, ax, data, col="#1f77b4"):
         t = data.time()
 
         for key, val in data.series.items():
@@ -132,7 +132,7 @@ class Figure:
         ax.set_ylabel("time")
 
     @staticmethod
-    def _compare(fig, ax, obj, col=u"#1f77b4"):
+    def _compare(fig, ax, obj, col="#1f77b4"):
 
         mods = obj.get("mod")
         data = obj.get("data")

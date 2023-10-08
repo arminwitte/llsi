@@ -23,14 +23,14 @@ class SubspaceIdent(SysIdAlgBase):
             A.append(x[i : -n + i].T)
 
         return np.array(A)
-    
+
     def _abcd_state(self, Xf, s, n, r):
-        Y_ = np.vstack((Xf[:, 1: s - 1], self.y[r : r + s - 2].T))
-        X_ = np.vstack((Xf[:,  : s - 2], self.u[r : r + s - 2].T))
+        Y_ = np.vstack((Xf[:, 1 : s - 1], self.y[r : r + s - 2].T))
+        X_ = np.vstack((Xf[:, : s - 2], self.u[r : r + s - 2].T))
         # Theta = Y_ @ np.linalg.pinv(X_)
 
         ###########################
-        l = self.settings.get("lambda",0.)
+        l = self.settings.get("lambda", 0.0)
         # print(l)
         U, s, Vh = scipy.linalg.svd(X_, full_matrices=False)
         Sigma = np.diag(1 / s)
@@ -46,9 +46,9 @@ class SubspaceIdent(SysIdAlgBase):
         return A, B, C, D
 
     def _abcd_observability_matrix(self, U1, U2, L11, L31, Sigma_sqrt, n, r):
-        Or = U1 @ Sigma_sqrt # extended observability matrix
+        Or = U1 @ Sigma_sqrt  # extended observability matrix
 
-        C = Or[0, :]# TODO: might be wrong!!!
+        C = Or[0, :]  # TODO: might be wrong!!!
         A = scipy.linalg.pinv(Or[0:-1, :]) @ Or[1:, :]
         # A = scipy.linalg.lstsq(Or[0:-1,:],Or[1:,:])
         # print(A)
@@ -119,11 +119,11 @@ class N4SID(SubspaceIdent):
 
         L, Q = self.lq(Psi)
 
-        L11 = L[  0:r  ,0:r]
+        L11 = L[0:r, 0:r]
         # L12 = L[  0:r  ,r:2*r]
         # L21 = L[  r:3*r,0:r]
         L22 = L[r : 3 * r, r : 3 * r]
-        L31 = L[3*r:4*r,0:r]
+        L31 = L[3 * r : 4 * r, 0:r]
         L32 = L[3 * r : 4 * r, r : 3 * r]
 
         # print(L32.shape, np.linalg.pinv(L22).shape, Wp.shape)
@@ -134,8 +134,8 @@ class N4SID(SubspaceIdent):
 
         self.singular_values = s_
 
-        U1 = U_[:,0:n]
-        U2 = U_[:,n:r]
+        U1 = U_[:, 0:n]
+        U2 = U_[:, n:r]
         Sigma_sqrt = np.diag(np.sqrt(s_[:n]))
         # Sigma_sqrt = np.zeros(Gamma_r.shape, s_.dtype)
         # np.fill_diagonal(Sigma_sqrt, np.sqrt(s_))
@@ -145,8 +145,10 @@ class N4SID(SubspaceIdent):
         # V1 = V_[:, :n]
         # V2 = V_[:,n:r]
 
-        Or = U1 @ Sigma_sqrt # extended observability matrix
-        Xf = Sigma_sqrt @ V1 # state matrix # TANGIRALA SAYS IT SHOULD BE TRANSPOSED !?!
+        Or = U1 @ Sigma_sqrt  # extended observability matrix
+        Xf = (
+            Sigma_sqrt @ V1
+        )  # state matrix # TANGIRALA SAYS IT SHOULD BE TRANSPOSED !?!
 
         # print(s,n,r)
         A, B, C, D = self._abcd_state(Xf, s, n, r)
@@ -197,7 +199,6 @@ class N4SID(SubspaceIdent):
 #         # Wf = np.vstack((Uf,Yf))
 
 
-
 #         # Projection 1
 #         Psi = np.vstack((np.vstack((Uf, Wp)), Yf))
 
@@ -214,7 +215,6 @@ class N4SID(SubspaceIdent):
 
 #         LAst22 = L[r-1 : 3 * r+1, r-1 : 3 * r+1]
 #         LAst32 = L[3 * r+1 : 4 * r, r-1 : 3 * r+1]
-
 
 
 #         # print(L32.shape, np.linalg.pinv(L22).shape, Wp.shape)
@@ -282,7 +282,7 @@ class PO_MOESP(SubspaceIdent):
         Wp = np.vstack((Up, Yp))
         # Wf = np.vstack((Uf,Yf))
         # Psi = 1.0 / N * np.vstack((np.vstack((Uf, Wp)), Yf))
-        Psi = np.vstack((np.vstack((Uf,Wp)),Yf))
+        Psi = np.vstack((np.vstack((Uf, Wp)), Yf))
 
         L, Q = self.lq(Psi)
 
@@ -305,11 +305,11 @@ class PO_MOESP(SubspaceIdent):
         U1 = U_[:, 0:n]
         U2 = U_[:, n:r]
         Sigma_sqrt = np.diag(np.sqrt(s_[:n]))
-        V1 = V_[:n,:]
+        V1 = V_[:n, :]
         # V1 = V_[:,0:n]
         # V2 = V_[:,n:r]
 
-        Or = U1 @ Sigma_sqrt # extended observability matrix
+        Or = U1 @ Sigma_sqrt  # extended observability matrix
         Xf = np.linalg.pinv(Or) @ Gamma_r
         # print(Xf.shape)
 
