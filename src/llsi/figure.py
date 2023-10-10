@@ -94,7 +94,7 @@ class Figure:
     @staticmethod
     def _impulse(fig, ax, lti_mod, col="#1f77b4"):
         if isinstance(lti_mod, LTIModel):
-            t, y = lti_mod.impulse_response()
+            t, y = lti_mod.impulse_response(N=200)
             markerline, stemlines, baseline = ax.stem(t, y)
             plt.setp(stemlines, "color", col)
             plt.setp(markerline, "color", col)
@@ -108,7 +108,7 @@ class Figure:
     @staticmethod
     def _step(fig, ax, lti_mod, col="#1f77b4"):
         if isinstance(lti_mod, LTIModel):
-            t, y = lti_mod.step_response()
+            t, y = lti_mod.step_response(N=200)
             ax.step(t, y, color=col)
             ax.set_title("Step response")
 
