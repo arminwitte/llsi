@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#! /usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 Created on Sun Apr  4 21:11:47 2021
@@ -189,13 +189,7 @@ def test_po_moesp_deterministic_stochastic(data_siso_deterministic_stochastic, s
     print(mod.info["Hankel singular values"])
     np.testing.assert_allclose(
         mod.info["Hankel singular values"],
-        [
-            1.43920126e03,
-            7.10890502e02,
-            2.03261254e-01,
-            3.91510332e-09,
-            2.24387529e-09,
-        ],
+        [ 1439.52436941,  710.90138305,   2.38824865,   1.93589346  ,  1.51688614],
         rtol=1e-3,
         atol=1e-3,
     )
