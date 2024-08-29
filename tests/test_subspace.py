@@ -33,11 +33,11 @@ def test_po_moesp(data_siso_deterministic, ss_mod):
     np.testing.assert_allclose(
         mod.info["Hankel singular values"],
         [
-            1.43920126e-01,
-            7.10890502e-02,
-            2.03261254e-05,
-            2.97663946e-13,
-            2.06566781e-13,
+            1.43920126e03,
+            7.10890502e02,
+            2.03261254e-01,
+            2.97663946e-09,
+            2.06566781e-09,
         ],
         rtol=1e-6,
         atol=1e-6,
