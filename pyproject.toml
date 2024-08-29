@@ -23,6 +23,7 @@ classifiers = [
 dependencies = [
 	"numpy>=1.19.0",
 	"scipy>=1.8.0",
+        "matplotlib",
 ]
 [project.urls]
 "Homepage" = "https://github.com/arminwitte/llsi"
