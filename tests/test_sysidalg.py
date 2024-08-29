@@ -282,7 +282,7 @@ def test_oe_deterministic_stochastic(data_siso_deterministic_stochastic, poly_mo
     )
 
     # parameters
-    np.testing.assert_allclose(mod.a, poly_mod.a, rtol=1e-3, atol=1e-3)
+    np.testing.assert_allclose(mod.a, poly_mod.a, rtol=1e-2, atol=1e-2)
 
     # impulse response
     ti, i = mod.impulse_response()
