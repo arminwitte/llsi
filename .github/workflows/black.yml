@@ -11,7 +11,7 @@ jobs:
         id: action_black
         with:
           options: "--verbose"
-          src: "./src"
+          src: ["./src", "./test"]
       - name: Create pull request
         uses: peter-evans/create-pull-request@v6
         with:
