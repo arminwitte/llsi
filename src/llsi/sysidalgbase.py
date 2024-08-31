@@ -13,8 +13,19 @@ import numpy as np
 
 class SysIdAlgBase(ABC):
     def __init__(self, data, y_name, u_name, settings):
-        self.y = data[y_name]
-        self.u = data[u_name]
+
+        y_name = np.array(y_name) # now I can iterate over
+        y=[]
+        for name in y_name:
+            y.append(data[name])
+        self.y = np.array(y)
+
+        u_name = np.array(u_name) # now I can iterate over
+        u=[]
+        for name in u_name:
+            u.append(data[name])
+        self.u = np.array(u)
+        
         self.Ts = data.Ts
         self.settings = settings
 
@@ -31,4 +42,4 @@ class SysIdAlgBase(ABC):
         e = y - y_hat
         with np.errstate(over="ignore", invalid="ignore"):
             sse = e.T @ e
-        return sse
+        return np.sum(sse)
