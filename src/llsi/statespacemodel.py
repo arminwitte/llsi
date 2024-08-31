@@ -120,7 +120,6 @@ class StateSpaceModel(LTIModel):
             print(f"x1:{x1}")
             print(f"y:{y_}")
 
-
             y[i, :] = y_
 
         return y
