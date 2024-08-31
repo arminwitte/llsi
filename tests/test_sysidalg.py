@@ -189,7 +189,7 @@ def test_po_moesp_deterministic_stochastic(data_siso_deterministic_stochastic, s
     print(mod.info["Hankel singular values"])
     np.testing.assert_allclose(
         mod.info["Hankel singular values"],
-        [ 1439.52436941,  710.90138305,   2.38824865,   1.93589346  ,  1.51688614],
+        [1439.52436941, 710.90138305, 2.38824865, 1.93589346, 1.51688614],
         rtol=1e-3,
         atol=1e-3,
     )
