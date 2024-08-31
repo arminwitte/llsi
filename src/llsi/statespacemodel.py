@@ -20,7 +20,7 @@ class StateSpaceModel(LTIModel):
     https://en.wikipedia.org/wiki/State-space_representation
     """
 
-    def __init__(self, A=None, B=None, C=None, D=None, Ts=1.0, Nx=0):
+    def __init__(self, A=None, B=None, C=None, D=None, Ts=1.0, Nx=0, Nu=1, Ny=1):
         """
 
         Parameters
@@ -44,8 +44,24 @@ class StateSpaceModel(LTIModel):
 
         """
         super().__init__(Ts=Ts)
-        self.A = np.array(A)
-        self.B = np.array(B).reshape(-1, 1)
+
+        # set A matrix and number of states
+        if A is not None:
+            self.A = np.array(A)
+            self.Nx = self.A.shape[0]
+        else:
+            self.Nx = Nx
+            self.A = np.zeros((self.Nx,self.Nx))
+
+        # set B matrix and number of inputs
+        if B is not None:
+            self.B = np.array(B)
+            if self.B.shape[0] != self.Nx:
+                raise ValueError(f"Shape mismatch. First dimension of B has to be {self.Nx}"
+            self.Nu = self.B.shape[1]
+        else:
+            self.Nu = Nu
+            self.B = np.zeros((self.Nx,self.Nu))
         self.C = np.array(C).reshape(1, -1)
         self.D = np.array(D)
 
