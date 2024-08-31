@@ -114,6 +114,13 @@ class StateSpaceModel(LTIModel):
             with np.errstate(over="ignore", invalid="ignore"):
                 x1 = self.A @ x + self.B @ u_
                 y_ = self.C @ x + self.D @ u_
+
+            print(f"u:{u_}")
+            print(f"x:{x}")
+            print(f"x1:{x1}")
+            print(f"y:{y_}")
+
+
             y[i, :] = y_
 
         return y
