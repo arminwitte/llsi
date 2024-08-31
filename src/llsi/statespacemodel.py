@@ -110,7 +110,7 @@ class StateSpaceModel(LTIModel):
         x1 = np.zeros((self.Nx, 1))
         y = np.empty((N, self.Ny))
         for i, u_ in enumerate(u):
-            u_ = u_.reshape(1,self.Nu)
+            u_ = u_.reshape(1, self.Nu)
             x = x1
             with np.errstate(over="ignore", invalid="ignore"):
                 x1 = self.A @ x + self.B @ u_
