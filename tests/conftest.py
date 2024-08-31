@@ -23,7 +23,7 @@ def generate_data(filt, noise=0.01):
 
     e = noise * norm.rvs(size=10000)
 
-    y = filt.simulate(u) + e
+    y = filt.simulate(u).ravel() + e
 
     data = SysIdData(y=y, u=u, t=t)
     data.equidistant()
