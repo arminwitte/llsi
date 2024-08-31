@@ -18,13 +18,13 @@ class SysIdAlgBase(ABC):
         y = []
         for name in y_name:
             y.append(data[name])
-        self.y = np.array(y)
+        self.y = np.atleast_2d(y).T
 
         u_name = np.atleast_1d(u_name)  # now I can iterate over
         u = []
         for name in u_name:
             u.append(data[name])
-        self.u = np.array(u)
+        self.u = np.atleast_2d(u).T
 
         self.Ts = data.Ts
         self.settings = settings
