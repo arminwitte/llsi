@@ -14,13 +14,13 @@ import numpy as np
 class SysIdAlgBase(ABC):
     def __init__(self, data, y_name, u_name, settings):
 
-        y_name = np.array(y_name)  # now I can iterate over
+        y_name = np.atleast_1d(y_name)  # now I can iterate over
         y = []
         for name in y_name:
             y.append(data[name])
         self.y = np.array(y)
 
-        u_name = np.array(u_name)  # now I can iterate over
+        u_name = np.atleast_1d(u_name)  # now I can iterate over
         u = []
         for name in u_name:
             u.append(data[name])
