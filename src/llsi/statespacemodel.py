@@ -113,7 +113,7 @@ class StateSpaceModel(LTIModel):
             with np.errstate(over="ignore", invalid="ignore"):
                 x1 = self.A @ x + self.B @ u_
                 y_ = self.C @ x + self.D @ u_
-            y.append(y_[0])
+            y.append(y_)
 
         return np.array(y).reshape(-1, self.Ny)
 
