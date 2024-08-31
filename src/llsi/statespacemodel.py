@@ -247,7 +247,7 @@ class StateSpaceModel(LTIModel):
     @classmethod
     def from_fir(cls, mod):
         nk = mod.nk
-        b = np.vstack([np.zeros((nk,1)), mod.b.reshape(-1,1)])
+        b = np.vstack([np.zeros((nk, 1)), mod.b.reshape(-1, 1)])
         n = b.ravel().shape[0] - 1
         A = np.diag(np.ones((n - 1,)), k=-1)
         B = np.zeros((n, 1))
