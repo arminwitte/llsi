@@ -64,7 +64,7 @@ class StateSpaceModel(LTIModel):
         # set C matrix and number of outputs
         if C is not None:
             self.C = np.array(C).reshape(-1, self.Nx)
-            self.Ny = self.B.shape[0]
+            self.Ny = self.C.shape[0]
         else:
             self.Ny = Ny
             self.C = np.zeros((self.Ny, self.Nx))
