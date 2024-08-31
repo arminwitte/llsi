@@ -108,13 +108,13 @@ class StateSpaceModel(LTIModel):
         N = u.shape[0]
         # TODO: initialize x properly
         x1 = np.zeros((self.Nx, 1))
-        y = np.empty((N,self.Ny))
+        y = np.empty((N, self.Ny))
         for i, u_ in enumerate(u):
             x = x1
             with np.errstate(over="ignore", invalid="ignore"):
                 x1 = self.A @ x + self.B @ u_
                 y_ = self.C @ x + self.D @ u_
-            y[i,:] = y_
+            y[i, :] = y_
 
         return y
 
