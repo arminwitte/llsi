@@ -51,15 +51,15 @@ class StateSpaceModel(LTIModel):
             self.Nx = self.A.shape[0]
         else:
             self.Nx = Nx
-            self.A = np.zeros((self.Nx,self.Nx))
+            self.A = np.zeros((self.Nx, self.Nx))
 
         # set B matrix and number of inputs
         if B is not None:
-            self.B = np.array(B).reshape(self.Nx,-1)
+            self.B = np.array(B).reshape(self.Nx, -1)
             self.Nu = self.B.shape[1]
         else:
             self.Nu = Nu
-            self.B = np.zeros((self.Nx,self.Nu))
+            self.B = np.zeros((self.Nx, self.Nu))
 
         # set C matrix and number of outputs
         if C is not None:
@@ -67,12 +67,12 @@ class StateSpaceModel(LTIModel):
             self.Ny = self.B.shape[0]
         else:
             self.Ny = Ny
-            self.C = np.zeros((self.Ny,self.Nx))
-        
+            self.C = np.zeros((self.Ny, self.Nx))
+
         if D is not None:
-            self.D = np.array(D).reshape(self.Ny,self.Nu)
+            self.D = np.array(D).reshape(self.Ny, self.Nu)
         else:
-            self.D = np.zeros((self.Ny,self.Nu))
+            self.D = np.zeros((self.Ny, self.Nu))
 
         self.cov = None
 
@@ -97,9 +97,9 @@ class StateSpaceModel(LTIModel):
         nb = nx * nu
         nc = ny * nx
         nd = ny * nu
-        
+
         self.A = theta[:na].reshape(nx, nx)
-        self.B = theta[na:na+nb].reshape(nx, nu)
+        self.B = theta[na : na + nb].reshape(nx, nu)
         self.C = theta[na + nb : na + nb + nc].reshape(ny, nx)
         self.D = theta[na + nb + nc :].reshape(ny, nu)
 
@@ -115,7 +115,7 @@ class StateSpaceModel(LTIModel):
                 y_ = self.C @ x + self.D @ u_
             y.append(y_[0])
 
-        return np.array(y).reshape(-1,self.Ny)
+        return np.array(y).reshape(-1, self.Ny)
 
     @classmethod
     def from_PT1(cls, K: float, tauC: float, Ts=1.0):
