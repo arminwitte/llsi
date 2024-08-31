@@ -105,17 +105,18 @@ class StateSpaceModel(LTIModel):
 
     def simulate(self, u: np.ndarray):
         u = u.reshape(-1, self.Nu)
+        N = u.shape[0]
         # TODO: initialize x properly
         x1 = np.zeros((self.Nx, 1))
-        y = []
-        for u_ in u:
+        y = np.empty((N,self.Ny))
+        for i, u_ in enumerate(u):
             x = x1
             with np.errstate(over="ignore", invalid="ignore"):
                 x1 = self.A @ x + self.B @ u_
                 y_ = self.C @ x + self.D @ u_
-            y.append(y_)
+            y[i,:] = y_
 
-        return np.array(y).reshape(-1, self.Ny)
+        return y
 
     @classmethod
     def from_PT1(cls, K: float, tauC: float, Ts=1.0):
