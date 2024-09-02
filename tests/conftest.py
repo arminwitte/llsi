@@ -70,6 +70,7 @@ def data_siso_deterministic_stochastic(ss_mod):
     data.center()
     return data
 
+
 @pytest.fixture
 def data_mimo_deterministic():
     filt0 = StateSpaceModel.from_PT1(1.0, 0.8, Ts=1.0)
@@ -78,9 +79,11 @@ def data_mimo_deterministic():
     data0.center()
     data1 = generate_data(filt1, noise=1e-9, seed=43)
     data1.center()
-    data = SysIdData(u0=data0["u"],
-                     u1=data1["u"],
-                     y0=data0["y"],
-                     y1=data1["y"],
-                     t=data0.t,)
+    data = SysIdData(
+        u0=data0["u"],
+        u1=data1["u"],
+        y0=data0["y"],
+        y1=data1["y"],
+        t=data0.t,
+    )
     return data

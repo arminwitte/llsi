@@ -24,7 +24,7 @@ def test_init():
     assert isinstance(ss, LTIModel)
     assert isinstance(ss, StateSpaceModel)
     assert ss.Ts == 1.0
-    
+
 
 def test_init_siso():
     ss = StateSpaceModel(A=[[0.8, 0.8], [0, 0.8]], B=[1, 1], C=[1, 0], D=0, Ts=1.0)
@@ -32,10 +32,16 @@ def test_init_siso():
     assert isinstance(ss, StateSpaceModel)
     assert ss.D == np.array([[0.0]])
     assert ss.Ts == 1.0
-    
+
 
 def test_init_mimo():
-    ss = StateSpaceModel(A=[[0.8, 0.8], [0, 0.8]], B=[[1, 1],[1, 1]], C=[[1, 0],[0, 1]], D=[[0,0],[0,0]], Ts=1.0)
+    ss = StateSpaceModel(
+        A=[[0.8, 0.8], [0, 0.8]],
+        B=[[1, 1], [1, 1]],
+        C=[[1, 0], [0, 1]],
+        D=[[0, 0], [0, 0]],
+        Ts=1.0,
+    )
     assert isinstance(ss, LTIModel)
     assert isinstance(ss, StateSpaceModel)
     assert ss.Ts == 1.0
@@ -60,7 +66,9 @@ def test_simulate(model):
     y = model.simulate(u)
     assert y.shape == (9, 1)
     np.testing.assert_allclose(
-        y.ravel(), [0.0, 1.0, 1.6, 1.92, 2.048, 2.048, 1.96608, 1.835008, 1.677722], rtol=1e-6
+        y.ravel(),
+        [0.0, 1.0, 1.6, 1.92, 2.048, 2.048, 1.96608, 1.835008, 1.677722],
+        rtol=1e-6,
     )
 
 
