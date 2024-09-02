@@ -33,16 +33,23 @@ class PolynomialModel(LTIModel):
             self.nu = nu
             self.b = np.ones((self.nb, self.nu))
 
+        if self.ny > 1:
+            raise ValueError("System seems to have multiple outputs. This is not implemented.")
+
+        if self.nu > 1:
+            raise ValueError("System seems to have multiple inputs. This is not implemented.")
+            
         # norm
         if self.a.shape[0] > 0:
-            self.b = self.b / self.a[0, 0]
-            self.a = self.a / self.a[0, 0]
+            self.b = self.b.ravel() / self.a[0, 0]
+            self.a = self.a.ravel() / self.a[0, 0]
 
         self.nk = nk
 
         self.cov = cov
 
     def simulate(self, u):
+        u = np.atleast_2d(u).ravel()
         N = u.shape[0]
         y = np.zeros((N, self.ny))
         a = self.a
@@ -72,13 +79,11 @@ class PolynomialModel(LTIModel):
         return y
 
     def vectorize(self):
-        return np.hstack((self.b.ravel(), self.a[1:].ravel())).ravel()
+        return np.hstack((self.b, self.a[1:])).ravel()
 
     def reshape(self, theta):
-        self.b = theta[: self.nb * self.nu].reshape(self.nb, self.nu)
-        self.a = np.hstack(([1.0], theta[self.nb * self.nu :])).reshape(
-            self.na, self.ny
-        )
+        self.b = theta[: self.nb * self.nu].ravel()
+        self.a = np.hstack(([1.0], theta[self.nb * self.nu :])).ravel()
 
     def to_tf(self):
         return scipy.signal.TransferFunction(self.b, self.a, dt=self.Ts)
