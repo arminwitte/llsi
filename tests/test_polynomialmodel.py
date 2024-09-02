@@ -160,7 +160,7 @@ def test_reshape(model):
 
 
 def test_repr_str(model):
-    s = "PolynomialModel with Ts=1\nb:\n[0.04761905 0.04761905]\na:\n[ 1.        -0.9047619]\n"
+    s = "PolynomialModel with Ts=1.0\nb:\n[0.04761905 0.04761905]\na:\n[ 1.        -0.9047619]\n"
     assert model.__repr__() == s
     assert model.__str__() == s
 
