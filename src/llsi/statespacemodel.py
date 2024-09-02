@@ -331,7 +331,7 @@ class StateSpaceModel(LTIModel):
         return mod
 
     def __repr__(self) -> str:
-        s = f"StateSpaceModel with Ts={self.Ts}"
+        s = f"StateSpaceModel with Ts={self.Ts}\n"
         s += f"A:\n{self.A}\n"
         s += f"B:\n{self.B}\n"
         s += f"C:\n{self.C}\n"
