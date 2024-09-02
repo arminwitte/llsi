@@ -86,8 +86,10 @@ class PolynomialModel(LTIModel):
         return np.hstack((self.b, self.a[1:])).ravel()
 
     def reshape(self, theta):
-        self.b = theta[: self.nb * self.nu].ravel()
-        self.a = np.hstack(([1.0], theta[self.nb * self.nu :])).ravel()
+        # ensure 1d array
+        theta = np.array(theta).ravel()
+        self.b = theta[: self.nb * self.nu]
+        self.a = np.hstack(([1.0], theta[self.nb * self.nu :]))
 
     def to_tf(self):
         return scipy.signal.TransferFunction(self.b, self.a, dt=self.Ts)
