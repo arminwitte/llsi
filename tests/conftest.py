@@ -13,11 +13,11 @@ import scipy.stats
 from llsi import PolynomialModel, StateSpaceModel, SysIdData
 
 
-def generate_data(filt, noise=0.01):
+def generate_data(filt, noise=0.01, seed=42):
     t, u = SysIdData.generate_prbs(10000, 1.0)
 
     # generate seed
-    gen = np.random.Generator(np.random.PCG64(42))
+    gen = np.random.Generator(np.random.PCG64(seed))
     norm = scipy.stats.norm
     norm.random_state = gen
 
@@ -58,7 +58,7 @@ def ss_mod(poly_mod):
 @pytest.fixture
 def data_siso_deterministic(ss_mod):
     filt = ss_mod
-    data = generate_data(filt, noise=1e-9)
+    data = generate_data(filt, noise=1e-9, seed=42)
     data.center()
     return data
 
@@ -66,6 +66,6 @@ def data_siso_deterministic(ss_mod):
 @pytest.fixture
 def data_siso_deterministic_stochastic(ss_mod):
     filt = ss_mod
-    data = generate_data(filt, noise=0.5)
+    data = generate_data(filt, noise=0.5, seed=42)
     data.center()
     return data
