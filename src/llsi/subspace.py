@@ -20,7 +20,7 @@ class SubspaceIdent(SysIdAlgBase):
     def hankel(self, x, n):
         A = []
         for x_ in x.T:
-            x_ = x_.reshape(1,-1)
+            x_ = x_.ravel().T
             for i in range(n):
                 A.append(x_[i : -n + i])
 
