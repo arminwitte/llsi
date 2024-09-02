@@ -6,7 +6,7 @@ Created on Sun Apr  4 20:47:33 2021
 @author: armin
 """
 
-from abc import ABC, abstractmethod, abstractstaticmethod
+from abc import ABC, abstractmethod
 
 import numpy as np
 
@@ -33,7 +33,8 @@ class SysIdAlgBase(ABC):
     def ident(self, order):
         pass
 
-    @abstractstaticmethod
+    @staticmethod
+    @abstractmethod
     def name():
         pass
 
