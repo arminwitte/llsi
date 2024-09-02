@@ -12,31 +12,47 @@ from .ltimodel import LTIModel
 
 
 class PolynomialModel(LTIModel):
-    def __init__(self, **kwargs):
-        super().__init__(Ts=kwargs.get("Ts", 1.0))
-        self.a = kwargs.get("a", np.array([]))
-        self.b = kwargs.get("b", np.array([]))
-        if len(self.a) > 0:
-            self.b = self.b / self.a[0]
-            self.a = self.a / self.a[0]
-        self.na = self.a.ravel().shape[0]
-        self.nb = self.b.ravel().shape[0]
-        self.nk = kwargs.get("nk", 0)
+    def __init__(self, a=None, b=None, na=1, nb=1, nu=1, ny=1, nk=0, cov=None, Ts=1.0):
+        super().__init__(Ts=Ts)
+        
+        if a is not None:
+            self.a = np.atleast_2d(a)
+            self.na = self.a.shape[0]
+            self.ny = self.a.shape[1]
+        else:
+            self.na = na
+            self.ny = ny
+            self.a = np.ones((self.na,self.ny))
 
-        self.cov = kwargs.get("cov")
+        if b is not None:
+            self.b = np.atleast_2d(b)
+            self.nb = self.b.shape[0]
+            self.nu = self.b.shape[1]
+        else:
+            self.nb = nb
+            self.nu = nu
+            self.b = np.ones((self.nb,self.nu))
+
+        # norm
+        if self.a.shape[0] > 0:
+            self.b = self.b / self.a[0,0]
+            self.a = self.a / self.a[0,0]
+        
+        self.nk = nk
+
+        self.cov = cov
 
     def simulate(self, u):
-        u = u.ravel()
         N = u.shape[0]
-        y = np.zeros_like(u)
-        # a = self.a.reshape(-1,1)
-        # b = self.b.reshape(-1,1)
-        a = self.a.ravel()
-        b = self.b.ravel()
-        na = a.shape[0]  #!
-        nb = b.shape[0]  #!
+        y = np.zeros((N,self.ny))
+        a = self.a
+        b = self.b
+        na = self.na
+        nb = self.nb
         nk = self.nk
         n = max(na, nb + nk)
+
+
         # print(a.T[1:].shape)
 
         # init with for-loops
@@ -57,13 +73,11 @@ class PolynomialModel(LTIModel):
         return y
 
     def vectorize(self):
-        self.na = self.a.ravel().shape[0]
-        self.nb = self.b.ravel().shape[0]
-        return np.hstack((self.b, self.a[1:])).ravel()
+        return np.hstack((self.b.ravel(), self.a[1:].ravel())).ravel()
 
     def reshape(self, theta):
-        self.b = theta[: self.nb]
-        self.a = np.hstack(([1.0], theta[self.nb :]))
+        self.b = theta[: self.nb * self.nu].reshape(self.nb,self.nu)
+        self.a = np.hstack(([1.0], theta[self.nb * self.nu :])).reshape(self.na,self.ny)
 
     def to_tf(self):
         return scipy.signal.TransferFunction(self.b, self.a, dt=self.Ts)
@@ -75,8 +89,10 @@ class PolynomialModel(LTIModel):
         return mod_out
 
     def __repr__(self):
-        s = f"b:\n{self.b}\n"
+        s = f"PolynomialModel with Ts={self.Ts}"
+        s += f"b:\n{self.b}\n"
         s += f"a:\n{self.a}\n"
+
         return s
 
     def __str__(self):
