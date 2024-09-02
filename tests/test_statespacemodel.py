@@ -20,7 +20,22 @@ def model():
 
 
 def test_init():
-    ss = StateSpaceModel(A=[[0.8, 0.8], [0, 0.8]], B=[1, 1], C=[1, 0], D=0, Ts=1)
+    ss = StateSpaceModel()
+    assert isinstance(ss, LTIModel)
+    assert isinstance(ss, StateSpaceModel)
+    assert ss.Ts == 1.0
+    
+
+def test_init_siso():
+    ss = StateSpaceModel(A=[[0.8, 0.8], [0, 0.8]], B=[1, 1], C=[1, 0], D=0, Ts=1.0)
+    assert isinstance(ss, LTIModel)
+    assert isinstance(ss, StateSpaceModel)
+    assert ss.D == np.array([[0.0]])
+    assert ss.Ts == 1.0
+    
+
+def test_init_mimo():
+    ss = StateSpaceModel(A=[[0.8, 0.8], [0, 0.8]], B=[[1, 1],[1, 1]], C=[[1, 0],[0, 1]], D=[[0,0],[0,0]], Ts=1.0)
     assert isinstance(ss, LTIModel)
     assert isinstance(ss, StateSpaceModel)
     assert ss.Ts == 1.0
