@@ -16,7 +16,7 @@ class PolynomialModel(LTIModel):
         super().__init__(Ts=Ts)
 
         if a is not None:
-            self.a = np.atleast_2d(a)
+            self.a = np.atleast_2d(a).T
             self.na = self.a.shape[0]
             self.ny = self.a.shape[1]
         else:
@@ -25,7 +25,7 @@ class PolynomialModel(LTIModel):
             self.a = np.ones((self.na, self.ny))
 
         if b is not None:
-            self.b = np.atleast_2d(b)
+            self.b = np.atleast_2d(b).T
             self.nb = self.b.shape[0]
             self.nu = self.b.shape[1]
         else:
