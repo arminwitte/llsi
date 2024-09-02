@@ -46,6 +46,7 @@ def test_po_moesp(data_siso_deterministic, ss_mod):
         mod.to_controllable_form().A, ss_mod.A, rtol=1e-3, atol=1e-3
     )
 
+
 def test_n4sid_mimo(data_mimo_deterministic, ss_mod):
     identifyer = N4SID(data_mimo_deterministic, ["y0", "y1"], ["u0", "u1"])
     mod = identifyer.ident(2)
@@ -60,6 +61,5 @@ def test_n4sid_mimo(data_mimo_deterministic, ss_mod):
         mod.to_controllable_form().A, ss_mod.A, rtol=1e-1, atol=1e-1
     )
     t, i = mod.impulse()
-    assert i.shape == (100,2)
-    np.testing.assert_allclose(i[:10,:],[[0],[0]])
-    
+    assert i.shape == (100, 2)
+    np.testing.assert_allclose(i[:10, :], [[0], [0]])
