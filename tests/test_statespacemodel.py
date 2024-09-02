@@ -55,7 +55,7 @@ def test_from_PT1():
 
 
 def test_repr_str(model):
-    s = """StateSpaceModel with Ts=1.0
+    s = """StateSpaceModel with Ts=1
 A:
 [[0.8 0.8]
  [0.  0.8]]
