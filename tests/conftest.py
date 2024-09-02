@@ -71,7 +71,7 @@ def data_siso_deterministic_stochastic(ss_mod):
     return data
 
 @pytest.fixture
-def data_mimo_deterministic()
+def data_mimo_deterministic():
     filt0 = StateSpaceModel.from_PT1([1.0, 0.8], Ts=1.0)
     filt1 = StateSpaceModel.from_PT1([2.0, 0.6], Ts=1.0)
     data0 = generate_data(filt0, noise=1e-9, seed=42)
