@@ -16,7 +16,15 @@ from .sysidalgbase import SysIdAlgBase
 class ARX(SysIdAlgBase):
     def __init__(self, data, y_name, u_name, settings={}):
         super().__init__(data, y_name, u_name, settings=settings)
+        if self.u.shape[1] > 1:
+            raise ValueError("There seem to be multiple inputs. This is not implemented.")
 
+        if self.y.shape[1] > 1:
+            raise ValueError("There seem to be multiple outputs. This is not implemented.")
+
+        self.u = self.u.ravel()
+        self.y = self.y.ravel()
+    
     def ident(self, order):
         na, nb, nk = order
         Phi, y = self._observations(na, nb, nk)
