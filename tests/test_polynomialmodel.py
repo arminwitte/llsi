@@ -60,8 +60,9 @@ def test_simulate(model):
         ]
     )
     y = model.simulate(u)
+    assert y.shape == (20, 1)
     np.testing.assert_allclose(
-        y,
+        y.ravel(),
         [
             0.04761905,
             0.138322,
@@ -113,8 +114,9 @@ def test_simulate_nk(model_nk):
         ]
     )
     y = model_nk.simulate(u)
+    assert y.shape == (20, 1)
     np.testing.assert_allclose(
-        y,
+        y.ravel(),
         [
             0.0,
             0.0,
@@ -166,7 +168,7 @@ def test_repr_str(model):
 def test_impulse(model):
     ti, i = model.impulse_response()
     np.testing.assert_allclose(
-        i[:10],
+        i[:10].ravel(),
         [
             4.76190500e-02,
             9.07029522e-02,
@@ -186,7 +188,7 @@ def test_step(model):
     tI, I = model.step_response()
     print(I)
     np.testing.assert_allclose(
-        I[:10],
+        I[:10].ravel(),
         [
             0.04761905,
             0.138322,
