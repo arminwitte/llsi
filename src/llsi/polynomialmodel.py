@@ -101,7 +101,7 @@ class PolynomialModel(LTIModel):
         return mod_out
 
     def __repr__(self):
-        s = f"PolynomialModel with Ts={self.Ts}"
+        s = f"PolynomialModel with Ts={self.Ts}\n"
         s += f"b:\n{self.b}\n"
         s += f"a:\n{self.a}\n"
 
