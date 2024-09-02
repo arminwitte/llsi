@@ -34,11 +34,15 @@ class PolynomialModel(LTIModel):
             self.b = np.ones((self.nb, self.nu))
 
         if self.ny > 1:
-            raise ValueError("System seems to have multiple outputs. This is not implemented.")
+            raise ValueError(
+                "System seems to have multiple outputs. This is not implemented."
+            )
 
         if self.nu > 1:
-            raise ValueError("System seems to have multiple inputs. This is not implemented.")
-            
+            raise ValueError(
+                "System seems to have multiple inputs. This is not implemented."
+            )
+
         # norm
         if self.a.shape[0] > 0:
             self.b = self.b.ravel() / self.a[0, 0]
