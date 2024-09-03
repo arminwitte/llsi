@@ -106,7 +106,7 @@ class StateSpaceModel(LTIModel):
     def simulate(self, u: np.ndarray):
         u = np.atleast_2d(u)
         u = u.reshape(self.nu,-1)
-        N = u.shape[0]
+        N = u.shape[1]
         # TODO: initialize x properly
         x1 = np.zeros((self.nx, 1))
         y = np.empty((N, self.ny))
