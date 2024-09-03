@@ -12,14 +12,16 @@ import numpy as np
 
 
 class LTIModel(ABC):
-    def __init__(self, Ts=1.0):
+    def __init__(self, Ts=1.0, nu=1, ny=1):
         self.Ts = Ts
         self.info = {}
+        self.nu = nu
+        self.ny = ny
 
     def impulse_response(self, N=100):
         t = np.linspace(0, (N - 1) * self.Ts, N)
-        u = np.zeros((N,))
-        u[0] = 1 / self.Ts
+        u = np.zeros((N,self.nu))
+        u[0,:] = 1 / self.Ts
 
         y = self.simulate(u)
 
@@ -27,7 +29,7 @@ class LTIModel(ABC):
 
     def step_response(self, N=100):
         t = np.linspace(0, (N - 1) * self.Ts, N)
-        u = np.ones((N,))
+        u = np.ones((N,self.nu))
 
         y = self.simulate(u)
 
