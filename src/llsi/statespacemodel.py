@@ -138,7 +138,7 @@ class StateSpaceModel(LTIModel):
         A = [[-a]]
         C = [1]
 
-        mod = cls(A=A, B=B, C=C, D=D, Ts=Ts, Nx=1)
+        mod = cls(A=A, B=B, C=C, D=D, Ts=Ts, nx=1)
 
         return mod
 
