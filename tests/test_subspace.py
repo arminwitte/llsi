@@ -94,4 +94,4 @@ def test_n4sid_mimo(data_mimo_deterministic, ss_mod):
     np.testing.assert_allclose(i[:10, :], [[0], [0]])
 
     d = data_mima_deterministic
-    y = mod.sim([d["u0"], d["u1"])
+    y = mod.sim([d["u0"], d["u1"]])
