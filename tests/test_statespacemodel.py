@@ -20,7 +20,28 @@ def model():
 
 
 def test_init():
-    ss = StateSpaceModel(A=[[0.8, 0.8], [0, 0.8]], B=[1, 1], C=[1, 0], D=0, Ts=1)
+    ss = StateSpaceModel()
+    assert isinstance(ss, LTIModel)
+    assert isinstance(ss, StateSpaceModel)
+    assert ss.Ts == 1.0
+
+
+def test_init_siso():
+    ss = StateSpaceModel(A=[[0.8, 0.8], [0, 0.8]], B=[1, 1], C=[1, 0], D=0, Ts=1.0)
+    assert isinstance(ss, LTIModel)
+    assert isinstance(ss, StateSpaceModel)
+    assert ss.D == np.array([[0.0]])
+    assert ss.Ts == 1.0
+
+
+def test_init_mimo():
+    ss = StateSpaceModel(
+        A=[[0.8, 0.8], [0, 0.8]],
+        B=[[1, 1], [1, 1]],
+        C=[[1, 0], [0, 1]],
+        D=[[0, 0], [0, 0]],
+        Ts=1.0,
+    )
     assert isinstance(ss, LTIModel)
     assert isinstance(ss, StateSpaceModel)
     assert ss.Ts == 1.0
@@ -43,8 +64,11 @@ def test_reshape(model):
 def test_simulate(model):
     u = np.array([1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
     y = model.simulate(u)
+    assert y.shape == (9, 1)
     np.testing.assert_allclose(
-        y, [0.0, 1.0, 1.6, 1.92, 2.048, 2.048, 1.96608, 1.835008, 1.677722], rtol=1e-6
+        y.ravel(),
+        [0.0, 1.0, 1.6, 1.92, 2.048, 2.048, 1.96608, 1.835008, 1.677722],
+        rtol=1e-6,
     )
 
 
@@ -54,7 +78,8 @@ def test_from_PT1():
 
 
 def test_repr_str(model):
-    s = """A:
+    s = """StateSpaceModel with Ts=1
+A:
 [[0.8 0.8]
  [0.  0.8]]
 B:
@@ -63,7 +88,7 @@ B:
 C:
 [[1 0]]
 D:
-0
+[[0]]
 """
     assert model.__repr__() == s
     assert model.__str__() == s
@@ -72,7 +97,7 @@ D:
 def test_impulse(model):
     ti, i = model.impulse_response()
     np.testing.assert_allclose(
-        i[:10],
+        i.ravel()[:10],
         [
             0.00000000e00,
             1.00000000e00,
@@ -91,7 +116,7 @@ def test_impulse(model):
 def test_step(model):
     tI, I = model.step_response()
     np.testing.assert_allclose(
-        I[:10],
+        I.ravel()[:10],
         [
             0.0,
             1.0,

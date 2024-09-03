@@ -16,6 +16,18 @@ from .sysidalgbase import SysIdAlgBase
 class ARX(SysIdAlgBase):
     def __init__(self, data, y_name, u_name, settings={}):
         super().__init__(data, y_name, u_name, settings=settings)
+        if self.u.shape[1] > 1:
+            raise ValueError(
+                "There seem to be multiple inputs. This is not implemented."
+            )
+
+        if self.y.shape[1] > 1:
+            raise ValueError(
+                "There seem to be multiple outputs. This is not implemented."
+            )
+
+        self.u = self.u.ravel()
+        self.y = self.y.ravel()
 
     def ident(self, order):
         na, nb, nk = order
@@ -44,17 +56,19 @@ class ARX(SysIdAlgBase):
         return mod
 
     def _observations(self, na, nb, nk):
+        u = self.u.ravel()
+        y = self.y.ravel()
         nn = max(nb + nk, na)
-        N = self.u.ravel().shape[0]
+        N = u.ravel().shape[0]
         Phi = np.empty((N - nn, nb + na))
         for i in range(nb):
-            Phi[:, i] = self.u[nn - i - nk : N - i - nk]
+            Phi[:, i] = u[nn - i - nk : N - i - nk]
         for i in range(na):
-            Phi[:, nb + i] = -self.y[nn - i - 1 : N - i - 1]
+            Phi[:, nb + i] = -y[nn - i - 1 : N - i - 1]
 
-        y = self.y[nn:N]
+        y_ = y[nn:N]
 
-        return Phi, y
+        return Phi, y_
 
     @staticmethod
     def _lstsq_lstsq(Phi, y):

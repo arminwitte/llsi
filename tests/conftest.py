@@ -13,17 +13,17 @@ import scipy.stats
 from llsi import PolynomialModel, StateSpaceModel, SysIdData
 
 
-def generate_data(filt, noise=0.01):
-    t, u = SysIdData.generate_prbs(10000, 1.0)
+def generate_data(filt, noise=0.01, seed=42):
+    t, u = SysIdData.generate_prbs(10000, 1.0, seed=seed)
 
     # generate seed
-    gen = np.random.Generator(np.random.PCG64(42))
+    gen = np.random.Generator(np.random.PCG64(seed))
     norm = scipy.stats.norm
     norm.random_state = gen
 
     e = noise * norm.rvs(size=10000)
 
-    y = filt.simulate(u) + e
+    y = filt.simulate(u).ravel() + e
 
     data = SysIdData(y=y, u=u, t=t)
     data.equidistant()
@@ -58,7 +58,7 @@ def ss_mod(poly_mod):
 @pytest.fixture
 def data_siso_deterministic(ss_mod):
     filt = ss_mod
-    data = generate_data(filt, noise=1e-9)
+    data = generate_data(filt, noise=1e-9, seed=42)
     data.center()
     return data
 
@@ -66,6 +66,25 @@ def data_siso_deterministic(ss_mod):
 @pytest.fixture
 def data_siso_deterministic_stochastic(ss_mod):
     filt = ss_mod
-    data = generate_data(filt, noise=0.5)
+    data = generate_data(filt, noise=0.5, seed=42)
     data.center()
+    return data
+
+
+@pytest.fixture
+def data_mimo_deterministic():
+    filt0 = StateSpaceModel.from_PT1(1.0, 0.8, Ts=1.0)
+    filt1 = StateSpaceModel.from_PT1(2.0, 0.6, Ts=1.0)
+    data0 = generate_data(filt0, noise=1e-9, seed=42)
+    data0.center()
+    data1 = generate_data(filt1, noise=1e-9, seed=43)
+    data1.center()
+    data = SysIdData(
+        u0=data0["u"],
+        u1=data1["u"],
+        y0=data0["y"],
+        y1=data1["y"],
+        # t=data0.t,
+        Ts=1.0,
+    )
     return data

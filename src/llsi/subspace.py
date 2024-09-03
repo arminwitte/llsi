@@ -16,17 +16,24 @@ from .sysidalgbase import SysIdAlgBase
 class SubspaceIdent(SysIdAlgBase):
     def __init__(self, data, y_name, u_name, settings):
         super().__init__(data, y_name, u_name, settings=settings)
+        self.nu = self.u.shape[1]
+        self.ny = self.y.shape[1]
 
-    def hankel(self, x, n):
+    @staticmethod
+    def hankel(x, n):
         A = []
-        for i in range(n):
-            A.append(x[i : -n + i].T)
+        n = n // x.shape[1]
+        for x_ in x.T:
+            x_ = x_.ravel().T
+            for i in range(n):
+                A.append(x_[i : -n + i])
 
         return np.array(A)
 
     def _abcd_state(self, Xf, s, n, r):
-        Y_ = np.vstack((Xf[:, 1 : s - 1], self.y[r : r + s - 2,:].T))
-        X_ = np.vstack((Xf[:, : s - 2], self.u[r : r + s - 2,:].T))
+        Y_ = np.vstack((Xf[:, 1 : s - 1], self.y[r : r + s - 2, :].T))
+        X_ = np.vstack((Xf[:, : s - 2], self.u[r : r + s - 2, :].T))
+
         # Theta = Y_ @ np.linalg.pinv(X_)
 
         ###########################
@@ -100,7 +107,7 @@ class N4SID(SubspaceIdent):
         else:
             n = order
 
-        r = 2 * n + 1  # window length
+        r = (2 * n + 1) * self.nu * self.ny  # window length
 
         Y = self.hankel(self.y, 2 * r)
         U = self.hankel(self.u, 2 * r)

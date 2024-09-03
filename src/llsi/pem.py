@@ -35,7 +35,8 @@ class PEM(SysIdAlgBase):
             sse = np.nan_to_num(sse, nan=1e300)
             # print("{:10.6g}".format(sse / sse0))
             # return sse / sse0
-            J = sse + lambda_l1 * np.sum(np.abs(x)) + lambda_l2 * x.T @ x
+            x_ = x.ravel()
+            J = sse + lambda_l1 * np.sum(np.abs(x)) + lambda_l2 * x_.T @ x_
             print("{:10.6g}".format(J))
             return J
 

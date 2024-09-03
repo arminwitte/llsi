@@ -160,7 +160,7 @@ def test_reshape(model):
 
 
 def test_repr_str(model):
-    s = "b:\n[0.04761905 0.04761905]\na:\n[ 1.        -0.9047619]\n"
+    s = "PolynomialModel with Ts=1.0\nb:\n[0.04761905 0.04761905]\na:\n[ 1.        -0.9047619]\n"
     assert model.__repr__() == s
     assert model.__str__() == s
 
@@ -168,7 +168,7 @@ def test_repr_str(model):
 def test_impulse(model):
     ti, i = model.impulse_response()
     np.testing.assert_allclose(
-        i[:10].ravel(),
+        i.ravel()[:10],
         [
             4.76190500e-02,
             9.07029522e-02,
@@ -188,7 +188,7 @@ def test_step(model):
     tI, I = model.step_response()
     print(I)
     np.testing.assert_allclose(
-        I[:10].ravel(),
+        I.ravel()[:10],
         [
             0.04761905,
             0.138322,

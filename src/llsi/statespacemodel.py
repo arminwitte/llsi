@@ -20,7 +20,7 @@ class StateSpaceModel(LTIModel):
     https://en.wikipedia.org/wiki/State-space_representation
     """
 
-    def __init__(self, A=None, B=None, C=None, D=None, Ts=1.0, Nx=0):
+    def __init__(self, A=None, B=None, C=None, D=None, Ts=1.0, Nx=0, Nu=1, Ny=1):
         """
 
         Parameters
@@ -44,15 +44,35 @@ class StateSpaceModel(LTIModel):
 
         """
         super().__init__(Ts=Ts)
-        self.A = np.array(A)
-        self.B = np.array(B).reshape(-1, 1)
-        self.C = np.array(C).reshape(1, -1)
-        self.D = np.array(D)
 
+        # set A matrix and number of states
         if A is not None:
+            self.A = np.array(A)
             self.Nx = self.A.shape[0]
         else:
             self.Nx = Nx
+            self.A = np.zeros((self.Nx, self.Nx))
+
+        # set B matrix and number of inputs
+        if B is not None:
+            self.B = np.array(B).reshape(self.Nx, -1)
+            self.Nu = self.B.shape[1]
+        else:
+            self.Nu = Nu
+            self.B = np.zeros((self.Nx, self.Nu))
+
+        # set C matrix and number of outputs
+        if C is not None:
+            self.C = np.array(C).reshape(-1, self.Nx)
+            self.Ny = self.C.shape[0]
+        else:
+            self.Ny = Ny
+            self.C = np.zeros((self.Ny, self.Nx))
+
+        if D is not None:
+            self.D = np.array(D).reshape(self.Ny, self.Nu)
+        else:
+            self.D = np.zeros((self.Ny, self.Nu))
 
         self.cov = None
 
@@ -62,34 +82,48 @@ class StateSpaceModel(LTIModel):
                 self.A.reshape(-1, 1),
                 self.B.reshape(-1, 1),
                 self.C.reshape(-1, 1),
-                self.D,
+                self.D.reshape(-1, 1),
             ]
         )
-
-        # self.n = self.B.shape[0]
 
         return np.array(theta).ravel()
 
     def reshape(self, theta: np.ndarray):
-        n = self.B.shape[0]
-        self.A = theta[: n * n].reshape(n, n)
-        self.B = theta[n * n : n * n + n].reshape(n, 1)
-        self.C = theta[n * n + n : n * n + 2 * n].reshape(1, n)
-        self.D = theta[-1]
+        nx = self.Nx
+        nu = self.Nu
+        ny = self.Ny
+
+        na = nx * nx
+        nb = nx * nu
+        nc = ny * nx
+        nd = ny * nu
+
+        self.A = theta[:na].reshape(nx, nx)
+        self.B = theta[na : na + nb].reshape(nx, nu)
+        self.C = theta[na + nb : na + nb + nc].reshape(ny, nx)
+        self.D = theta[na + nb + nc :].reshape(ny, nu)
 
     def simulate(self, u: np.ndarray):
-        u = u.ravel()
+        u = u.reshape(-1, self.Nu)
+        N = u.shape[0]
         # TODO: initialize x properly
         x1 = np.zeros((self.Nx, 1))
-        y = []
-        for u_ in u:
+        y = np.empty((N, self.Ny))
+        for i, u_ in enumerate(u):
+            u_ = u_.reshape(1, self.Nu)
             x = x1
             with np.errstate(over="ignore", invalid="ignore"):
-                x1 = self.A @ x + self.B * u_
-                y_ = self.C @ x + self.D * u_
-            y.append(y_[0])
+                x1 = self.A @ x + self.B @ u_
+                y_ = self.C @ x + self.D @ u_
 
-        return np.array(y).ravel()
+            # print(f"u:{u_}")
+            # print(f"x:{x}")
+            # print(f"x1:{x1}")
+            # print(f"y:{y_}")
+
+            y[i, :] = y_
+
+        return y
 
     @classmethod
     def from_PT1(cls, K: float, tauC: float, Ts=1.0):
@@ -269,6 +303,8 @@ class StateSpaceModel(LTIModel):
         except:
             data["info"] = {}
         data["Nx"] = self.Nx
+        data["Nu"] = self.Nu
+        data["Ny"] = self.Ny
 
         if filename is not None:
             with open(filename, "w") as f:
@@ -288,12 +324,15 @@ class StateSpaceModel(LTIModel):
             D=data["D"],
             Ts=data["Ts"],
             Nx=data["Nx"],
+            Nu=data["Nu"],
+            Ny=data["Ny"],
         )
         mod.info = data["info"]
         return mod
 
     def __repr__(self) -> str:
-        s = f"A:\n{self.A}\n"
+        s = f"StateSpaceModel with Ts={self.Ts}\n"
+        s += f"A:\n{self.A}\n"
         s += f"B:\n{self.B}\n"
         s += f"C:\n{self.C}\n"
         s += f"D:\n{self.D}\n"

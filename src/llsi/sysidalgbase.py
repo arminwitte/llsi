@@ -6,15 +6,26 @@ Created on Sun Apr  4 20:47:33 2021
 @author: armin
 """
 
-from abc import ABC, abstractmethod, abstractstaticmethod
+from abc import ABC, abstractmethod
 
 import numpy as np
 
 
 class SysIdAlgBase(ABC):
     def __init__(self, data, y_name, u_name, settings):
-        self.y = data[y_name]
-        self.u = data[u_name]
+
+        y_name = np.atleast_1d(y_name)  # now I can iterate over
+        y = []
+        for name in y_name:
+            y.append(data[name])
+        self.y = np.atleast_2d(y).T
+
+        u_name = np.atleast_1d(u_name)  # now I can iterate over
+        u = []
+        for name in u_name:
+            u.append(data[name])
+        self.u = np.atleast_2d(u).T
+
         self.Ts = data.Ts
         self.settings = settings
 
@@ -22,7 +33,8 @@ class SysIdAlgBase(ABC):
     def ident(self, order):
         pass
 
-    @abstractstaticmethod
+    @staticmethod
+    @abstractmethod
     def name():
         pass
 
@@ -31,4 +43,4 @@ class SysIdAlgBase(ABC):
         e = y - y_hat
         with np.errstate(over="ignore", invalid="ignore"):
             sse = e.T @ e
-        return sse
+        return np.sum(sse)
