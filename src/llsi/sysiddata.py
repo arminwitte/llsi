@@ -21,10 +21,16 @@ class SysIdData:
         self.t = t
         self.Ts = Ts
 
+        if self.Ts is None and self.t is None:
+            raise ValueError("No time specified. Use eiter keyword t to give a series or Ts to give a scalar for equidistant time series.")
+
         if self.t is not None:
             self.t_start = t[0]
         else:
-            self.t_start = t_start
+            if t_start is None:
+                self.t_start = 0.
+            else:
+                self.t_start = t_start
 
     def __getitem__(self, key):
         return self.series[key]
