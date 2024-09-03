@@ -25,8 +25,8 @@ class SubspaceIdent(SysIdAlgBase):
         return np.array(A)
 
     def _abcd_state(self, Xf, s, n, r):
-        Y_ = np.vstack((Xf[:, 1 : s - 1], self.y[r : r + s - 2].T))
-        X_ = np.vstack((Xf[:, : s - 2], self.u[r : r + s - 2].T))
+        Y_ = np.vstack((Xf[:, 1 : s - 1], self.y[r : r + s - 2,:].T))
+        X_ = np.vstack((Xf[:, : s - 2], self.u[r : r + s - 2,:].T))
         # Theta = Y_ @ np.linalg.pinv(X_)
 
         ###########################
@@ -40,9 +40,9 @@ class SubspaceIdent(SysIdAlgBase):
         ###########################
 
         A = Theta[:n, :n]
-        B = Theta[:n, n].ravel()
-        C = Theta[n, :n].ravel()
-        D = Theta[n, n]
+        B = Theta[:n, n:]
+        C = Theta[n:, :n]
+        D = Theta[n:, n:]
         return A, B, C, D
 
     def _abcd_observability_matrix(self, U1, U2, L11, L31, Sigma_sqrt, n, r):
