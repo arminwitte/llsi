@@ -23,10 +23,16 @@ class SubspaceIdent(SysIdAlgBase):
     def hankel(x, n):
         A = []
         n = n // x.shape[1]
-        for x_ in x.T:
-            x_ = x_.ravel().T
-            for i in range(n):
+        for i in range(n):
+            for x_ in x.T:
+                x_ = x_.ravel().T
                 A.append(x_[i : -n + i])
+                
+        
+        # for x_ in x.T:
+        #     x_ = x_.ravel().T
+        #     for i in range(n):
+        #         A.append(x_[i : -n + i])
 
         return np.array(A)
 
@@ -53,10 +59,13 @@ class SubspaceIdent(SysIdAlgBase):
         return A, B, C, D
 
     def _abcd_observability_matrix(self, U1, U2, L11, L31, Sigma_sqrt, n, r):
+        ny = self.ny
+        nu = self.nu
+        
         Or = U1 @ Sigma_sqrt  # extended observability matrix
 
-        C = Or[0, :]  # TODO: might be wrong!!!
-        A = scipy.linalg.pinv(Or[0:-1, :]) @ Or[1:, :]
+        C = Or[:ny, :]  # TODO: might be wrong!!!
+        A = scipy.linalg.pinv(Or[0:-ny, :]) @ Or[ny:, :]
         # A = scipy.linalg.lstsq(Or[0:-1,:],Or[1:,:])
         # print(A)
 
@@ -65,7 +74,6 @@ class SubspaceIdent(SysIdAlgBase):
         A1_ = P.ravel(order="F")
 
         nn = A1_.shape[0]
-        ny = 1
         A_ = np.zeros((nn, ny + n))
         A_[:, 0:ny] = A1_.reshape(-1, ny)
 
@@ -83,8 +91,8 @@ class SubspaceIdent(SysIdAlgBase):
         x_, *_ = scipy.linalg.lstsq(A_, M)
         # x_ = scipy.linalg.pinv(A_) @ M
 
-        D = x_[0:ny]
-        B = x_[ny : ny + n]
+        D = x_[0:ny,:]
+        B = x_[nu : nu + n, : ]
 
         return A, B, C, D
 
@@ -152,7 +160,7 @@ class N4SID(SubspaceIdent):
         # V1 = V_[:, :n]
         # V2 = V_[:,n:r]
 
-        Or = U1 @ Sigma_sqrt  # extended observability matrix
+        # Or = U1 @ Sigma_sqrt  # extended observability matrix
         Xf = (
             Sigma_sqrt @ V1
         )  # state matrix # TANGIRALA SAYS IT SHOULD BE TRANSPOSED !?!
@@ -271,14 +279,14 @@ class PO_MOESP(SubspaceIdent):
         else:
             n = order
 
-        N = self.y.shape[0]
+        # N = self.y.shape[0]
 
-        r = 2 * n + 1  # window length
+        r = (2 * n + 1) * self.nu * self.ny  # window length
 
         Y = self.hankel(self.y, 2 * r)
         U = self.hankel(self.u, 2 * r)
 
-        s = Y.shape[1]
+        # s = Y.shape[1]
 
         Yp = Y[0:r, :]
         Up = U[0:r, :]
@@ -312,12 +320,12 @@ class PO_MOESP(SubspaceIdent):
         U1 = U_[:, 0:n]
         U2 = U_[:, n:r]
         Sigma_sqrt = np.diag(np.sqrt(s_[:n]))
-        V1 = V_[:n, :]
+        # V1 = V_[:n, :]
         # V1 = V_[:,0:n]
         # V2 = V_[:,n:r]
 
-        Or = U1 @ Sigma_sqrt  # extended observability matrix
-        Xf = np.linalg.pinv(Or) @ Gamma_r
+        # Or = U1 @ Sigma_sqrt  # extended observability matrix
+        # Xf = np.linalg.pinv(Or) @ Gamma_r
         # print(Xf.shape)
 
         # C = Or[0, :]# TODO: might be wrong!!!
