@@ -105,13 +105,15 @@ class StateSpaceModel(LTIModel):
 
     def simulate(self, u: np.ndarray):
         u = np.atleast_2d(u)
-        u = u.reshape(-1, self.nu)
+        u = u.reshape(self.nu,1)
         N = u.shape[0]
         # TODO: initialize x properly
         x1 = np.zeros((self.nx, 1))
         y = np.empty((N, self.ny))
         # assert u.shape[1] == self.nu
-        for i, u_ in enumerate(u):
+        for i, u_ in enumerate(u.T):
+            u_ = u_.T
+
             #u_ = u_.reshape(1, self.nu)
             x = x1
             with np.errstate(over="ignore", invalid="ignore"):
