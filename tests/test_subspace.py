@@ -92,7 +92,7 @@ def test_n4sid_mimo(data_mimo_deterministic, ss_mod):
     # )
 
     d = data_mimo_deterministic
-    y = mod.simulate([d["u0"], d["u1"]])
+    y = mod.simulate(np.array([d["u0"], d["u1"]]).T)
     np.testing.assert_allclose(y[:10, :], [[0], [0]])
 
     t, i = mod.impulse_response()
