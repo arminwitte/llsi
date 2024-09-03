@@ -37,12 +37,12 @@ class SubspaceIdent(SysIdAlgBase):
         # Theta = Y_ @ np.linalg.pinv(X_)
 
         ###########################
-        l = self.settings.get("lambda", 0.0)
+        lmbd = self.settings.get("lambda", 0.0)
         # print(l)
         U, s, Vh = scipy.linalg.svd(X_, full_matrices=False)
         Sigma = np.diag(1 / s)
 
-        rho = np.diag(s**2 / (s**2 + l))
+        rho = np.diag(s**2 / (s**2 + lmbd))
         Theta = Y_ @ (Vh.T @ rho @ Sigma @ U.T)
         ###########################
 
