@@ -31,8 +31,8 @@ class SubspaceIdent(SysIdAlgBase):
         return np.array(A)
 
     def _abcd_state(self, Xf, s, n, r):
-        Y_ = np.vstack((Xf[:, 1 : s - 1], self.y[r : r + s - 2,:].T))
-        X_ = np.vstack((Xf[:, : s - 2], self.u[r : r + s - 2,:].T))
+        Y_ = np.vstack((Xf[:, 1 : s - 1], self.y[r : r + s - 2, :].T))
+        X_ = np.vstack((Xf[:, : s - 2], self.u[r : r + s - 2, :].T))
         # Theta = Y_ @ np.linalg.pinv(X_)
 
         ###########################

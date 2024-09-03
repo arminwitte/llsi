@@ -80,16 +80,15 @@ def test_n4sid_mimo(data_mimo_deterministic, ss_mod):
         atol=1e-6,
     )
 
+    assert mod.A.shape == (2, 2)
+    assert mod.B.shape == (2, 2)
+    assert mod.C.shape == (2, 2)
+    assert mod.D.shape == (2, 2)
 
-    assert mod.A.shape == (2,2)
-    assert mod.B.shape == (2,2)
-    assert mod.C.shape == (2,2)
-    assert mod.D.shape == (2,2)
-    
     # np.testing.assert_allclose(
     #    mod.to_controllable_form().A, ss_mod.A, rtol=1e-1, atol=1e-1
     # )
-    
+
     t, i = mod.impulse_response()
     assert i.shape == (100, 2)
     np.testing.assert_allclose(i[:10, :], [[0], [0]])
@@ -97,4 +96,3 @@ def test_n4sid_mimo(data_mimo_deterministic, ss_mod):
     d = data_mimo_deterministic
     y = mod.simulate([d["u0"], d["u1"]])
     np.testing.assert_allclose(y[:10, :], [[0], [0]])
-

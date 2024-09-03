@@ -22,13 +22,15 @@ class SysIdData:
         self.Ts = Ts
 
         if self.Ts is None and self.t is None:
-            raise ValueError("No time specified. Use eiter keyword t to give a series or Ts to give a scalar for equidistant time series.")
+            raise ValueError(
+                "No time specified. Use eiter keyword t to give a series or Ts to give a scalar for equidistant time series."
+            )
 
         if self.t is not None:
             self.t_start = t[0]
         else:
             if t_start is None:
-                self.t_start = 0.
+                self.t_start = 0.0
             else:
                 self.t_start = t_start
 
