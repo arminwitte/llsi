@@ -84,6 +84,7 @@ def data_mimo_deterministic():
         u1=data1["u"],
         y0=data0["y"],
         y1=data1["y"],
-        t=data0.t,
+        #t=data0.t,
+        Ts=1.0,
     )
     return data
