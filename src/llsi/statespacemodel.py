@@ -114,7 +114,7 @@ class StateSpaceModel(LTIModel):
         for i, u_ in enumerate(u.T):
             u_ = u_.T
 
-            #u_ = u_.reshape(1, self.nu)
+            u_ = u_.reshape(self.nu, 1)
             x = x1
             with np.errstate(over="ignore", invalid="ignore"):
                 x1 = self.A @ x + self.B @ u_
