@@ -78,6 +78,13 @@ def test_n4sid_mimo(data_mimo_deterministic, ss_mod):
         rtol=1e-6,
         atol=1e-6,
     )
+
+
+    assert mod.A.shape == (2,2)
+    assert mod.B.shape == (2,2)
+    assert mod.C.shape == (2,2)
+    assert mod.D.shape == (2,2)
+    
     np.testing.assert_allclose(
         mod.to_controllable_form().A, ss_mod.A, rtol=1e-1, atol=1e-1
     )
