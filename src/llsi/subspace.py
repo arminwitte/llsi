@@ -69,9 +69,10 @@ class SubspaceIdent(SysIdAlgBase):
         # A = scipy.linalg.lstsq(Or[0:-1,:],Or[1:,:])
         # print(A)
 
-        P = U2.T
+        P = U2.T.reshape(-1,ny,order="F")
         # print(P)
-        A1_ = P.ravel(order="F")
+        # A1_ = P.ravel(order="F")
+        A1_ = P
 
         nn = A1_.shape[0]
         A_ = np.zeros((nn, ny + n))
@@ -79,14 +80,17 @@ class SubspaceIdent(SysIdAlgBase):
 
         for i in range(1, r):
             Pi = P[:, i:r]
+            print(f"Pi shape: {Pi.shape}")
             Oi = Or[0 : r - i, :]
+            print(f"Oi shape: {Oi.shape}")
             Ni = Pi @ Oi
             j = (i - 1) * (r - n)
             A_[j : j + Ni.shape[0], ny : ny + Ni.shape[1]] = Ni
 
         # print(A_)
 
-        M = (U2.T @ L31 @ np.linalg.inv(L11)).ravel(order="F")
+        M = (U2.T @ L31 @ np.linalg.inv(L11)).reshape(-1,ny,order="F")
+        print(f"M shape: {M.shape}")
 
         x_, *_ = scipy.linalg.lstsq(A_, M)
         # x_ = scipy.linalg.pinv(A_) @ M
