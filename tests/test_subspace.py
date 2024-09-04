@@ -110,8 +110,8 @@ def test_n4sid_mimo(data_mimo_deterministic):
 def test_po_moesp_mimo(data_mimo_deterministic):
     # data_mimo_deterministic.equidistant()
     identifyer = PO_MOESP(data_mimo_deterministic, ["y0", "y1"], ["u0", "u1"])
-    # sys0 = PO_MOESP(data_mimo_deterministic, "y0", "u0").ident(1)
-    # sys1 = PO_MOESP(data_mimo_deterministic, "y1", "u1").ident(1)
+    sys0 = PO_MOESP(data_mimo_deterministic, "y0", "u0").ident(1)
+    sys1 = PO_MOESP(data_mimo_deterministic, "y1", "u1").ident(1)
     mod = identifyer.ident(2)
     print(mod.info["Hankel singular values"])
     # np.testing.assert_allclose(
@@ -153,8 +153,8 @@ def test_po_moesp_mimo(data_mimo_deterministic):
     #    mod.to_controllable_form().A, ss_mod.A, rtol=1e-1, atol=1e-1
     # )
 
-    # print("step response sys0:\n", sys0.step_response(10)[1])
-    # print("step response sys1:\n", sys1.step_response(10)[1])
+    print("step response sys0:\n", sys0.step_response(10)[1])
+    print("step response sys1:\n", sys1.step_response(10)[1])
     t, i = mod.step_response(10)
     # assert i.shape == (10, 2)
     print("step response mod :\n", i)
