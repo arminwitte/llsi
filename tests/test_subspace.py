@@ -165,5 +165,3 @@ def test_po_moesp_mimo(data_mimo_deterministic):
     # y = mod.simulate([d["u0"], d["u1"]])
     # y_val = np.array([d["y0"], d["y1"]]).T
     # np.testing.assert_allclose(y[1000:1010, :], y_val[1000:1010, :])
-
-

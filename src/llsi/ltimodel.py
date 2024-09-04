@@ -20,8 +20,8 @@ class LTIModel(ABC):
 
     def impulse_response(self, N=100):
         t = np.linspace(0, (N - 1) * self.Ts, N)
-        u = np.zeros((N,self.nu))
-        u[0,:] = 1 / self.Ts
+        u = np.zeros((N, self.nu))
+        u[0, :] = 1 / self.Ts
 
         y = self.simulate(u)
 
@@ -29,7 +29,7 @@ class LTIModel(ABC):
 
     def step_response(self, N=100):
         t = np.linspace(0, (N - 1) * self.Ts, N)
-        u = np.ones((N,self.nu))
+        u = np.ones((N, self.nu))
 
         y = self.simulate(u)
 
