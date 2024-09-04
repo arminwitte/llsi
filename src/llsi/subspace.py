@@ -68,24 +68,59 @@ class SubspaceIdent(SysIdAlgBase):
         A = scipy.linalg.pinv(Or[0:-ny, :]) @ Or[ny:, :]
         # A = scipy.linalg.lstsq(Or[0:-1,:],Or[1:,:])
         # print(A)
-
-        P = U2.T.reshape(-1,ny,order="F")
-        # print(P)
-        # A1_ = P.ravel(order="F")
-        A1_ = P
-
-        nn = A1_.shape[0]
+        
+        # ====================================================================
+        
+        print(f"U2.T shape: {U2.T.shape}")
+        P = np.split(U2.T,U2.T.shape[1]//ny,axis=1)
+        print(f"Pi shape: {P[0].shape}")
+        
+        nn = len(P) * P[0].shape[0]
+        print(f"nn: {nn}")
+        rny = r
+        print(f"rny: {rny}")
+        r = r//ny
+        print(f"r: {r}")
+        print(f"n: {n}")
         A_ = np.zeros((nn, ny + n))
-        A_[:, 0:ny] = A1_.reshape(-1, ny)
+        print(f"A_ shape: {A_.shape}")
+        for i, Pi in enumerate(P):
+            rr = Pi.shape[0]
+            A_[i*rr:(i+1)*rr,:ny] = Pi
+            
+        for i in range(1,r):
+            print(i)
+            Pi_tilda = np.hstack(P[i:])
+            print(f"Pi_tilda shape: {Pi_tilda.shape}")
+            Ori = Or[:rny-(ny*i)]
+            print(f"Ori shape: {Ori.shape}")
+            N = Pi_tilda @ Ori
+            print(f"N shape: {N.shape}")
+            A_[i*rr:(i+1)*rr,ny:] = N
+        
+        
+        
+        
+        
+        
 
-        for i in range(1, r):
-            Pi = P[:, i:r]
-            print(f"Pi shape: {Pi.shape}")
-            Oi = Or[0 : r - i, :]
-            print(f"Oi shape: {Oi.shape}")
-            Ni = Pi @ Oi
-            j = (i - 1) * (r - n)
-            A_[j : j + Ni.shape[0], ny : ny + Ni.shape[1]] = Ni
+        # P = U2.T.reshape(-1,ny,order="F")
+        # # print(P)
+        # # A1_ = P.ravel(order="F")
+        # A1_ = P
+
+        # nn = A1_.shape[0]
+        # A_ = np.zeros((nn, ny + n))
+        # A_[:, 0:ny] = A1_.reshape(-1, ny)
+
+        # for i in range(1, r):
+        #     Pi = P[:, i:r]
+        #     print(f"Pi shape: {Pi.shape}")
+        #     Oi = Or[0 : r - i, :]
+        #     print(f"Oi shape: {Oi.shape}")
+        #     Ni = Pi @ Oi
+        #     j = (i - 1) * (r - n)
+        #     A_[j : j + Ni.shape[0], ny : ny + Ni.shape[1]] = Ni
 
         # print(A_)
 

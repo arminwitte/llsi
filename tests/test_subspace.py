@@ -153,8 +153,8 @@ def test_po_moesp_mimo(data_mimo_deterministic):
     #    mod.to_controllable_form().A, ss_mod.A, rtol=1e-1, atol=1e-1
     # )
 
-    print("step response sys0:\n", sys0.step_response(10)[1])
-    print("step response sys1:\n", sys1.step_response(10)[1])
+    # print("step response sys0:\n", sys0.step_response(10)[1])
+    # print("step response sys1:\n", sys1.step_response(10)[1])
     t, i = mod.step_response(10)
     # assert i.shape == (10, 2)
     print("step response mod :\n", i)
