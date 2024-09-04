@@ -27,8 +27,7 @@ class SubspaceIdent(SysIdAlgBase):
             for x_ in x.T:
                 x_ = x_.ravel().T
                 A.append(x_[i : -n + i])
-                
-        
+
         # for x_ in x.T:
         #     x_ = x_.ravel().T
         #     for i in range(n):
@@ -61,48 +60,42 @@ class SubspaceIdent(SysIdAlgBase):
     def _abcd_observability_matrix(self, U1, U2, L11, L31, Sigma_sqrt, n, r):
         ny = self.ny
         nu = self.nu
-        
+
         Or = U1 @ Sigma_sqrt  # extended observability matrix
 
         C = Or[:ny, :]  # TODO: might be wrong!!!
         A = scipy.linalg.pinv(Or[0:-ny, :]) @ Or[ny:, :]
         # A = scipy.linalg.lstsq(Or[0:-1,:],Or[1:,:])
         # print(A)
-        
+
         # ====================================================================
-        
+
         print(f"U2.T shape: {U2.T.shape}")
-        P = np.split(U2.T,U2.T.shape[1]//ny,axis=1)
+        P = np.split(U2.T, U2.T.shape[1] // ny, axis=1)
         print(f"Pi shape: {P[0].shape}")
-        
+
         nn = len(P) * P[0].shape[0]
         print(f"nn: {nn}")
         rny = r
         print(f"rny: {rny}")
-        r = r//ny
+        r = r // ny
         print(f"r: {r}")
         print(f"n: {n}")
         A_ = np.zeros((nn, ny + n))
         print(f"A_ shape: {A_.shape}")
         for i, Pi in enumerate(P):
             rr = Pi.shape[0]
-            A_[i*rr:(i+1)*rr,:ny] = Pi
-            
-        for i in range(1,r):
+            A_[i * rr : (i + 1) * rr, :ny] = Pi
+
+        for i in range(1, r):
             print(i)
             Pi_tilda = np.hstack(P[i:])
             print(f"Pi_tilda shape: {Pi_tilda.shape}")
-            Ori = Or[:rny-(ny*i)]
+            Ori = Or[: rny - (ny * i)]
             print(f"Ori shape: {Ori.shape}")
             N = Pi_tilda @ Ori
             print(f"N shape: {N.shape}")
-            A_[i*rr:(i+1)*rr,ny:] = N
-        
-        
-        
-        
-        
-        
+            A_[i * rr : (i + 1) * rr, ny:] = N
 
         # P = U2.T.reshape(-1,ny,order="F")
         # # print(P)
@@ -124,14 +117,14 @@ class SubspaceIdent(SysIdAlgBase):
 
         # print(A_)
 
-        M = (U2.T @ L31 @ np.linalg.inv(L11)).reshape(-1,ny,order="F")
+        M = (U2.T @ L31 @ np.linalg.inv(L11)).reshape(-1, ny, order="F")
         print(f"M shape: {M.shape}")
 
         x_, *_ = scipy.linalg.lstsq(A_, M)
         # x_ = scipy.linalg.pinv(A_) @ M
 
-        D = x_[0:ny,:]
-        B = x_[nu : nu + n, : ]
+        D = x_[0:ny, :]
+        B = x_[nu : nu + n, :]
 
         return A, B, C, D
 
