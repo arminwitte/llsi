@@ -87,7 +87,7 @@ class SubspaceIdent(SysIdAlgBase):
         rr = P[0].shape[0]
         # for i, Pi in enumerate(P):
         #     A_[i * rr : (i + 1) * rr, :ny] = Pi
-        A_[:,:ny] = P1
+        A_[:, :ny] = P1
 
         for i in range(1, r):
             print(i)
@@ -119,8 +119,8 @@ class SubspaceIdent(SysIdAlgBase):
 
         # print(A_)
 
-        #M = (U2.T @ L31 @ np.linalg.inv(L11)).reshape(-1, ny, order="F")
-        M = (U2.T @ L31 @ np.linalg.inv(L11))
+        # M = (U2.T @ L31 @ np.linalg.inv(L11)).reshape(-1, ny, order="F")
+        M = U2.T @ L31 @ np.linalg.inv(L11)
         Mi = np.split(M, M.shape[1] // nu, axis=1)
         M = np.vstack(Mi)
         print(f"M shape: {M.shape}")
