@@ -128,8 +128,8 @@ class SubspaceIdent(SysIdAlgBase):
         x_, *_ = scipy.linalg.lstsq(A_, M)
         # x_ = scipy.linalg.pinv(A_) @ M
 
-        D = x_[0:ny, :]
-        B = x_[nu : nu + n, :]
+        D = x_[:ny, :]
+        B = x_[ny:, :]
 
         return A, B, C, D
 
