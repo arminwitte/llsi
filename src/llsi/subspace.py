@@ -117,7 +117,10 @@ class SubspaceIdent(SysIdAlgBase):
 
         # print(A_)
 
-        M = (U2.T @ L31 @ np.linalg.inv(L11)).reshape(-1, ny, order="F")
+        #M = (U2.T @ L31 @ np.linalg.inv(L11)).reshape(-1, ny, order="F")
+        M = (U2.T @ L31 @ np.linalg.inv(L11))
+        Mi = np.split(M, M.shape[1] // nu, axis=1)
+        M = np.vstack(Mi)
         print(f"M shape: {M.shape}")
 
         x_, *_ = scipy.linalg.lstsq(A_, M)
