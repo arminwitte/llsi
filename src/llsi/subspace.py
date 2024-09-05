@@ -97,7 +97,7 @@ class SubspaceIdent(SysIdAlgBase):
             print(f"Ori shape: {Ori.shape}")
             N = Pi_tilda @ Ori
             print(f"N shape: {N.shape}")
-            A_[i * rr : (i + 1) * rr, ny:] = N
+            A_[(i - 1) * rr : i * rr, ny:] = N
 
         # P = U2.T.reshape(-1,ny,order="F")
         # # print(P)
