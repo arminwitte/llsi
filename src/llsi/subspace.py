@@ -84,7 +84,7 @@ class SubspaceIdent(SysIdAlgBase):
         A_ = np.zeros((nn, ny + n))
         print(f"A_ shape: {A_.shape}")
         P1 = np.vstack(P)
-        rr = P1.shape[0]
+        rr = P[0].shape[0]
         # for i, Pi in enumerate(P):
         #     A_[i * rr : (i + 1) * rr, :ny] = Pi
         A_[:,:ny] = P1
