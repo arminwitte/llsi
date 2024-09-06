@@ -1,6 +1,7 @@
-from .sysidalg import sysid
 import numpy as np
 import scipy.optimize
+
+from .sysidalg import sysid
 
 
 def cv(
@@ -13,7 +14,6 @@ def cv(
     settings={},
     bounds=(0, 100),
 ):
-
     def fun(l):
         settings["lambda"] = 10**l
         mod = sysid(

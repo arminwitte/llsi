@@ -20,7 +20,7 @@ class StateSpaceModel(LTIModel):
     https://en.wikipedia.org/wiki/State-space_representation
     """
 
-    def __init__(self, A=None, B=None, C=None, D=None, Ts=1.0, Nx=0, Nu=1, Ny=1):
+    def __init__(self, A=None, B=None, C=None, D=None, Ts=1.0, nx=0, nu=1, ny=1):
         """
 
         Parameters
@@ -48,31 +48,31 @@ class StateSpaceModel(LTIModel):
         # set A matrix and number of states
         if A is not None:
             self.A = np.array(A)
-            self.Nx = self.A.shape[0]
+            self.nx = self.A.shape[0]
         else:
-            self.Nx = Nx
-            self.A = np.zeros((self.Nx, self.Nx))
+            self.nx = nx
+            self.A = np.zeros((self.nx, self.nx))
 
         # set B matrix and number of inputs
         if B is not None:
-            self.B = np.array(B).reshape(self.Nx, -1)
-            self.Nu = self.B.shape[1]
+            self.B = np.array(B).reshape(self.nx, -1)
+            self.nu = self.B.shape[1]
         else:
-            self.Nu = Nu
-            self.B = np.zeros((self.Nx, self.Nu))
+            self.nu = nu
+            self.B = np.zeros((self.nx, self.nu))
 
         # set C matrix and number of outputs
         if C is not None:
-            self.C = np.array(C).reshape(-1, self.Nx)
-            self.Ny = self.C.shape[0]
+            self.C = np.array(C).reshape(-1, self.nx)
+            self.ny = self.C.shape[0]
         else:
-            self.Ny = Ny
-            self.C = np.zeros((self.Ny, self.Nx))
+            self.ny = ny
+            self.C = np.zeros((self.ny, self.nx))
 
         if D is not None:
-            self.D = np.array(D).reshape(self.Ny, self.Nu)
+            self.D = np.array(D).reshape(self.ny, self.nu)
         else:
-            self.D = np.zeros((self.Ny, self.Nu))
+            self.D = np.zeros((self.ny, self.nu))
 
         self.cov = None
 
@@ -89,9 +89,9 @@ class StateSpaceModel(LTIModel):
         return np.array(theta).ravel()
 
     def reshape(self, theta: np.ndarray):
-        nx = self.Nx
-        nu = self.Nu
-        ny = self.Ny
+        nx = self.nx
+        nu = self.nu
+        ny = self.ny
 
         na = nx * nx
         nb = nx * nu
@@ -104,13 +104,17 @@ class StateSpaceModel(LTIModel):
         self.D = theta[na + nb + nc :].reshape(ny, nu)
 
     def simulate(self, u: np.ndarray):
-        u = u.reshape(-1, self.Nu)
-        N = u.shape[0]
+        u = np.atleast_2d(u)
+        u = u.reshape(self.nu, -1)
+        N = u.shape[1]
         # TODO: initialize x properly
-        x1 = np.zeros((self.Nx, 1))
-        y = np.empty((N, self.Ny))
-        for i, u_ in enumerate(u):
-            u_ = u_.reshape(1, self.Nu)
+        x1 = np.zeros((self.nx, 1))
+        y = np.empty((N, self.ny))
+        # assert u.shape[1] == self.nu
+        for i, u_ in enumerate(u.T):
+            u_ = u_.T
+
+            u_ = u_.reshape(self.nu, 1)
             x = x1
             with np.errstate(over="ignore", invalid="ignore"):
                 x1 = self.A @ x + self.B @ u_
@@ -121,7 +125,7 @@ class StateSpaceModel(LTIModel):
             # print(f"x1:{x1}")
             # print(f"y:{y_}")
 
-            y[i, :] = y_
+            y[i, :] = y_.ravel()
 
         return y
 
@@ -138,7 +142,7 @@ class StateSpaceModel(LTIModel):
         A = [[-a]]
         C = [1]
 
-        mod = cls(A=A, B=B, C=C, D=D, Ts=Ts, Nx=1)
+        mod = cls(A=A, B=B, C=C, D=D, Ts=Ts, nx=1)
 
         return mod
 
@@ -302,9 +306,9 @@ class StateSpaceModel(LTIModel):
             data["info"] = self.info.__repr__()
         except:
             data["info"] = {}
-        data["Nx"] = self.Nx
-        data["Nu"] = self.Nu
-        data["Ny"] = self.Ny
+        data["nx"] = self.ny
+        data["nu"] = self.ny
+        data["ny"] = self.ny
 
         if filename is not None:
             with open(filename, "w") as f:
@@ -323,9 +327,9 @@ class StateSpaceModel(LTIModel):
             C=data["C"],
             D=data["D"],
             Ts=data["Ts"],
-            Nx=data["Nx"],
-            Nu=data["Nu"],
-            Ny=data["Ny"],
+            nx=data["nx"],
+            nu=data["nu"],
+            ny=data["ny"],
         )
         mod.info = data["info"]
         return mod
