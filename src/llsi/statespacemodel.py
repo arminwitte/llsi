@@ -139,7 +139,7 @@ class StateSpaceModel(LTIModel):
             # print(f"y:{y_}")
 
         #     y[i, :] = y_.ravel()
-        y = evaluate_state_space(self.A, self.B, self.C, self.D, u, x1)
+        y = evaluate_state_space(self.A.astype(np.float64), self.B.astype(np.float64), self.C.astype(np.float64), self.D.astype(np.float64), u.astype(np.float64), x1.astype(np.float64))
         return y
 
     @classmethod
