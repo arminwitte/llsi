@@ -74,9 +74,11 @@ class StateSpaceModel(LTIModel):
         else:
             self.D = np.zeros((self.ny, self.nu))
 
+        self.x_init = np.zeros((self.nx,1))
+
         self.cov = None
 
-    def vectorize(self):
+    def vectorize(self, include_init_state=True):
         theta = np.vstack(
             [
                 self.A.reshape(-1, 1),
@@ -85,10 +87,14 @@ class StateSpaceModel(LTIModel):
                 self.D.reshape(-1, 1),
             ]
         )
+        if include_init_state:
+            if self.x_init is None:
+                self.x_init = np.zeros((self.nx, 1))
+            theta = np.vstack([theta, self.x_init.reshape(-1,1)])
 
         return np.array(theta).ravel()
 
-    def reshape(self, theta: np.ndarray):
+    def reshape(self, theta: np.ndarray, include_init_state=True):
         nx = self.nx
         nu = self.nu
         ny = self.ny
@@ -101,14 +107,19 @@ class StateSpaceModel(LTIModel):
         self.A = theta[:na].reshape(nx, nx)
         self.B = theta[na : na + nb].reshape(nx, nu)
         self.C = theta[na + nb : na + nb + nc].reshape(ny, nx)
-        self.D = theta[na + nb + nc :].reshape(ny, nu)
+        self.D = theta[na + nb + nc : na + nb + nc + nd].reshape(ny, nu)
+
+        self.x_init = theta[na + nb + nc + nd : ].reshape(nx, 1)
 
     def simulate(self, u: np.ndarray):
         u = np.atleast_2d(u)
         u = u.reshape(self.nu, -1)
         N = u.shape[1]
         # TODO: initialize x properly
-        x1 = np.zeros((self.nx, 1))
+        if self.x_init is None:
+            x1 = np.zeros((self.nx, 1))
+        else:
+            x1 = self.x_init
         y = np.empty((N, self.ny))
         # assert u.shape[1] == self.nu
         for i, u_ in enumerate(u.T):
