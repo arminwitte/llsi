@@ -272,7 +272,7 @@ def test_oe_deterministic_stochastic(data_siso_deterministic_stochastic, poly_mo
         "u",
         (2, 3, 0),
         method="oe",
-        settings={minimizer_kwargs": {"method":"nelder-mead"}},
+        settings={"minimizer_kwargs": {"method":"nelder-mead"}},
     )
 
     # parameters
