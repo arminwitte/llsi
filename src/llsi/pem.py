@@ -41,14 +41,15 @@ class PEM(SysIdAlgBase):
             return J
 
         x0 = mod.vectorize()
-        method = self.settings.get("minimizer", "nelder-mead")
+        # method = self.settings.get("minimizer", "nelder-mead")
         # res = scipy.optimize.minimize(
            # fun, x0, method=method, options={"maxiter": 200, "maxfev": 200}
         # (
         # res = scipy.optimize.basinhopping(fun, x0, niter=1, minimizer_kwargs={"method":"BFGS", "options":{"maxiter":20}}, disp=True)
-        res = scipy.optimize.minimize(fun,x0,method='nelder-mead')
-        res = scipy.optimize.minimize(fun,res.x,method='BFGS',options={"gtol":1e-3})
-
+        # res = scipy.optimize.minimize(fun,x0,method='nelder-mead')
+        # res = scipy.optimize.minimize(fun,res.x,method='BFGS',options={"gtol":1e-3})
+        minimizer_kwargs = self.settings.get("minimizer_kwargs",{"method":"powell"})
+        res = scipy.optimize.minimize(fun, x0, **minimizer_kwargs)
         mod.reshape(res.x)
 
         J = scipy.optimize.approx_fprime(res.x, fun).reshape(1, -1)
