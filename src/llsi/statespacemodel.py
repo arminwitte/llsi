@@ -74,7 +74,7 @@ class StateSpaceModel(LTIModel):
         else:
             self.D = np.zeros((self.ny, self.nu))
 
-        self.x_init = np.zeros((self.nx,1))
+        self.x_init = np.zeros((self.nx, 1))
 
         self.cov = None
 
@@ -90,7 +90,7 @@ class StateSpaceModel(LTIModel):
         if include_init_state:
             if self.x_init is None:
                 self.x_init = np.zeros((self.nx, 1))
-            theta = np.vstack([theta, self.x_init.reshape(-1,1)])
+            theta = np.vstack([theta, self.x_init.reshape(-1, 1)])
 
         return np.array(theta).ravel()
 
@@ -109,7 +109,7 @@ class StateSpaceModel(LTIModel):
         self.C = theta[na + nb : na + nb + nc].reshape(ny, nx)
         self.D = theta[na + nb + nc : na + nb + nc + nd].reshape(ny, nu)
 
-        self.x_init = theta[na + nb + nc + nd : ].reshape(nx, 1)
+        self.x_init = theta[na + nb + nc + nd :].reshape(nx, 1)
 
     def simulate(self, u: np.ndarray):
         u = np.atleast_2d(u)
