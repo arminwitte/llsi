@@ -12,6 +12,7 @@ import numpy as np
 import scipy.linalg
 
 from .ltimodel import LTIModel
+from .math import evaluate_state_space 
 
 
 class StateSpaceModel(LTIModel):
@@ -120,24 +121,24 @@ class StateSpaceModel(LTIModel):
             x1 = np.zeros((self.nx, 1))
         else:
             x1 = self.x_init
-        y = np.empty((N, self.ny))
+        # y = np.empty((N, self.ny))
         # assert u.shape[1] == self.nu
-        for i, u_ in enumerate(u.T):
-            u_ = u_.T
+        # for i, u_ in enumerate(u.T):
+        #     u_ = u_.T
 
-            u_ = u_.reshape(self.nu, 1)
-            x = x1
-            with np.errstate(over="ignore", invalid="ignore"):
-                x1 = self.A @ x + self.B @ u_
-                y_ = self.C @ x + self.D @ u_
+        #     u_ = u_.reshape(self.nu, 1)
+        #     x = x1
+        #     with np.errstate(over="ignore", invalid="ignore"):
+        #         x1 = self.A @ x + self.B @ u_
+        #         y_ = self.C @ x + self.D @ u_
 
             # print(f"u:{u_}")
             # print(f"x:{x}")
             # print(f"x1:{x1}")
             # print(f"y:{y_}")
 
-            y[i, :] = y_.ravel()
-
+        #     y[i, :] = y_.ravel()
+        y = evaluate_state_space(self.A, self.B, self.C, self.D, u, x1)
         return y
 
     @classmethod
