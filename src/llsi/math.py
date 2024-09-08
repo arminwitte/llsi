@@ -6,7 +6,7 @@ def evaluate_state_space(A, B, C, D, u, x1):
     N = u.shape[1]
     ny = C.shape[0]
     nu = B.shape[1]
-    y = np.empty(N, ny))
+    y = np.empty((N, ny))
     for i, u_ in enumerate(u.T):
         u_ = u_.T
         u_ = u_.reshape(nu, 1)
