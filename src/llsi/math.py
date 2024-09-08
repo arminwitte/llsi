@@ -13,3 +13,4 @@ def evaluate_state_space(A, B, C, D, u, x1):
             y_ = self.C @ x + self.D @ u_
 
         y[i, :] = y_.ravel()
+    return y
