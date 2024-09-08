@@ -1,6 +1,7 @@
 from numba import njit
 import numpy as np
 
+
 @njit
 def evaluate_state_space(A, B, C, D, u, x1):
     N = u.shape[1]
