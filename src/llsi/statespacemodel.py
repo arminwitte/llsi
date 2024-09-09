@@ -312,7 +312,7 @@ class StateSpaceModel(LTIModel):
         B[0] = 1.0
         C = b[1:].reshape(1, -1)
         D = b[0]
-        mod_out = cls(A=A, B=B, C=C, D=D, Ts=mod.Ts)
+        mod_out = cls(A=A, B=B, C=C, D=D, Ts=mod.Ts, input_names=mod.input_names,  output_names=mod.output_names)
         return mod_out
 
     def to_json(self, filename=None):
@@ -329,7 +329,9 @@ class StateSpaceModel(LTIModel):
         data["nx"] = self.ny
         data["nu"] = self.ny
         data["ny"] = self.ny
-
+        data["input_names"] = self.input_names 
+        data["output_names"] = self.output_names 
+        
         if filename is not None:
             with open(filename, "w") as f:
                 json.dump(data, f)
@@ -350,12 +352,16 @@ class StateSpaceModel(LTIModel):
             nx=data["nx"],
             nu=data["nu"],
             ny=data["ny"],
+            input_names=data["input_names"],
+            output_names=data["output_names"],
         )
         mod.info = data["info"]
         return mod
 
     def __repr__(self) -> str:
         s = f"StateSpaceModel with Ts={self.Ts}\n"
+        s += f"input(s): {self.input_names}\n"
+        s += f"output(s): {self.output_names}\n"
         s += f"A:\n{self.A}\n"
         s += f"B:\n{self.B}\n"
         s += f"C:\n{self.C}\n"
