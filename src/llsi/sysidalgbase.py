@@ -15,8 +15,8 @@ class SysIdAlgBase(ABC):
     def __init__(self, data, y_name, u_name, settings):
 
         self.input_names = u_name
-        self.output_names = y_name 
-        
+        self.output_names = y_name
+
         y_name = np.atleast_1d(y_name)  # now I can iterate over
         y = []
         for name in y_name:

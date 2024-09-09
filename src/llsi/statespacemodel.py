@@ -21,7 +21,9 @@ class StateSpaceModel(LTIModel):
     https://en.wikipedia.org/wiki/State-space_representation
     """
 
-    def __init__(self, A=None, B=None, C=None, D=None, Ts=1.0, nx=0, nu=1, ny=1, input_names=[]):
+    def __init__(
+        self, A=None, B=None, C=None, D=None, Ts=1.0, nx=0, nu=1, ny=1, input_names=[]
+    ):
         """
 
         Parameters
@@ -44,7 +46,7 @@ class StateSpaceModel(LTIModel):
         None.
 
         """
-        super().__init__(Ts=Ts, input_names=input_names,  output_names=output_names)
+        super().__init__(Ts=Ts, input_names=input_names, output_names=output_names)
 
         # set A matrix and number of states
         if A is not None:
@@ -312,7 +314,15 @@ class StateSpaceModel(LTIModel):
         B[0] = 1.0
         C = b[1:].reshape(1, -1)
         D = b[0]
-        mod_out = cls(A=A, B=B, C=C, D=D, Ts=mod.Ts, input_names=mod.input_names,  output_names=mod.output_names)
+        mod_out = cls(
+            A=A,
+            B=B,
+            C=C,
+            D=D,
+            Ts=mod.Ts,
+            input_names=mod.input_names,
+            output_names=mod.output_names,
+        )
         return mod_out
 
     def to_json(self, filename=None):
@@ -329,9 +339,9 @@ class StateSpaceModel(LTIModel):
         data["nx"] = self.ny
         data["nu"] = self.ny
         data["ny"] = self.ny
-        data["input_names"] = self.input_names 
-        data["output_names"] = self.output_names 
-        
+        data["input_names"] = self.input_names
+        data["output_names"] = self.output_names
+
         if filename is not None:
             with open(filename, "w") as f:
                 json.dump(data, f)
