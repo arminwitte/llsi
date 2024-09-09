@@ -12,11 +12,13 @@ import numpy as np
 
 
 class LTIModel(ABC):
-    def __init__(self, Ts=1.0, nu=1, ny=1):
+    def __init__(self, Ts=1.0, nu=1, ny=1, input_names = [], output_names=[]):
         self.Ts = Ts
         self.info = {}
         self.nu = nu
         self.ny = ny
+        self.input_names = input_names
+        self.output_names = output_names
 
     def impulse_response(self, N=100):
         t = np.linspace(0, (N - 1) * self.Ts, N)
