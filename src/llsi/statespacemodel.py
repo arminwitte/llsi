@@ -12,6 +12,7 @@ import numpy as np
 import scipy.linalg
 
 from .ltimodel import LTIModel
+from .math import evaluate_state_space
 
 
 class StateSpaceModel(LTIModel):
@@ -74,9 +75,11 @@ class StateSpaceModel(LTIModel):
         else:
             self.D = np.zeros((self.ny, self.nu))
 
+        self.x_init = np.zeros((self.nx, 1))
+
         self.cov = None
 
-    def vectorize(self):
+    def vectorize(self, include_init_state=True):
         theta = np.vstack(
             [
                 self.A.reshape(-1, 1),
@@ -85,10 +88,14 @@ class StateSpaceModel(LTIModel):
                 self.D.reshape(-1, 1),
             ]
         )
+        if include_init_state:
+            if self.x_init is None:
+                self.x_init = np.zeros((self.nx, 1))
+            theta = np.vstack([theta, self.x_init.reshape(-1, 1)])
 
         return np.array(theta).ravel()
 
-    def reshape(self, theta: np.ndarray):
+    def reshape(self, theta: np.ndarray, include_init_state=True):
         nx = self.nx
         nu = self.nu
         ny = self.ny
@@ -101,32 +108,45 @@ class StateSpaceModel(LTIModel):
         self.A = theta[:na].reshape(nx, nx)
         self.B = theta[na : na + nb].reshape(nx, nu)
         self.C = theta[na + nb : na + nb + nc].reshape(ny, nx)
-        self.D = theta[na + nb + nc :].reshape(ny, nu)
+        self.D = theta[na + nb + nc : na + nb + nc + nd].reshape(ny, nu)
+
+        self.x_init = theta[na + nb + nc + nd :].reshape(nx, 1)
 
     def simulate(self, u: np.ndarray):
         u = np.atleast_2d(u)
         u = u.reshape(self.nu, -1)
+        u = np.ascontiguousarray(u)
         N = u.shape[1]
         # TODO: initialize x properly
-        x1 = np.zeros((self.nx, 1))
-        y = np.empty((N, self.ny))
+        if self.x_init is None:
+            x1 = np.zeros((self.nx, 1))
+        else:
+            x1 = self.x_init
+        # y = np.empty((N, self.ny))
         # assert u.shape[1] == self.nu
-        for i, u_ in enumerate(u.T):
-            u_ = u_.T
+        # for i, u_ in enumerate(u.T):
+        #     u_ = u_.T
 
-            u_ = u_.reshape(self.nu, 1)
-            x = x1
-            with np.errstate(over="ignore", invalid="ignore"):
-                x1 = self.A @ x + self.B @ u_
-                y_ = self.C @ x + self.D @ u_
+        #     u_ = u_.reshape(self.nu, 1)
+        #     x = x1
+        #     with np.errstate(over="ignore", invalid="ignore"):
+        #         x1 = self.A @ x + self.B @ u_
+        #         y_ = self.C @ x + self.D @ u_
 
-            # print(f"u:{u_}")
-            # print(f"x:{x}")
-            # print(f"x1:{x1}")
-            # print(f"y:{y_}")
+        # print(f"u:{u_}")
+        # print(f"x:{x}")
+        # print(f"x1:{x1}")
+        # print(f"y:{y_}")
 
-            y[i, :] = y_.ravel()
-
+        #     y[i, :] = y_.ravel()
+        y = evaluate_state_space(
+            self.A.astype(np.float64),
+            self.B.astype(np.float64),
+            self.C.astype(np.float64),
+            self.D.astype(np.float64),
+            u.astype(np.float64),
+            x1.astype(np.float64),
+        )
         return y
 
     @classmethod

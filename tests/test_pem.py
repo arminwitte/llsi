@@ -16,7 +16,7 @@ def test_pem_ss(data_siso_deterministic, ss_mod):
         data_siso_deterministic,
         "y",
         "u",
-        settings={"init": "po-moesp", "minimizer": "BFGS"},
+        settings={"init": "po-moesp", "minimizer_kwargs": {"method": "BFGS"}},
     )
     mod = identifyer.ident(2)
     mod = mod.to_controllable_form()
@@ -29,7 +29,7 @@ def test_oe(data_siso_deterministic_stochastic, poly_mod):
         data_siso_deterministic_stochastic,
         "y",
         "u",
-        settings={"minimizer": "BFGS"},
+        settings={"minimizer_kwargs": {"method": "BFGS"}},
     )
     mod = identifyer.ident((2, 3, 0))
     print(mod.a)

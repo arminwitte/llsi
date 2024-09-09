@@ -51,13 +51,13 @@ def test_vectorize(ss_mod):
     theta = ss_mod.vectorize()
     print(theta)
     np.testing.assert_allclose(
-        theta, [1.66, -0.83, 1.0, 0.0, 1.0, 0.0, 3.66, 0.17, 1.0]
+        theta, [1.66, -0.83, 1.0, 0.0, 1.0, 0.0, 3.66, 0.17, 1.0, 0.0, 0.0]
     )
 
 
 def test_reshape(model):
     model.vectorize()
-    model.reshape(np.array([0.8, 0.7, 0.0, 0.8, 1.0, 1.0, 1.0, 0.0, 0.0]))
+    model.reshape(np.array([0.8, 0.7, 0.0, 0.8, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0]))
     np.testing.assert_allclose(model.A, [[0.8, 0.7], [0.0, 0.8]])
 
 
