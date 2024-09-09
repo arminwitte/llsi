@@ -51,7 +51,7 @@ class ARX(SysIdAlgBase):
         b = theta[:nb]
         a = np.hstack(([1.0], theta[nb:]))
 
-        mod = PolynomialModel(b=b, a=a, nk=nk, Ts=self.Ts, cov=cov)
+        mod = PolynomialModel(b=b, a=a, nk=nk, Ts=self.Ts, cov=cov, input_names=self.input_names,  output_names=self.output_names)
 
         return mod
 
