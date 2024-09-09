@@ -21,7 +21,7 @@ class StateSpaceModel(LTIModel):
     https://en.wikipedia.org/wiki/State-space_representation
     """
 
-    def __init__(self, A=None, B=None, C=None, D=None, Ts=1.0, nx=0, nu=1, ny=1):
+    def __init__(self, A=None, B=None, C=None, D=None, Ts=1.0, nx=0, nu=1, ny=1, input_names=[]):
         """
 
         Parameters
@@ -44,7 +44,7 @@ class StateSpaceModel(LTIModel):
         None.
 
         """
-        super().__init__(Ts=Ts)
+        super().__init__(Ts=Ts, input_names=input_names,  output_names=output_names)
 
         # set A matrix and number of states
         if A is not None:
