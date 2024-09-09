@@ -155,7 +155,7 @@ class N4SID(SubspaceIdent):
         A, B, C, D = self._abcd_observability_matrix(U1, U2, L11, L31, Sigma_sqrt, n, r)
         # ====================================================================
 
-        mod = StateSpaceModel(A=A, B=B, C=C, D=D, Ts=self.Ts)
+        mod = StateSpaceModel(A=A, B=B, C=C, D=D, Ts=self.Ts, input_names=self.input_names,  output_names=self.output_names)
         mod.info["Hankel singular values"] = s_
 
         return mod
@@ -214,7 +214,7 @@ class PO_MOESP(SubspaceIdent):
 
         A, B, C, D = self._abcd_observability_matrix(U1, U2, L11, L31, Sigma_sqrt, n, r)
 
-        mod = StateSpaceModel(A=A, B=B, C=C, D=D, Ts=self.Ts)
+        mod = StateSpaceModel(A=A, B=B, C=C, D=D, Ts=self.Ts, input_names=self.input_names,  output_names=self.output_names)
         mod.info["Hankel singular values"] = s_
 
         return mod
