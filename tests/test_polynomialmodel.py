@@ -16,7 +16,10 @@ from llsi.polynomialmodel import PolynomialModel
 @pytest.fixture
 def model():
     return PolynomialModel(
-        b=np.array([0.04761905, 0.04761905]), a=np.array([1.0, -0.9047619]), input_names=["input"], output_names=["output"]
+        b=np.array([0.04761905, 0.04761905]),
+        a=np.array([1.0, -0.9047619]),
+        input_names=["input"],
+        output_names=["output"],
     )
 
 

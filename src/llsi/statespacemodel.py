@@ -22,8 +22,18 @@ class StateSpaceModel(LTIModel):
     """
 
     def __init__(
-        self, A=None, B=None, C=None, D=None, Ts=1.0, nx=0, nu=1, ny=1, input_names=[], output_names=[]
-  ,  ):
+        self,
+        A=None,
+        B=None,
+        C=None,
+        D=None,
+        Ts=1.0,
+        nx=0,
+        nu=1,
+        ny=1,
+        input_names=[],
+        output_names=[],
+    ):
         """
 
         Parameters
