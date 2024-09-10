@@ -288,8 +288,8 @@ def test_poly_input_output_name(data_siso_deterministic, poly_mod):
     assert mod.input_names == "u"
     assert mod.output_names == "y"
 
-def test_ss_input_output_name(data_mimoo_deterministic, poly_mod):
-    mod = sysid(data_siso_deterministic, ["y0", "y1"], ["u0", "u1"], 2, method="n4sid")
+def test_ss_input_output_name(data_mimo_deterministic, poly_mod):
+    mod = sysid(data_mimo_deterministic, ["y0", "y1"], ["u0", "u1"], 2, method="n4sid")
     assert mod.input_names == ["u0", "u1"]
     assert mod.output_names == ["y0", "y1"]
 #######################################################################################
