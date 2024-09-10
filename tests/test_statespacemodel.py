@@ -16,7 +16,15 @@ from llsi.statespacemodel import StateSpaceModel
 
 @pytest.fixture
 def model():
-    return StateSpaceModel(A=[[0.8, 0.8], [0, 0.8]], B=[1, 1], C=[1, 0], D=0, Ts=1, input_names=["input"], output_names=["output"])
+    return StateSpaceModel(
+        A=[[0.8, 0.8], [0, 0.8]],
+        B=[1, 1],
+        C=[1, 0],
+        D=0,
+        Ts=1,
+        input_names=["input"],
+        output_names=["output"],
+    )
 
 
 def test_init():
