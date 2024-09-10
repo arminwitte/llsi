@@ -16,7 +16,10 @@ from llsi.polynomialmodel import PolynomialModel
 @pytest.fixture
 def model():
     return PolynomialModel(
-        b=np.array([0.04761905, 0.04761905]), a=np.array([1.0, -0.9047619])
+        b=np.array([0.04761905, 0.04761905]),
+        a=np.array([1.0, -0.9047619]),
+        input_names=["input"],
+        output_names=["output"],
     )
 
 
@@ -160,7 +163,7 @@ def test_reshape(model):
 
 
 def test_repr_str(model):
-    s = "PolynomialModel with Ts=1.0\nb:\n[0.04761905 0.04761905]\na:\n[ 1.        -0.9047619]\n"
+    s = "PolynomialModel with Ts=1.0\ninput(s): ['input']\noutput(s): ['output']\nb:\n[0.04761905 0.04761905]\na:\n[ 1.        -0.9047619]\n"
     assert model.__repr__() == s
     assert model.__str__() == s
 

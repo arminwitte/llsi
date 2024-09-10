@@ -12,8 +12,21 @@ from .ltimodel import LTIModel
 
 
 class PolynomialModel(LTIModel):
-    def __init__(self, a=None, b=None, na=1, nb=1, nu=1, ny=1, nk=0, cov=None, Ts=1.0):
-        super().__init__(Ts=Ts)
+    def __init__(
+        self,
+        a=None,
+        b=None,
+        na=1,
+        nb=1,
+        nu=1,
+        ny=1,
+        nk=0,
+        cov=None,
+        Ts=1.0,
+        input_names=[],
+        output_names=[],
+    ):
+        super().__init__(Ts=Ts, input_names=input_names, output_names=output_names)
 
         if a is not None:
             self.a = np.atleast_2d(a).T
@@ -102,6 +115,8 @@ class PolynomialModel(LTIModel):
 
     def __repr__(self):
         s = f"PolynomialModel with Ts={self.Ts}\n"
+        s += f"input(s): {self.input_names}\n"
+        s += f"output(s): {self.output_names}\n"
         s += f"b:\n{self.b}\n"
         s += f"a:\n{self.a}\n"
 
