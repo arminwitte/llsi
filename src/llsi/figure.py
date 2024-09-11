@@ -117,21 +117,23 @@ class Figure:
     def _frequency(fig, ax, lti_mod, col="#1f77b4"):
         if isinstance(lti_mod, LTIModel):
             omega, H = lti_mod.frequency_response()
-            H = np.atleast_3d(H)  # TODO: not very nice
+            H = H.squeeze()  # TODO: not very nice
+
+            ax2 = ax.twinx()
 
             # fig, ax = plt.subplots(2)
-            ax.plot(omega, np.abs(H[:, 0, 0]))
+            ax.plot(omega.ravel(), np.abs(H.ravel()))
+            ax.set_ylim(0,None)
             ax.set_ylabel("Magnitude")
-            ax.set_xlabel("Frequency [rad/s]")
-            ax.grid()
+            ax.set_xlabel("Frequency")
+            # ax.grid()
+            ax.set_title("Frequency response")
 
-            # ax[1].plot(omega,np.angle(H[:,0,0]))
-            # ax[1].plot(omega,np.angle(G[:]))
-            # ax[1].set_ylim(-np.pi,np.pi)
-            # ax[1].set_ylabel("Phase [rad]")
-            # ax[1].set_xlabel("Frequency [rad/s]")
-            # ax[1].set_yticks([-np.pi,-np.pi/2,0,np.pi/2,np.pi])
-            # ax[1].grid()
+            ax2.plot(omega,np.angle(H.ravel()), "--")
+            ax2.set_ylim(-np.pi,np.pi)
+            ax2.set_ylabel("Phase in rad")
+            ax2.set_yticks([-np.pi,-np.pi/2,0,np.pi/2,np.pi])
+            # ax2.grid()
 
             # fig.tight_layout()
 
