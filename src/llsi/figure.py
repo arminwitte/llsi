@@ -123,16 +123,16 @@ class Figure:
 
             # fig, ax = plt.subplots(2)
             ax.plot(omega.ravel(), np.abs(H.ravel()))
-            ax.set_ylim(0,None)
+            ax.set_ylim(0, None)
             ax.set_ylabel("Magnitude")
             ax.set_xlabel("Frequency")
             # ax.grid()
             ax.set_title("Frequency response")
 
-            ax2.plot(omega,np.angle(H.ravel()), "--")
-            ax2.set_ylim(-np.pi,np.pi)
+            ax2.plot(omega, np.angle(H.ravel()), "--")
+            ax2.set_ylim(-np.pi, np.pi)
             ax2.set_ylabel("Phase in rad")
-            ax2.set_yticks([-np.pi,-np.pi/2,0,np.pi/2,np.pi])
+            ax2.set_yticks([-np.pi, -np.pi / 2, 0, np.pi / 2, np.pi])
             # ax2.grid()
 
             # fig.tight_layout()
