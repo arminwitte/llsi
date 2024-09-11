@@ -23,6 +23,7 @@ class Figure:
         self.registry = {
             "impulse": self._impulse,
             "step": self._step,
+            "frequency": self._frequency,
             "hsv": self._hsv,
             "time_series": self._time_series,
             "compare": self._compare,
@@ -111,6 +112,28 @@ class Figure:
             t, y = lti_mod.step_response(N=200)
             ax.step(t, y, color=col)
             ax.set_title("Step response")
+
+    @staticmethod
+    def _frequency(fig, ax, lti_mod, col="#1f77b4"):
+        if isinstance(lti_mod, LTIModel):
+            omega, H = lti_mod.frequency_response()
+            H = np.atleast_3d(H)  # TODO: not very nice
+
+            # fig, ax = plt.subplots(2)
+            ax.plot(omega, np.abs(H[:, 0, 0]))
+            ax.set_ylabel("Magnitude")
+            ax.set_xlabel("Frequency [rad/s]")
+            ax.grid()
+
+            # ax[1].plot(omega,np.angle(H[:,0,0]))
+            # ax[1].plot(omega,np.angle(G[:]))
+            # ax[1].set_ylim(-np.pi,np.pi)
+            # ax[1].set_ylabel("Phase [rad]")
+            # ax[1].set_xlabel("Frequency [rad/s]")
+            # ax[1].set_yticks([-np.pi,-np.pi/2,0,np.pi/2,np.pi])
+            # ax[1].grid()
+
+            # fig.tight_layout()
 
     @staticmethod
     def _hsv(fig, ax, ss_mod, col="#1f77b4"):

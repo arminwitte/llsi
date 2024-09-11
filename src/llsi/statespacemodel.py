@@ -161,6 +161,21 @@ class StateSpaceModel(LTIModel):
         )
         return y
 
+    def frequency_response(self, omega=np.logspace(-3, 2)):
+        A = self.A
+        B = self.B
+        C = self.C
+        D = self.D
+
+        z = np.exp(1j * omega * self.Ts)
+        H = []
+
+        for z_ in z:
+            h = C @ np.linalg.inv(z_ * np.eye(A.shape[0]) - A) @ B + D
+            H.append(h)
+
+        return omega, np.array(H)
+
     @classmethod
     def from_PT1(cls, K: float, tauC: float, Ts=1.0):
         t = 2 * tauC

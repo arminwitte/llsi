@@ -142,6 +142,26 @@ def test_step(model):
     )
 
 
+def test_frequency(model):
+    omega, H = model.frequency_response()
+    print(H)
+    np.testing.assert_allclose(
+        H[:10],
+        [
+            [[24.99848755 - 2.24990963e-01j]],
+            [[24.99758034 - 2.84574136e-01j]],
+            [[24.99612902 - 3.59931207e-01j]],
+            [[24.99380729 - 4.55232791e-01j]],
+            [[24.99009335 - 5.75746769e-01j]],
+            [[24.98415285 - 7.28121382e-01j]],
+            [[24.97465213 - 9.20735643e-01j]],
+            [[24.95946063 - 1.16412706e00j]],
+            [[24.93517764 - 1.47150140e00j]],
+            [[24.8963826 - 1.85931464e00j]],
+        ],
+    )
+
+
 def test_to_ss(ss_mod):
     ss = ss_mod.to_ss()
     assert isinstance(ss, scipy.signal.StateSpace)
