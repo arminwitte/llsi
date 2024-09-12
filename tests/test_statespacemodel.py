@@ -175,6 +175,26 @@ def test_frequency(model):
     )
 
 
+def test_step_mimo(model_mimo):
+    tI, I = model_mimo.step_response()
+    print(I)
+    np.testing.assert_allclose(
+        I[:10],
+        [
+            [0.06666566, 0.18181705],
+            [0.19110813, 0.51239338],
+            [0.2989585, 0.78286518],
+            [0.39242902, 1.00416053],
+            [0.47343699, 1.18522055],
+            [0.54364404, 1.33336075],
+            [0.60449029, 1.45456652],
+            [0.65722383, 1.55373501],
+            [0.70292633, 1.63487298],
+            [0.74253525, 1.70125869],
+        ],
+    )
+
+
 def test_frequency_mimo(model_mimo):
     omega, H = model_mimo.frequency_response()
     print(H)
