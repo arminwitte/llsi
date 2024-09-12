@@ -170,7 +170,7 @@ class Figure:
         for m in mods:
             y_hat = m.simulate(data[u_name])
             fit = m.compare(data[y_name], data[u_name])
-            ax.plot(t, y_hat, label=f"model (NRMSE-fit={fit:.4f})", color=col)
+            ax.plot(t, y_hat, label=f"model (NRMSE-fit={fit:.4f})")
 
         ax.set_title("Comparison")
         ax.legend()
