@@ -6,6 +6,8 @@ Created on Fri Aug 19 23:10:09 2022
 @author: armin
 """
 
+import logging
+
 from .statespacemodel import StateSpaceModel
 from .sysidalg import sysidalg
 from .sysidalgbase import SysIdAlgBase
@@ -17,6 +19,7 @@ class FIROR(SysIdAlgBase):
         alg = sysidalg.get_creator("arx")
         l = self.settings.get("lambda", 1e-3)
         self.alg_inst = alg(data, y_name, u_name, settings={"lambda": l})
+        self.logger = logging.getLogger(__name__)
 
     def ident(self, order):
         fir_order = self.settings.get("fir_order", 100)
@@ -24,7 +27,7 @@ class FIROR(SysIdAlgBase):
 
         red_mod = StateSpaceModel.from_fir(mod)
         red_mod, s = red_mod.reduce_order(order)
-        print("s: ", s)
+        self.logger.debug(f"s: {s}")
         return red_mod
 
     @staticmethod

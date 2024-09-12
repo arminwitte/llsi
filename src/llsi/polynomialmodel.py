@@ -76,8 +76,6 @@ class PolynomialModel(LTIModel):
         nk = self.nk
         n = max(na, nb + nk)
 
-        # print(a.T[1:].shape)
-
         # init with for-loops
         for i in range(n):
             for j in range(i + 1):

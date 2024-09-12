@@ -6,6 +6,8 @@ Created on Sun Apr  4 20:47:33 2021
 @author: armin
 """
 
+import logging
+
 import numpy as np
 import scipy.optimize
 
@@ -20,6 +22,7 @@ class PEM(SysIdAlgBase):
         alg = sysidalg.get_creator(init)
         # alg = sysidalg.get_creator('n4sid')
         self.alg_inst = alg(data, y_name, u_name)
+        self.logger = logging.getLogger(__name__)
 
     def ident(self, order):
         mod = self.alg_inst.ident(order)
@@ -37,7 +40,7 @@ class PEM(SysIdAlgBase):
             # return sse / sse0
             x_ = x.ravel()
             J = sse + lambda_l1 * np.sum(np.abs(x)) + lambda_l2 * x_.T @ x_
-            print("{:10.6g}".format(J))
+            self.logger.debug(f"{J:10.6g}")
             return J
 
         x0 = mod.vectorize()

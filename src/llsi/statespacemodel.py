@@ -7,6 +7,7 @@ Created on Fri Apr  2 22:54:53 2021
 """
 
 import json
+import logging
 
 import numpy as np
 import scipy.linalg
@@ -90,6 +91,7 @@ class StateSpaceModel(LTIModel):
         self.x_init = np.zeros((self.nx, 1))
 
         self.cov = None
+        self.logger = logging.getLogger(__name__)
 
     def vectorize(self, include_init_state=True):
         theta = np.vstack(
@@ -134,23 +136,7 @@ class StateSpaceModel(LTIModel):
             x1 = np.zeros((self.nx, 1))
         else:
             x1 = self.x_init
-        # y = np.empty((N, self.ny))
-        # assert u.shape[1] == self.nu
-        # for i, u_ in enumerate(u.T):
-        #     u_ = u_.T
 
-        #     u_ = u_.reshape(self.nu, 1)
-        #     x = x1
-        #     with np.errstate(over="ignore", invalid="ignore"):
-        #         x1 = self.A @ x + self.B @ u_
-        #         y_ = self.C @ x + self.D @ u_
-
-        # print(f"u:{u_}")
-        # print(f"x:{x}")
-        # print(f"x1:{x1}")
-        # print(f"y:{y_}")
-
-        #     y[i, :] = y_.ravel()
         y = evaluate_state_space(
             self.A.astype(np.float64),
             self.B.astype(np.float64),

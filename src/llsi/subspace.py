@@ -6,6 +6,8 @@ Created on Sun Apr  4 21:54:55 2021
 @author: armin
 """
 
+import logging
+
 import numpy as np
 import scipy.linalg
 
@@ -38,7 +40,6 @@ class SubspaceIdent(SysIdAlgBase):
 
         ###########################
         lmbd = self.settings.get("lambda", 0.0)
-        # print(l)
         U, s, Vh = scipy.linalg.svd(X_, full_matrices=False)
         Sigma = np.diag(1 / s)
 
@@ -61,7 +62,6 @@ class SubspaceIdent(SysIdAlgBase):
         C = Or[:ny, :]  # TODO: might be wrong!!!
         A = scipy.linalg.pinv(Or[0:-ny, :]) @ Or[ny:, :]
         # A = scipy.linalg.lstsq(Or[0:-1,:],Or[1:,:])
-        # print(A)
 
         # ====================================================================
 
@@ -84,7 +84,6 @@ class SubspaceIdent(SysIdAlgBase):
         M = U2.T @ L31 @ np.linalg.inv(L11)
         Mi = np.split(M, M.shape[1] // nu, axis=1)
         M = np.vstack(Mi)
-        print(f"M shape: {M.shape}")
 
         x_, *_ = scipy.linalg.lstsq(A_, M)
 
@@ -102,6 +101,7 @@ class SubspaceIdent(SysIdAlgBase):
 class N4SID(SubspaceIdent):
     def __init__(self, data, y_name, u_name, settings={}):
         super().__init__(data, y_name, u_name, settings=settings)
+        self.logger = logging.getLogger(__name__)
 
         # estimate extended observability matrix and states. Then estimate A, B, C, and D in one go.
         # (Tangirala 2014)
@@ -214,7 +214,7 @@ class PO_MOESP(SubspaceIdent):
 
         self.singular_values = s_
 
-        # print(s_)
+        self.logger.debug(f"s: {s_}")
 
         U1 = U_[:, 0:n]
         U2 = U_[:, n:r]

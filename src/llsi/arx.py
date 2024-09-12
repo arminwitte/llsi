@@ -6,6 +6,8 @@ Created on Fri Aug 12 01:34:47 2022
 @author: armin
 """
 
+import logging
+
 import numpy as np
 import scipy.linalg
 
@@ -28,6 +30,7 @@ class ARX(SysIdAlgBase):
 
         self.u = self.u.ravel()
         self.y = self.y.ravel()
+        self.logger = logging.getLogger(__name__)
 
     def ident(self, order):
         na, nb, nk = order
@@ -46,7 +49,7 @@ class ARX(SysIdAlgBase):
             theta, cov = self._lstsq_qr(Phi, y, l)
         elif lstsq_method in "svd":
             theta, cov = self._lstsq_svd(Phi, y, l)
-        # print(theta)
+        self.logger.debug(f"theta:\n{theta}")
 
         b = theta[:nb]
         a = np.hstack(([1.0], theta[nb:]))
