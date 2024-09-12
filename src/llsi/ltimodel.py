@@ -80,3 +80,7 @@ class LTIModel(ABC):
     @abstractmethod
     def simulate(u):
         pass
+
+    @abstractmethod
+    def frequency_response(self, omega):
+        pass

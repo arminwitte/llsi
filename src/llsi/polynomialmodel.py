@@ -95,6 +95,21 @@ class PolynomialModel(LTIModel):
                 y[i] -= a.T[1:] @ y[i - 1 : i - 1 - (na - 1) : -1]
         return y
 
+    def frequency_response(self, omega=np.logspace(-3, 2)):
+        a = self.a
+        b = self.b
+
+        z = np.exp(1j * omega * self.Ts)
+        H = []
+
+        for z_ in z:
+            za = np.power(z_, -np.arange(len(a)))
+            zb = np.power(z_, -np.arange(len(b)))
+            h = (b @ zb) / (a @ za)
+            H.append(h)
+
+        return omega, np.array(H)
+
     def vectorize(self):
         return np.hstack((self.b, self.a[1:])).ravel()
 

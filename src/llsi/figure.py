@@ -23,6 +23,7 @@ class Figure:
         self.registry = {
             "impulse": self._impulse,
             "step": self._step,
+            "frequency": self._frequency,
             "hsv": self._hsv,
             "time_series": self._time_series,
             "compare": self._compare,
@@ -113,11 +114,35 @@ class Figure:
             ax.set_title("Step response")
 
     @staticmethod
+    def _frequency(fig, ax, lti_mod, col="#1f77b4"):
+        if isinstance(lti_mod, LTIModel):
+            omega, H = lti_mod.frequency_response()
+            H = H.squeeze()  # TODO: not very nice
+
+            ax2 = ax.twinx()
+
+            # fig, ax = plt.subplots(2)
+            ax.plot(omega.ravel(), np.abs(H.ravel()), color=col)
+            ax.set_ylim(0, None)
+            ax.set_ylabel("Magnitude")
+            ax.set_xlabel("Frequency")
+            # ax.grid()
+            ax.set_title("Frequency response")
+
+            ax2.plot(omega, np.angle(H.ravel()), linestyle="dashed", color=col)
+            ax2.set_ylim(-np.pi, np.pi)
+            ax2.set_ylabel("Phase in rad")
+            ax2.set_yticks([-np.pi, -np.pi / 2, 0, np.pi / 2, np.pi])
+            # ax2.grid()
+
+            # fig.tight_layout()
+
+    @staticmethod
     def _hsv(fig, ax, ss_mod, col="#1f77b4"):
         if isinstance(ss_mod, StateSpaceModel):
             hsv = ss_mod.info["Hankel singular values"]
             hsv_scaled = hsv / np.sum(hsv)
-            ax.bar(np.arange(0, len(hsv_scaled), 1), hsv_scaled)
+            ax.bar(np.arange(0, len(hsv_scaled), 1), hsv_scaled, color=col)
             ax.set_title("Hankel Singular Values")
 
     @staticmethod
@@ -125,7 +150,7 @@ class Figure:
         t = data.time()
 
         for key, val in data.series.items():
-            ax.plot(t, val, label=key)
+            ax.plot(t, val, label=key, color=col)
 
         ax.set_title("Time series")
         ax.legend()
@@ -140,7 +165,7 @@ class Figure:
         u_name = obj.get("u_name")
 
         t = data.time()
-        ax.plot(t, data[y_name], label="orig.")
+        ax.plot(t, data[y_name], "--k", label="orig.")
 
         for m in mods:
             y_hat = m.simulate(data[u_name])

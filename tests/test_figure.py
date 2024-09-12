@@ -32,6 +32,13 @@ def test_ss_step(ss_mod):
     assert isinstance(fig.fig, plt.Figure)
 
 
+def test_ss_frequency(ss_mod):
+    with Figure() as fig:
+        fig.plot([ss_mod], "frequency")
+
+    assert isinstance(fig.fig, plt.Figure)
+
+
 # def test_ss_hsv(ss_mod):
 #     with Figure() as fig:
 #         fig.plot([ss_mod],'hsv')
