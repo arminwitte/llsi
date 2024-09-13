@@ -49,8 +49,10 @@ class SysIdData:
                 self.N = s.shape[0]
             else:
                 if self.N != s.shape[0]:
-                    raise ValueError(f"length of vector to add ({s.shape[0]}) does not match length of time series ({self.N})")
-                        
+                    raise ValueError(
+                        f"length of vector to add ({s.shape[0]}) does not match length of time series ({self.N})"
+                    )
+
     def remove(self, key):
         del self.series[key]
 
