@@ -35,7 +35,7 @@ class SysIdData:
             else:
                 self.t_start = t_start
 
-    self.logger = logging.getLogger(__main__)
+        self.logger = logging.getLogger(__name__)
 
     def __getitem__(self, key):
         return self.series[key]
