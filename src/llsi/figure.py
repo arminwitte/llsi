@@ -59,7 +59,8 @@ class Figure:
                     fun = self.registry["impulse"]
                 else:
                     self.logger.warning(
-                        f"for an object of type {type(obj)} a plot_type has to be specified explicitly!"
+                        f"for an object of type {type(obj)} a plot_type has to "
+                        + "be specified explicitly!"
                     )
             else:
                 fun = self.registry[plot_type]

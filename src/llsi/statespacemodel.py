@@ -130,7 +130,7 @@ class StateSpaceModel(LTIModel):
         u = np.atleast_2d(u)
         u = u.reshape(self.nu, -1)
         u = np.ascontiguousarray(u)
-        N = u.shape[1]
+        # N = u.shape[1]
         # TODO: initialize x properly
         if self.x_init is None:
             x1 = np.zeros((self.nx, 1))
@@ -259,7 +259,10 @@ class StateSpaceModel(LTIModel):
 
         References
         ----------
-        Stanisławski R., Rydel M., Latawiec K.J.: Modeling of discrete-time fractional- order state space systems using the balanced truncation method, Journal of the Franklin Institute, vol. 354, no. 7, 2017, pp. 3008-3020. http://doi.org/10.1016/j.jfranklin.2017.02.003
+        Stanisławski R., Rydel M., Latawiec K.J.: Modeling of discrete-time
+        fractional- order state space systems using the balanced truncation method,
+        Journal of the Franklin Institute, vol. 354, no. 7, 2017, pp. 3008-3020.
+        http://doi.org/10.1016/j.jfranklin.2017.02.003
 
         """
         A = self.A
@@ -285,9 +288,9 @@ class StateSpaceModel(LTIModel):
 
         # truncation
         U1 = U[:, :n]
-        s1 = s[:n]
+        # s1 = s[:n]
         V1 = V[:, :n]
-        Sigma1 = np.diag(1 / s1)
+        # Sigma1 = np.diag(1 / s1)
 
         # # Square root algorithm
         # # create transformation matrices
@@ -345,7 +348,7 @@ class StateSpaceModel(LTIModel):
         data["Ts"] = self.Ts
         try:
             data["info"] = self.info.__repr__()
-        except:
+        except AttributeError:
             data["info"] = {}
         data["nx"] = self.ny
         data["nu"] = self.ny

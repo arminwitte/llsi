@@ -14,15 +14,15 @@ def cv(
     settings={},
     bounds=(0, 100),
 ):
-    def fun(l):
-        settings["lambda"] = 10**l
+    def fun(lmb_exp):
+        settings["lambda"] = 10**lmb_exp
         mod = sysid(
             training_data, y_name, u_name, order, method=method, settings=settings
         )
         y = validation_data[y_name]
         u = validation_data[u_name]
         fit = mod.compare(y, u)
-        print(10**l, -fit)
+        print(10**lmb_exp, -fit)
         return -fit
 
     bounds_log = (np.log10(max(bounds[0], 1e-12)), np.log10(max(bounds[1], 1e-12)))

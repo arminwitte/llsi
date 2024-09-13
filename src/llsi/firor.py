@@ -17,8 +17,8 @@ class FIROR(SysIdAlgBase):
     def __init__(self, data, y_name, u_name, settings={}):
         super().__init__(data, y_name, u_name, settings=settings)
         alg = sysidalg.get_creator("arx")
-        l = self.settings.get("lambda", 1e-3)
-        self.alg_inst = alg(data, y_name, u_name, settings={"lambda": l})
+        lmb = self.settings.get("lambda", 1e-3)
+        self.alg_inst = alg(data, y_name, u_name, settings={"lambda": lmb})
         self.logger = logging.getLogger(__name__)
 
     def ident(self, order):

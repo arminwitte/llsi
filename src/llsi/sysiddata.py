@@ -24,7 +24,8 @@ class SysIdData:
 
         if self.Ts is None and self.t is None:
             raise ValueError(
-                "No time specified. Use eiter keyword t to give a series or Ts to give a scalar for equidistant time series."
+                "No time specified. Use eiter keyword t to give a series or Ts to "
+                + "give a scalar for equidistant time series."
             )
 
         if self.t is not None:
@@ -50,7 +51,8 @@ class SysIdData:
             else:
                 if self.N != s.shape[0]:
                     raise ValueError(
-                        f"length of vector to add ({s.shape[0]}) does not match length of time series ({self.N})"
+                        f"length of vector to add ({s.shape[0]}) "
+                        + "does not match length of time series ({self.N})"
                     )
 
     def remove(self, key):

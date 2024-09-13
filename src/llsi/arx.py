@@ -40,15 +40,15 @@ class ARX(SysIdAlgBase):
         # theta, res, rank, s = scipy.linalg.lstsq(Phi, y)
 
         lstsq_method = self.settings.get("lstsq_method", "qr")
-        l = self.settings.get("lambda", 0.0)
+        lmb = self.settings.get("lambda", 0.0)
         if lstsq_method in "pinv":
             theta, cov = self._lstsq_pinv(Phi, y)
         elif lstsq_method in "lstsq":
             theta, cov = self._lstsq_lstsq(Phi, y)
         elif lstsq_method in "qr":
-            theta, cov = self._lstsq_qr(Phi, y, l)
+            theta, cov = self._lstsq_qr(Phi, y, lmb)
         elif lstsq_method in "svd":
-            theta, cov = self._lstsq_svd(Phi, y, l)
+            theta, cov = self._lstsq_svd(Phi, y, lmb)
         self.logger.debug(f"theta:\n{theta}")
 
         b = theta[:nb]
@@ -100,8 +100,8 @@ class ARX(SysIdAlgBase):
         return theta, cov
 
     @staticmethod
-    def _lstsq_qr(Phi, y, l):
-        Phi_ = np.vstack([Phi, l * np.eye(Phi.shape[1])])
+    def _lstsq_qr(Phi, y, lmb):
+        Phi_ = np.vstack([Phi, lmb * np.eye(Phi.shape[1])])
         y_ = np.vstack([y.reshape(-1, 1), np.zeros((Phi.shape[1], 1))]).ravel()
         Q, R = scipy.linalg.qr(Phi_, mode="economic")
         theta = scipy.linalg.solve_triangular(R, Q.T @ y_)
@@ -112,20 +112,20 @@ class ARX(SysIdAlgBase):
         return theta, cov
 
     @staticmethod
-    def _lstsq_svd(Phi, y, l):
+    def _lstsq_svd(Phi, y, lmb):
         U, s, Vh = scipy.linalg.svd(Phi, full_matrices=False)
         Sigma = np.diag(1 / s)
 
-        if l > 0:
-            rho = np.diag(s**2 / (s**2 + l))
+        if lmb > 0:
+            rho = np.diag(s**2 / (s**2 + lmb))
             theta = Vh.T @ rho @ Sigma @ U.T @ y
         else:
             theta = Vh.T @ Sigma @ U.T @ y
 
         e = y - (Phi @ theta)
         var_e = np.var(e)
-        if l > 0:
-            Sigma_sqr = np.diag(s**2 / (s**2 + l) ** 2)
+        if lmb > 0:
+            Sigma_sqr = np.diag(s**2 / (s**2 + lmb) ** 2)
         else:
             Sigma_sqr = np.diag(1 / s**2)
         cov = var_e * (Vh @ Sigma_sqr @ Vh.T)

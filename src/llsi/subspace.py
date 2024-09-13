@@ -103,7 +103,8 @@ class N4SID(SubspaceIdent):
         super().__init__(data, y_name, u_name, settings=settings)
         self.logger = logging.getLogger(__name__)
 
-        # estimate extended observability matrix and states. Then estimate A, B, C, and D in one go.
+        # estimate extended observability matrix and states.
+        # Then estimate A, B, C, and D in one go.
         # (Tangirala 2014)
 
     def ident(self, order):
@@ -117,7 +118,7 @@ class N4SID(SubspaceIdent):
         Y = self.hankel(self.y, 2 * r)
         U = self.hankel(self.u, 2 * r)
 
-        s = Y.shape[1]
+        # s = Y.shape[1]
 
         Yp = Y[0:r, :]
         Up = U[0:r, :]
@@ -178,7 +179,8 @@ class PO_MOESP(SubspaceIdent):
         super().__init__(data, y_name, u_name, settings=settings)
         self.logger = logging.getLogger(__name__)
 
-        # estimate extended observability matrix and states. Then estimate A, B, C, and D in one go.
+        # estimate extended observability matrix and states.
+        # Then estimate A, B, C, and D in one go.
         # (Tangirala 2014)
 
     def ident(self, order):

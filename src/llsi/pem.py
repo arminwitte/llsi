@@ -26,8 +26,8 @@ class PEM(SysIdAlgBase):
 
     def ident(self, order):
         mod = self.alg_inst.ident(order)
-        y_hat = mod.simulate(self.u)
-        sse0 = self._sse(self.y, y_hat)
+        # y_hat = mod.simulate(self.u)
+        # sse0 = self._sse(self.y, y_hat)
         lambda_l1 = self.settings.get("lambda_l1", 0.0)
         lambda_l2 = self.settings.get("lambda_l2", 0.0)
 
@@ -48,7 +48,13 @@ class PEM(SysIdAlgBase):
         # res = scipy.optimize.minimize(
         # fun, x0, method=method, options={"maxiter": 200, "maxfev": 200}
         # (
-        # res = scipy.optimize.basinhopping(fun, x0, niter=1, minimizer_kwargs={"method":"BFGS", "options":{"maxiter":20}}, disp=True)
+        # res = scipy.optimize.basinhopping(
+        #     fun,
+        #     x0,
+        #     niter=1,
+        #     minimizer_kwargs={"method": "BFGS", "options": {"maxiter": 20}},
+        #     disp=True,
+        # )
         # res = scipy.optimize.minimize(fun,x0,method='nelder-mead')
         # res = scipy.optimize.minimize(fun,res.x,method='BFGS',options={"gtol":1e-3})
         minimizer_kwargs = self.settings.get("minimizer_kwargs", {"method": "powell"})
