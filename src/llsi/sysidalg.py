@@ -36,10 +36,9 @@ sysidalg = SysIdAlgFactory()
 from .arx import ARX, FIR
 from .firor import FIROR
 from .pem import OE, PEM
-from .subspace import N4SID, PO_MOESP  # , N4SID2
+from .subspace import N4SID, PO_MOESP
 
 sysidalg.register_creator(N4SID)
-# sysidalg.register_creator(N4SID2)
 sysidalg.register_creator(PO_MOESP, default=True)
 sysidalg.register_creator(PEM)
 sysidalg.register_creator(ARX)
