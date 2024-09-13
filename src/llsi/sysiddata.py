@@ -7,6 +7,7 @@ Created on Sun Apr  4 19:40:17 2021
 """
 
 import copy
+import logging
 
 import numpy as np
 import scipy.interpolate
@@ -34,6 +35,8 @@ class SysIdData:
             else:
                 self.t_start = t_start
 
+    self.logger = logging.getLogger(__main__)
+
     def __getitem__(self, key):
         return self.series[key]
 
@@ -46,9 +49,8 @@ class SysIdData:
                 self.N = s.shape[0]
             else:
                 if self.N != s.shape[0]:
-                    # TODO: Throw error
-                    print("ERROR")
-
+                    raise ValueError(f"length of vector to add ({s.shape[0]}) does not match length of time series ({self.N})")
+                        
     def remove(self, key):
         del self.series[key]
 
@@ -65,7 +67,7 @@ class SysIdData:
             N = self.N
 
         if N < self.N:
-            print("WARNING: Downsampling without filter!")
+            self.logger.warning("Downsampling without filter!")
 
         t_ = self.time()
 
