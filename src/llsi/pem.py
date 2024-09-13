@@ -6,6 +6,8 @@ Created on Sun Apr  4 20:47:33 2021
 @author: armin
 """
 
+import logging
+
 import numpy as np
 import scipy.optimize
 
@@ -20,11 +22,12 @@ class PEM(SysIdAlgBase):
         alg = sysidalg.get_creator(init)
         # alg = sysidalg.get_creator('n4sid')
         self.alg_inst = alg(data, y_name, u_name)
+        self.logger = logging.getLogger(__name__)
 
     def ident(self, order):
         mod = self.alg_inst.ident(order)
-        y_hat = mod.simulate(self.u)
-        sse0 = self._sse(self.y, y_hat)
+        # y_hat = mod.simulate(self.u)
+        # sse0 = self._sse(self.y, y_hat)
         lambda_l1 = self.settings.get("lambda_l1", 0.0)
         lambda_l2 = self.settings.get("lambda_l2", 0.0)
 
@@ -37,7 +40,7 @@ class PEM(SysIdAlgBase):
             # return sse / sse0
             x_ = x.ravel()
             J = sse + lambda_l1 * np.sum(np.abs(x)) + lambda_l2 * x_.T @ x_
-            print("{:10.6g}".format(J))
+            self.logger.debug(f"{J:10.6g}")
             return J
 
         x0 = mod.vectorize()
@@ -45,7 +48,13 @@ class PEM(SysIdAlgBase):
         # res = scipy.optimize.minimize(
         # fun, x0, method=method, options={"maxiter": 200, "maxfev": 200}
         # (
-        # res = scipy.optimize.basinhopping(fun, x0, niter=1, minimizer_kwargs={"method":"BFGS", "options":{"maxiter":20}}, disp=True)
+        # res = scipy.optimize.basinhopping(
+        #     fun,
+        #     x0,
+        #     niter=1,
+        #     minimizer_kwargs={"method": "BFGS", "options": {"maxiter": 20}},
+        #     disp=True,
+        # )
         # res = scipy.optimize.minimize(fun,x0,method='nelder-mead')
         # res = scipy.optimize.minimize(fun,res.x,method='BFGS',options={"gtol":1e-3})
         minimizer_kwargs = self.settings.get("minimizer_kwargs", {"method": "powell"})

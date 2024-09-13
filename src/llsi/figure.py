@@ -6,6 +6,8 @@ Created on Wed Aug 17 09:38:26 2022
 @author: armin
 """
 
+import logging
+
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -32,6 +34,7 @@ class Figure:
         self.figsize = figsize
         self.counter = 0
         self.colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
+        self.logger = logging.getLogger(__name__)
 
     def __enter__(self):
         return self
@@ -55,8 +58,9 @@ class Figure:
                 elif isinstance(obj, LTIModel):
                     fun = self.registry["impulse"]
                 else:
-                    print(
-                        f"for an object of type {type(obj)} a plot_type has to be specified explicitly!"
+                    self.logger.warning(
+                        f"for an object of type {type(obj)} a plot_type has to "
+                        + "be specified explicitly!"
                     )
             else:
                 fun = self.registry[plot_type]
