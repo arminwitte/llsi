@@ -176,6 +176,7 @@ class N4SID(SubspaceIdent):
 class PO_MOESP(SubspaceIdent):
     def __init__(self, data, y_name, u_name, settings={}):
         super().__init__(data, y_name, u_name, settings=settings)
+        self.logger = logging.getLogger(__name__)
 
         # estimate extended observability matrix and states. Then estimate A, B, C, and D in one go.
         # (Tangirala 2014)
