@@ -108,7 +108,9 @@ class N4SID(SubspaceIdent):
         # (Tangirala 2014)
 
         if self.y.shape[1] > 1 or self.u.shape[1] > 1:
-            raise NotImplementedError("n4sid not implemented for multiple inputs or outputs.")
+            raise NotImplementedError(
+                "n4sid not implemented for multiple inputs or outputs."
+            )
 
     def ident(self, order):
         if isinstance(order, (tuple, list)):
