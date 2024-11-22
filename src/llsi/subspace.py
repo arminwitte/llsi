@@ -118,8 +118,6 @@ class N4SID(SubspaceIdent):
         Y = self.hankel(self.y, 2 * r)
         U = self.hankel(self.u, 2 * r)
 
-        # s = Y.shape[1]
-
         Yp = Y[0:r, :]
         Up = U[0:r, :]
 
@@ -141,19 +139,18 @@ class N4SID(SubspaceIdent):
         Sigma_sqrt = np.diag(np.sqrt(s_[:n]))
 
         # ====================================================================
-        # V1 = V_[0:n, :]
-        # Xf = (
-        #     Sigma_sqrt @ V1
-        # )  # state matrix # TANGIRALA SAYS IT SHOULD BE TRANSPOSED !?!
+        s = Y.shape[1]
+        V1 = V_[0:n, :]
+        Xf = (Sigma_sqrt @ V1)  # state matrix # TANGIRALA SAYS IT SHOULD BE TRANSPOSED !?!
 
-        # A, B, C, D = self._abcd_state(Xf, s, n, r)
+        A, B, C, D = self._abcd_state(Xf, s, n, r)
         # ====================================================================
-        U1 = U_[:, 0:n]
-        U2 = U_[:, n:r]
-        L11 = L[0:r, 0:r]
-        L31 = L[3 * r : 4 * r, 0:r]
+        # U1 = U_[:, 0:n]
+        # U2 = U_[:, n:r]
+        # L11 = L[0:r, 0:r]
+        # L31 = L[3 * r : 4 * r, 0:r]
 
-        A, B, C, D = self._abcd_observability_matrix(U1, U2, L11, L31, Sigma_sqrt, n, r)
+        # A, B, C, D = self._abcd_observability_matrix(U1, U2, L11, L31, Sigma_sqrt, n, r)
         # ====================================================================
 
         mod = StateSpaceModel(
