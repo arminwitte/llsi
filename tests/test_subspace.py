@@ -7,6 +7,7 @@ Created on Sun Apr  4 21:11:47 2021
 """
 
 import numpy as np
+import pytest
 
 from llsi.subspace import N4SID, PO_MOESP
 
