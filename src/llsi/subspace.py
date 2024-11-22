@@ -107,6 +107,9 @@ class N4SID(SubspaceIdent):
         # Then estimate A, B, C, and D in one go.
         # (Tangirala 2014)
 
+        if len(y_name) > 1 or len(x_name) > 1:
+            raise NotImplementedError("n4sid not implemented for multiple inputs or outputs.")
+
     def ident(self, order):
         if isinstance(order, (tuple, list)):
             n = order[0]
