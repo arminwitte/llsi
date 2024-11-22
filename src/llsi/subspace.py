@@ -141,7 +141,9 @@ class N4SID(SubspaceIdent):
         # ====================================================================
         s = Y.shape[1]
         V1 = V_[0:n, :]
-        Xf = (Sigma_sqrt @ V1)  # state matrix # TANGIRALA SAYS IT SHOULD BE TRANSPOSED !?!
+        Xf = (
+            Sigma_sqrt @ V1
+        )  # state matrix # TANGIRALA SAYS IT SHOULD BE TRANSPOSED !?!
 
         A, B, C, D = self._abcd_state(Xf, s, n, r)
         # ====================================================================
