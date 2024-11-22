@@ -29,7 +29,7 @@ def test_adam_ss(data_siso_deterministic, ss_mod):
         data_siso_deterministic,
         "y",
         "u",
-        settings={"init": "po-moesp", "learning_rate":1e-5},
+        settings={"init": "po-moesp", "learning_rate": 1e-5},
     )
     mod = identifyer.ident(2)
     mod = mod.to_controllable_form()
