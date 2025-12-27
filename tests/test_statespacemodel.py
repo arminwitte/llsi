@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Created on Sun Aug  7 00:01:33 2022
 
@@ -71,9 +70,7 @@ def test_init_mimo():
 def test_vectorize(ss_mod):
     theta = ss_mod.vectorize()
     print(theta)
-    np.testing.assert_allclose(
-        theta, [1.66, -0.83, 1.0, 0.0, 1.0, 0.0, 3.66, 0.17, 1.0, 0.0, 0.0]
-    )
+    np.testing.assert_allclose(theta, [1.66, -0.83, 1.0, 0.0, 1.0, 0.0, 3.66, 0.17, 1.0, 0.0, 0.0])
 
 
 def test_reshape(model):
@@ -137,9 +134,9 @@ def test_impulse(model):
 
 
 def test_step(model):
-    tI, I = model.step_response()
+    t_step, y_step = model.step_response()
     np.testing.assert_allclose(
-        I.ravel()[:10],
+        y_step.ravel()[:10],
         [
             0.0,
             1.0,
@@ -176,10 +173,10 @@ def test_frequency(model):
 
 
 def test_step_mimo(model_mimo):
-    tI, I = model_mimo.step_response()
-    print(I)
+    t_step, y_step = model_mimo.step_response()
+    print(y_step)
     np.testing.assert_allclose(
-        I[:10],
+        y_step[:10],
         [
             [0.06666566, 0.18181705],
             [0.19110813, 0.51239338],
@@ -231,9 +228,7 @@ def test_to_ss_continuous(ss_mod):
     assert isinstance(ss, scipy.signal.StateSpace)
 
     print(ss.A)
-    np.testing.assert_allclose(
-        ss.A, [[0.85386819, -0.9512894], [1.14613181, -1.0487106]]
-    )
+    np.testing.assert_allclose(ss.A, [[0.85386819, -0.9512894], [1.14613181, -1.0487106]])
 
 
 #     tf = ss.to_tf()

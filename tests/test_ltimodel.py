@@ -1,13 +1,12 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Created on Sun Aug  7 00:01:33 2022
 
 @author: armin
 """
+
 import numpy as np
 import pytest
-import scipy.signal
 
 from llsi.ltimodel import LTIModel
 
@@ -35,9 +34,7 @@ def test_residuals():
 
 
 def test_SE(e):
-    np.testing.assert_allclose(
-        LTIModel.SE(e), [0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01]
-    )
+    np.testing.assert_allclose(LTIModel.SE(e), [0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01])
 
 
 def test_SSE(e):

@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Created on Mon Apr  5 00:40:00 2021
 
@@ -12,7 +11,11 @@ import numpy as np
 
 
 class LTIModel(ABC):
-    def __init__(self, Ts=1.0, nu=1, ny=1, input_names=[], output_names=[]):
+    def __init__(self, Ts=1.0, nu=1, ny=1, input_names=None, output_names=None):
+        if input_names is None:
+            input_names = []
+        if output_names is None:
+            output_names = []
         self.Ts = Ts
         self.info = {}
         self.nu = nu

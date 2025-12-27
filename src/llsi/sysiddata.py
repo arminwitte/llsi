@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Created on Sun Apr  4 19:40:17 2021
 
@@ -51,8 +50,7 @@ class SysIdData:
             else:
                 if self.N != s.shape[0]:
                     raise ValueError(
-                        f"length of vector to add ({s.shape[0]}) "
-                        + "does not match length of time series ({self.N})"
+                        f"length of vector to add ({s.shape[0]}) " + "does not match length of time series ({self.N})"
                     )
 
     def remove(self, key):
@@ -109,9 +107,7 @@ class SysIdData:
             self.Ts *= q
 
     def lowpass(self, order, corner_frequency):
-        sos = scipy.signal.butter(
-            order, corner_frequency, "low", analog=False, fs=1.0 / self.Ts, output="sos"
-        )
+        sos = scipy.signal.butter(order, corner_frequency, "low", analog=False, fs=1.0 / self.Ts, output="sos")
 
         for key in self.series.keys():
             self.series[key] = scipy.signal.sosfilt(sos, self.series[key])
@@ -142,7 +138,7 @@ class SysIdData:
         while i < N:
             # generate integer
             code = SysIdData.prbs31(code)
-            for s in "{0:b}".format(code):
+            for s in f"{code:b}":
                 if i >= N:
                     break
                 u[i] = float(s)
@@ -151,7 +147,7 @@ class SysIdData:
 
     @staticmethod
     def prbs31(code):
-        for i in range(32):
+        for _ in range(32):
             next_bit = ~((code >> 30) ^ (code >> 27)) & 0x01
             code = ((code << 1) | next_bit) & 0xFFFFFFFF
         return code
@@ -159,10 +155,7 @@ class SysIdData:
     @staticmethod
     def prbs31_fast(code):
         next_code = ~((code << 1) ^ (code << 4)) & 0xFFFFFFF0
-        next_code |= (
-            ~(((code << 1 & 0x0E) | (next_code >> 31 & 0x01)) ^ (next_code >> 28))
-            & 0x0000000F
-        )
+        next_code |= ~(((code << 1 & 0x0E) | (next_code >> 31 & 0x01)) ^ (next_code >> 28)) & 0x0000000F
         return next_code
 
     # @classmethod

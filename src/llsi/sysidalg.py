@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Created on Sun Apr  4 20:47:33 2021
 
@@ -33,10 +32,10 @@ class SysIdAlgFactory:
 
 sysidalg = SysIdAlgFactory()
 
-from .arx import ARX, FIR
-from .firor import FIROR
-from .pem import OE, PEM
-from .subspace import N4SID, PO_MOESP
+from .arx import ARX, FIR  # noqa: E402
+from .firor import FIROR  # noqa: E402
+from .pem import OE, PEM  # noqa: E402
+from .subspace import N4SID, PO_MOESP  # noqa: E402
 
 sysidalg.register_creator(N4SID)
 sysidalg.register_creator(PO_MOESP, default=True)
@@ -51,7 +50,9 @@ sysidalg.register_creator(FIR)
 ######################################################################################
 
 
-def sysid(data, y_name, u_name, order, method=None, settings={}):
+def sysid(data, y_name, u_name, order, method=None, settings=None):
+    if settings is None:
+        settings = {}
     alg = sysidalg.get_creator(method)
     alg_inst = alg(data, y_name, u_name, settings=settings)
     mod = alg_inst.ident(order)

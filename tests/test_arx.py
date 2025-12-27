@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Created on Sun Apr  4 21:11:47 2021
 
@@ -26,9 +25,7 @@ def test_arx_regul(data_siso_deterministic, poly_mod):
 
 
 def test_arx_cov(data_siso_deterministic_stochastic, poly_mod):
-    identifyer = ARX(
-        data_siso_deterministic_stochastic, "y", "u", settings={"lambda": 1e-3}
-    )
+    identifyer = ARX(data_siso_deterministic_stochastic, "y", "u", settings={"lambda": 1e-3})
     mod = identifyer.ident((2, 3, 0))
     print(mod.a)
     np.testing.assert_allclose(mod.a, poly_mod.a, rtol=1e-1, atol=1e-1)

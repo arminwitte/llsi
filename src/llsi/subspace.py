@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Created on Sun Apr  4 21:54:55 2021
 
@@ -99,7 +98,9 @@ class SubspaceIdent(SysIdAlgBase):
 
 
 class N4SID(SubspaceIdent):
-    def __init__(self, data, y_name, u_name, settings={}):
+    def __init__(self, data, y_name, u_name, settings=None):
+        if settings is None:
+            settings = {}
         super().__init__(data, y_name, u_name, settings=settings)
         self.logger = logging.getLogger(__name__)
 
@@ -108,9 +109,7 @@ class N4SID(SubspaceIdent):
         # (Tangirala 2014)
 
         if self.y.shape[1] > 1 or self.u.shape[1] > 1:
-            raise NotImplementedError(
-                "n4sid not implemented for multiple inputs or outputs."
-            )
+            raise NotImplementedError("n4sid not implemented for multiple inputs or outputs.")
 
     def ident(self, order):
         if isinstance(order, (tuple, list)):
@@ -146,9 +145,7 @@ class N4SID(SubspaceIdent):
         # ====================================================================
         s = Y.shape[1]
         V1 = V_[0:n, :]
-        Xf = (
-            Sigma_sqrt @ V1
-        )  # state matrix # TANGIRALA SAYS IT SHOULD BE TRANSPOSED !?!
+        Xf = Sigma_sqrt @ V1  # state matrix # TANGIRALA SAYS IT SHOULD BE TRANSPOSED !?!
 
         A, B, C, D = self._abcd_state(Xf, s, n, r)
         # ====================================================================
@@ -179,7 +176,9 @@ class N4SID(SubspaceIdent):
 
 
 class PO_MOESP(SubspaceIdent):
-    def __init__(self, data, y_name, u_name, settings={}):
+    def __init__(self, data, y_name, u_name, settings=None):
+        if settings is None:
+            settings = {}
         super().__init__(data, y_name, u_name, settings=settings)
         self.logger = logging.getLogger(__name__)
 

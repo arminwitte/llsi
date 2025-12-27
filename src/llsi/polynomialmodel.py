@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Created on Wed Aug  3 10:16:09 2022
 
 @author: armin
 """
+
 import numpy as np
 import scipy.signal
 
@@ -23,9 +23,13 @@ class PolynomialModel(LTIModel):
         nk=0,
         cov=None,
         Ts=1.0,
-        input_names=[],
-        output_names=[],
+        input_names=None,
+        output_names=None,
     ):
+        if input_names is None:
+            input_names = []
+        if output_names is None:
+            output_names = []
         super().__init__(Ts=Ts, input_names=input_names, output_names=output_names)
 
         if a is not None:
@@ -47,14 +51,10 @@ class PolynomialModel(LTIModel):
             self.b = np.ones((self.nb, self.nu))
 
         if self.ny > 1:
-            raise ValueError(
-                "System seems to have multiple outputs. This is not implemented."
-            )
+            raise ValueError("System seems to have multiple outputs. This is not implemented.")
 
         if self.nu > 1:
-            raise ValueError(
-                "System seems to have multiple inputs. This is not implemented."
-            )
+            raise ValueError("System seems to have multiple inputs. This is not implemented.")
 
         # norm
         if self.a.shape[0] > 0:

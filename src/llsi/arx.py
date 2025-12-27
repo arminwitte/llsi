@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Created on Fri Aug 12 01:34:47 2022
 
@@ -16,17 +15,15 @@ from .sysidalgbase import SysIdAlgBase
 
 
 class ARX(SysIdAlgBase):
-    def __init__(self, data, y_name, u_name, settings={}):
+    def __init__(self, data, y_name, u_name, settings=None):
+        if settings is None:
+            settings = {}
         super().__init__(data, y_name, u_name, settings=settings)
         if self.u.shape[1] > 1:
-            raise ValueError(
-                "There seem to be multiple inputs. This is not implemented."
-            )
+            raise ValueError("There seem to be multiple inputs. This is not implemented.")
 
         if self.y.shape[1] > 1:
-            raise ValueError(
-                "There seem to be multiple outputs. This is not implemented."
-            )
+            raise ValueError("There seem to be multiple outputs. This is not implemented.")
 
         self.u = self.u.ravel()
         self.y = self.y.ravel()
@@ -137,7 +134,9 @@ class ARX(SysIdAlgBase):
 
 
 class FIR(ARX):
-    def __init__(self, data, y_name, u_name, settings={}):
+    def __init__(self, data, y_name, u_name, settings=None):
+        if settings is None:
+            settings = {}
         super().__init__(data, y_name, u_name, settings=settings)
 
     def ident(self, order):
