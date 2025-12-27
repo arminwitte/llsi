@@ -11,14 +11,16 @@ def cv(
     u_name,
     order,
     method=None,
-    settings={},
+    settings=None,
     bounds=(0, 100),
 ):
+    if settings is None:
+        settings = {}
+
     def fun(lmb_exp):
-        settings["lambda"] = 10**lmb_exp
-        mod = sysid(
-            training_data, y_name, u_name, order, method=method, settings=settings
-        )
+        s = settings.copy()
+        s["lambda"] = 10**lmb_exp
+        mod = sysid(training_data, y_name, u_name, order, method=method, settings=s)
         y = validation_data[y_name]
         u = validation_data[u_name]
         fit = mod.compare(y, u)
@@ -36,7 +38,7 @@ def rise_time(mod):
     ind_start = np.argwhere(s > 0.1)[0]
     ind_end = np.argwhere(s > 0.9)[0]
     t_rise = t[ind_end] - t[ind_start]
-    return float(t_rise)
+    return float(t_rise.item())
 
 
 def settling_time(mod, margin=0.01):
@@ -55,4 +57,4 @@ def settling_time(mod, margin=0.01):
         last_index_under = 0
     last_index_outside_margin = max(last_index_over, last_index_under)
     t_rise = t[last_index_outside_margin]
-    return float(t_rise)
+    return float(t_rise.item())

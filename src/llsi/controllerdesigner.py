@@ -1,8 +1,9 @@
 from abc import ABC, abstractmethod
+from typing import List, Optional, Tuple
+
 import numpy as np
 import scipy.signal
 from numpy.polynomial import Polynomial
-from typing import Tuple, List, Optional, Union
 from scipy.signal import TransferFunction
 
 
@@ -39,9 +40,7 @@ class ControllerDesigner(ABC):
             Wn: Normalized cutoff frequency (default: 0.5)
         """
         if self.designed_tf is None:
-            raise ValueError(
-                "Controller must be designed before adding low-pass filter"
-            )
+            raise ValueError("Controller must be designed before adding low-pass filter")
 
         Wn = 0.5 if Wn is None else Wn
         b, a = scipy.signal.butter(N, Wn)
@@ -68,12 +67,10 @@ class ControllerDesigner(ABC):
 
     def _polynomials(self) -> Tuple[Polynomial, Polynomial, Polynomial]:
         """Compute system polynomials from roots."""
-        acceptable_sys_zeros, unacceptable_sys_zeros, sys_poles, gain = (
-            self._extract_roots_gain()
-        )
+        acceptable_sys_zeros, unacceptable_sys_zeros, sys_poles, gain = self._extract_roots_gain()
 
-        B_a = Polynomial.fromroots(acceptable_sys_zeros)
-        B_u = Polynomial.fromroots(unacceptable_sys_zeros)
+        B_a = Polynomial.fromroots(acceptable_sys_zeros) if acceptable_sys_zeros else Polynomial([1.0])
+        B_u = Polynomial.fromroots(unacceptable_sys_zeros) if unacceptable_sys_zeros else Polynomial([1.0])
         A = Polynomial.fromroots(sys_poles) * (1 / gain)
 
         return B_a, B_u, A
@@ -177,8 +174,6 @@ def create_designer(sys: TransferFunction, method: str = "npzic") -> ControllerD
 
     designer_class = designers.get(method.lower())
     if designer_class is None:
-        raise ValueError(
-            f"Unknown design method: {method}. Must be one of {list(designers.keys())}"
-        )
+        raise ValueError(f"Unknown design method: {method}. Must be one of {list(designers.keys())}")
 
     return designer_class(sys)

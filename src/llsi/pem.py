@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Created on Sun Apr  4 20:47:33 2021
 
@@ -10,19 +9,16 @@ import logging
 
 import numpy as np
 import scipy.optimize
+from tqdm.auto import tqdm
 
 from .sysidalg import sysidalg
 from .sysidalgbase import SysIdAlgBase
-import numpy as np
-import logging
-from .sysidalg import sysidalg
-from .sysidalgbase import SysIdAlgBase
-import scipy.optimize
-from tqdm.auto import tqdm
 
 
 class PEM(SysIdAlgBase):
-    def __init__(self, data, y_name, u_name, settings={}):
+    def __init__(self, data, y_name, u_name, settings=None):
+        if settings is None:
+            settings = {}
         super().__init__(data, y_name, u_name, settings=settings)
         init = self.settings.get("init", "arx")
         alg = sysidalg.get_creator(init)
@@ -79,7 +75,9 @@ class PEM(SysIdAlgBase):
 
 
 class ADAM(SysIdAlgBase):
-    def __init__(self, data, y_name, u_name, settings={}):
+    def __init__(self, data, y_name, u_name, settings=None):
+        if settings is None:
+            settings = {}
         super().__init__(data, y_name, u_name, settings=settings)
         init = self.settings.get("init", "arx")
         alg = sysidalg.get_creator(init)
@@ -115,7 +113,10 @@ class ADAM(SysIdAlgBase):
 
     def compute_gradient(self, x, y_batch, u_batch):
         """Compute gradient using scipy's approx_fprime"""
-        loss_func = lambda params: self.compute_loss(params, y_batch, u_batch)
+
+        def loss_func(params):
+            return self.compute_loss(params, y_batch, u_batch)
+
         return scipy.optimize.approx_fprime(x, loss_func)
 
     def ident(self, order):
@@ -133,9 +134,9 @@ class ADAM(SysIdAlgBase):
         n_samples = len(y_data)
         n_batches = int(np.ceil(n_samples / self.batch_size))
 
-        best_loss = float("inf")
-        best_x = x.copy()
-        patience_counter = 0
+        # best_loss = float("inf")
+        # best_x = x.copy()
+        # patience_counter = 0
 
         for epoch in range(self.max_epochs):
             # Shuffle data
@@ -145,7 +146,7 @@ class ADAM(SysIdAlgBase):
             # Progress bar for batches
             batch_pbar = tqdm(
                 range(0, n_samples, self.batch_size),
-                desc=f"Epoch {epoch+1}/{self.max_epochs}",
+                desc=f"Epoch {epoch + 1}/{self.max_epochs}",
                 unit="batch",
                 total=n_batches,
             )
@@ -192,10 +193,10 @@ class ADAM(SysIdAlgBase):
             #         break
 
         # Use the best parameters found
-        self.model.reshape(best_x)
+        self.model.reshape(x)
 
         # Compute approximate covariance matrix
-        J = self.compute_gradient(best_x, self.y, self.u).reshape(1, -1)
+        J = self.compute_gradient(x, self.y, self.u).reshape(1, -1)
         var_e = np.var(self.y - self.model.simulate(self.u))
         self.model.cov = var_e * (J.T @ J)
 
@@ -212,7 +213,9 @@ class ADAM(SysIdAlgBase):
 
 
 class OE(PEM):
-    def __init__(self, data, y_name, u_name, settings={}):
+    def __init__(self, data, y_name, u_name, settings=None):
+        if settings is None:
+            settings = {}
         settings["init"] = "arx"
         super().__init__(data, y_name, u_name, settings=settings)
 

@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Created on Fri Aug 19 23:10:09 2022
 
@@ -14,7 +13,9 @@ from .sysidalgbase import SysIdAlgBase
 
 
 class FIROR(SysIdAlgBase):
-    def __init__(self, data, y_name, u_name, settings={}):
+    def __init__(self, data, y_name, u_name, settings=None):
+        if settings is None:
+            settings = {}
         super().__init__(data, y_name, u_name, settings=settings)
         alg = sysidalg.get_creator("arx")
         lmb = self.settings.get("lambda", 1e-3)

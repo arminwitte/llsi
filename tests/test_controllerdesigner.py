@@ -1,14 +1,13 @@
 import pytest
-import numpy as np
-from scipy.signal import TransferFunction
 from numpy.polynomial import Polynomial
 from numpy.testing import assert_array_almost_equal
+from scipy.signal import TransferFunction
 
 from llsi.controllerdesigner import (
     ControllerDesigner,
     NPZICDesigner,
-    ZPETCDesigner,
     ZMETCDesigner,
+    ZPETCDesigner,
     create_designer,
 )
 
@@ -37,9 +36,7 @@ class TestControllerDesigner:
     def test_extract_roots_gain(self, sample_system):
         """Test the root extraction method."""
         designer = NPZICDesigner(sample_system)
-        acceptable, unacceptable, poles, gain = designer._extract_roots_gain(
-            acceptable_threshold=1.0
-        )
+        acceptable, unacceptable, poles, gain = designer._extract_roots_gain(acceptable_threshold=1.0)
 
         assert len(unacceptable) == 1
         assert abs(unacceptable[0] - 1.5) < 1e-10
