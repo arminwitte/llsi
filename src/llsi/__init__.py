@@ -4,10 +4,27 @@ from .statespacemodel import StateSpaceModel
 from .sysidalg import sysid
 from .sysiddata import SysIdData
 from .utils import cv
+from .matlab import iddata, arx, n4sid, oe, pem, compare, step, impulse
 
 try:
     from .sklearn import LTIModel
 except ImportError:
     LTIModel = None
 
-__all__ = ["Figure", "PolynomialModel", "LTIModel", "StateSpaceModel", "sysid", "SysIdData", "cv"]
+__all__ = [
+    "Figure",
+    "PolynomialModel",
+    "LTIModel",
+    "StateSpaceModel",
+    "sysid",
+    "SysIdData",
+    "cv",
+    "iddata",
+    "arx",
+    "n4sid",
+    "oe",
+    "pem",
+    "compare",
+    "step",
+    "impulse",
+]
