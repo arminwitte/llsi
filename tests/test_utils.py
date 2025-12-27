@@ -1,6 +1,7 @@
 import numpy as np
 
-from llsi.utils import rise_time, settling_time
+from llsi.sysiddata import SysIdData
+from llsi.utils import cv, rise_time, settling_time
 
 
 class MockModel:
@@ -52,10 +53,6 @@ def test_settling_time_oscillatory():
     # Last time it is outside [0.99, 1.01] is around t=2
     st = settling_time(mod)
     assert np.isclose(st, 2.0, atol=0.2)
-
-
-from llsi.utils import cv
-from llsi.sysiddata import SysIdData
 
 
 def test_cv():

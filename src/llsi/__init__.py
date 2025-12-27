@@ -1,10 +1,10 @@
 from .figure import Figure
+from .matlab import arx, compare, iddata, impulse, n4sid, oe, pem, step
 from .polynomialmodel import PolynomialModel
 from .statespacemodel import StateSpaceModel
 from .sysidalg import sysid
 from .sysiddata import SysIdData
 from .utils import cv
-from .matlab import iddata, arx, n4sid, oe, pem, compare, step, impulse
 
 try:
     from .sklearn import LTIModel

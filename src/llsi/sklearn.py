@@ -1,13 +1,15 @@
-
 import numpy as np
 from sklearn.base import BaseEstimator, RegressorMixin
+
 from .sysidalg import sysid
 from .sysiddata import SysIdData
+
 
 class LTIModel(BaseEstimator, RegressorMixin):
     """
     Scikit-learn wrapper for LTI system identification models.
     """
+
     def __init__(self, method="n4sid", order=1, settings=None, Ts=1.0):
         self.method = method
         self.order = order
@@ -33,38 +35,31 @@ class LTIModel(BaseEstimator, RegressorMixin):
         """
         X = np.array(X)
         y = np.array(y)
-        
+
         if X.ndim == 1:
             X = X.reshape(-1, 1)
         if y.ndim == 1:
             y = y.reshape(-1, 1)
-            
+
         n_samples, n_inputs = X.shape
         n_samples_y, n_outputs = y.shape
-        
+
         if n_samples != n_samples_y:
             raise ValueError("X and y must have the same number of samples")
-            
+
         data = SysIdData(Ts=self.Ts)
-        
+
         u_names = [f"u{i}" for i in range(n_inputs)]
         y_names = [f"y{i}" for i in range(n_outputs)]
-        
+
         for i, name in enumerate(u_names):
             data.add_series(**{name: X[:, i]})
-            
+
         for i, name in enumerate(y_names):
             data.add_series(**{name: y[:, i]})
-            
-        self.model_ = sysid(
-            data,
-            y_names,
-            u_names,
-            self.order,
-            method=self.method,
-            settings=self.settings
-        )
-        
+
+        self.model_ = sysid(data, y_names, u_names, self.order, method=self.method, settings=self.settings)
+
         return self
 
     def predict(self, X):
@@ -83,10 +78,10 @@ class LTIModel(BaseEstimator, RegressorMixin):
         """
         if self.model_ is None:
             raise RuntimeError("Model not fitted")
-            
+
         X = np.array(X)
         if X.ndim == 1:
             X = X.reshape(-1, 1)
-            
+
         # simulate expects (nu, N)
         return self.model_.simulate(X.T)

@@ -165,7 +165,7 @@ class SysIdData:
         try:
             import pandas as pd
         except ImportError:
-            raise ImportError("pandas is required for this method")
+            raise ImportError("pandas is required for this method") from None
 
         index = self.time()
         return pd.DataFrame(self.series, index=index)
@@ -187,7 +187,7 @@ class SysIdData:
         try:
             import pandas as pd
         except ImportError:
-            raise ImportError("pandas is required for this method")
+            raise ImportError("pandas is required for this method") from None
 
         if time_col:
             t_values = df[time_col].values
