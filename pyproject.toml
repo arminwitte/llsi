@@ -35,6 +35,10 @@ dev = [
     "ruff",
     "build",
     "twine",
+    "scikit-learn",
+]
+sklearn = [
+    "scikit-learn",
 ]
 
 [project.urls]
