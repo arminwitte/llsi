@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Created on Sun Apr  4 20:25:46 2021
 
@@ -14,16 +13,12 @@ from llsi.sysiddata import SysIdData
 
 @pytest.fixture
 def data():
-    data = SysIdData(
-        y=[1, 2, 3, 4, 5, 6], u=[1, 4, 9, 16, 25, 36], t=[1, 1.5, 2.5, 3.0, 3.3, 4.1]
-    )
+    data = SysIdData(y=[1, 2, 3, 4, 5, 6], u=[1, 4, 9, 16, 25, 36], t=[1, 1.5, 2.5, 3.0, 3.3, 4.1])
     return data
 
 
 def test_init():
-    data = SysIdData(
-        y=[1, 2, 3, 4, 5, 6], u=[1, 4, 9, 16, 25, 36], t=[1, 1.5, 2.5, 3.0, 3.3, 4.1]
-    )
+    data = SysIdData(y=[1, 2, 3, 4, 5, 6], u=[1, 4, 9, 16, 25, 36], t=[1, 1.5, 2.5, 3.0, 3.3, 4.1])
     np.testing.assert_equal(data["y"], [1, 2, 3, 4, 5, 6])
     np.testing.assert_equal(data["u"], [1, 4, 9, 16, 25, 36])
     np.testing.assert_equal(data.time(), [1, 1.5, 2.5, 3.0, 3.3, 4.1])
@@ -39,9 +34,7 @@ def test_equidistant(data):
 def test_center(data):
     data.equidistant()
     data.center()
-    np.testing.assert_allclose(
-        data["y"], [-2.4675, -1.3475, -0.7275, 0.2525, 1.7575, 2.5325]
-    )
+    np.testing.assert_allclose(data["y"], [-2.4675, -1.3475, -0.7275, 0.2525, 1.7575, 2.5325])
     np.testing.assert_allclose(
         data["u"],
         [-14.135833, -10.535833, -7.435833, -1.095833, 12.339167, 20.864167],
@@ -69,9 +62,7 @@ def test_downsample():
     data.downsample(2)
     assert data.Ts == 2.0
     np.testing.assert_allclose(data.time()[14:17], [28.0, 30.0, 32.0])
-    np.testing.assert_allclose(
-        data["u"][14:17], [0.206036, 0.59716, 0.923016], rtol=1e-6
-    )
+    np.testing.assert_allclose(data["u"][14:17], [0.206036, 0.59716, 0.923016], rtol=1e-6)
 
 
 def test_lowpass():
@@ -80,9 +71,7 @@ def test_lowpass():
     data.equidistant()
     data.lowpass(1, 0.1)
     print(data["u"][21:25])
-    np.testing.assert_allclose(
-        data["u"][21:25], [0.99999947, 0.75476245, 0.62980795, 0.56614046], rtol=1e-6
-    )
+    np.testing.assert_allclose(data["u"][21:25], [0.99999947, 0.75476245, 0.62980795, 0.56614046], rtol=1e-6)
 
 
 def test_split():
@@ -110,4 +99,4 @@ def test_remove():
     data = SysIdData(t=t, u=u, v=v)
     data.remove("v")
     with pytest.raises(KeyError):
-        data["v"]
+        _ = data["v"]

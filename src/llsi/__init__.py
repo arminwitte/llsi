@@ -1,6 +1,8 @@
-from .polynomialmodel import PolynomialModel as PolynomialModel
-from .statespacemodel import StateSpaceModel as StateSpaceModel
-from .sysidalg import sysid as sysid
-from .sysiddata import SysIdData as SysIdData
-from .utils import cv as cv
-from .figure import Figure as Figure
+from .figure import Figure
+from .polynomialmodel import PolynomialModel
+from .statespacemodel import StateSpaceModel
+from .sysidalg import sysid
+from .sysiddata import SysIdData
+from .utils import cv
+
+__all__ = ["Figure", "PolynomialModel", "StateSpaceModel", "sysid", "SysIdData", "cv"]

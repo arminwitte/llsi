@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Created on Sun Aug  7 00:01:33 2022
 
@@ -26,9 +25,7 @@ def model():
 
 @pytest.fixture
 def model_nk():
-    return PolynomialModel(
-        b=np.array([0.04761905, 0.04761905]), a=np.array([1.0, -0.9047619]), nk=2
-    )
+    return PolynomialModel(b=np.array([0.04761905, 0.04761905]), a=np.array([1.0, -0.9047619]), nk=2)
 
 
 def test_init():
@@ -189,10 +186,10 @@ def test_impulse(model):
 
 
 def test_step(model):
-    tI, I = model.step_response()
-    print(I)
+    t_step, y_step = model.step_response()
+    print(y_step)
     np.testing.assert_allclose(
-        I.ravel()[:10],
+        y_step.ravel()[:10],
         [
             0.04761905,
             0.138322,

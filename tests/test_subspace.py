@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Created on Sun Apr  4 21:11:47 2021
 
@@ -22,9 +21,7 @@ def test_n4sid(data_siso_deterministic, ss_mod):
         rtol=1e-6,
         atol=1e-6,
     )
-    np.testing.assert_allclose(
-        mod.to_controllable_form().A, ss_mod.A, rtol=1e-1, atol=1e-1
-    )
+    np.testing.assert_allclose(mod.to_controllable_form().A, ss_mod.A, rtol=1e-1, atol=1e-1)
 
 
 def test_po_moesp(data_siso_deterministic, ss_mod):
@@ -43,13 +40,11 @@ def test_po_moesp(data_siso_deterministic, ss_mod):
         rtol=1e-6,
         atol=1e-6,
     )
-    np.testing.assert_allclose(
-        mod.to_controllable_form().A, ss_mod.A, rtol=1e-3, atol=1e-3
-    )
+    np.testing.assert_allclose(mod.to_controllable_form().A, ss_mod.A, rtol=1e-3, atol=1e-3)
 
 
 def test_n4sid_mimo(data_mimo_deterministic):
-    with pytest.raises(Exception):
+    with pytest.raises(NotImplementedError):
         identifyer = N4SID(data_mimo_deterministic, ["y0", "y1"], ["u0", "u1"])
 
     return
@@ -96,9 +91,7 @@ def test_n4sid_mimo(data_mimo_deterministic):
     assert i.shape == (10, 2)
     np.testing.assert_allclose(
         i,
-        np.array(
-            [sys0.step_response(10)[1].ravel(), sys1.step_response(10)[1].ravel()]
-        ).T,
+        np.array([sys0.step_response(10)[1].ravel(), sys1.step_response(10)[1].ravel()]).T,
         rtol=1e-5,
         atol=1e-5,
     )
@@ -149,9 +142,7 @@ def test_po_moesp_mimo(data_mimo_deterministic):
     assert i.shape == (10, 2)
     np.testing.assert_allclose(
         i,
-        np.array(
-            [sys0.step_response(10)[1].ravel(), sys1.step_response(10)[1].ravel()]
-        ).T,
+        np.array([sys0.step_response(10)[1].ravel(), sys1.step_response(10)[1].ravel()]).T,
         rtol=1e-5,
         atol=1e-5,
     )

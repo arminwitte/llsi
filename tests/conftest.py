@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Created on Tue Aug 16 10:24:49 2022
 
 @author: armin
 """
 
-import numpy as np
+import matplotlib
+
+matplotlib.use("Agg")
+import numpy as np  # noqa: E402, I001
 import pytest
 import scipy.stats
 
@@ -43,9 +45,7 @@ def generate_data(filt, noise=0.01, seed=42):
 
 @pytest.fixture
 def poly_mod():
-    return PolynomialModel(
-        a=np.array([1.0, -1.66, 0.83]), b=np.array([1.0, 2.0, 1.0]), Ts=1
-    )
+    return PolynomialModel(a=np.array([1.0, -1.66, 0.83]), b=np.array([1.0, 2.0, 1.0]), Ts=1)
 
 
 @pytest.fixture

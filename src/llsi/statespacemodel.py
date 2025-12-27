@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Created on Fri Apr  2 22:54:53 2021
 
@@ -32,9 +31,13 @@ class StateSpaceModel(LTIModel):
         nx=0,
         nu=1,
         ny=1,
-        input_names=[],
-        output_names=[],
+        input_names=None,
+        output_names=None,
     ):
+        if input_names is None:
+            input_names = []
+        if output_names is None:
+            output_names = []
         """
 
         Parameters
@@ -183,9 +186,7 @@ class StateSpaceModel(LTIModel):
         from scipy import signal
 
         if continuous:
-            A, B, C, D = self._d2c(
-                self.A, self.B, self.C, self.D, self.Ts, method=method
-            )
+            A, B, C, D = self._d2c(self.A, self.B, self.C, self.D, self.Ts, method=method)
             sys = signal.StateSpace(A, B, C, D)
         else:
             sys = signal.StateSpace(self.A, self.B, self.C, self.D, dt=self.Ts)
@@ -207,21 +208,17 @@ class StateSpaceModel(LTIModel):
             return StateSpaceModel._d2c_euler(A, B, C, D, Ts)
 
     @staticmethod
-    def _d2c_bilinear(
-        A: np.ndarray, B: np.ndarray, C: np.ndarray, D: np.ndarray, Ts: float
-    ):
-        I = np.eye(*A.shape)
-        AI = scipy.linalg.inv(A + I)
-        A_ = 2.0 / Ts * (A - I) @ AI
-        B_ = 2.0 / Ts * (I - (A - I) @ AI) @ B
+    def _d2c_bilinear(A: np.ndarray, B: np.ndarray, C: np.ndarray, D: np.ndarray, Ts: float):
+        eye = np.eye(*A.shape)
+        AI = scipy.linalg.inv(A + eye)
+        A_ = 2.0 / Ts * (A - eye) @ AI
+        B_ = 2.0 / Ts * (eye - (A - eye) @ AI) @ B
         C_ = C @ AI
         D_ = D - C @ AI @ B
         return A_, B_, C_, D_
 
     @staticmethod
-    def _d2c_euler(
-        A: np.ndarray, B: np.ndarray, C: np.ndarray, D: np.ndarray, Ts: float
-    ):
+    def _d2c_euler(A: np.ndarray, B: np.ndarray, C: np.ndarray, D: np.ndarray, Ts: float):
         A_ = (A - np.eye(*A.shape)) / Ts
         B_ = B / Ts
         C_ = C
@@ -365,7 +362,7 @@ class StateSpaceModel(LTIModel):
 
     @classmethod
     def from_json(cls, filename):
-        with open(filename, "r") as f:
+        with open(filename) as f:
             data = json.load(f)
         mod = StateSpaceModel(
             A=data["A"],

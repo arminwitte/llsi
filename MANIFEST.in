@@ -1,0 +1,5 @@
+include data/*.npy
+include README.md
+include LICENSE
+include CHANGELOG.md
+recursive-include docs *

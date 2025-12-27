@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Created on Wed Aug 17 09:38:26 2022
 
@@ -59,8 +58,7 @@ class Figure:
                     fun = self.registry["impulse"]
                 else:
                     self.logger.warning(
-                        f"for an object of type {type(obj)} a plot_type has to "
-                        + "be specified explicitly!"
+                        f"for an object of type {type(obj)} a plot_type has to " + "be specified explicitly!"
                     )
             else:
                 fun = self.registry[plot_type]
