@@ -52,6 +52,7 @@ fail_under = 90
 [tool.ruff]
 line-length = 120
 target-version = "py38"
+exclude = ["*.ipynb"]
 
 [tool.ruff.lint]
 select = [
