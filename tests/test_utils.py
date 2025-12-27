@@ -1,4 +1,3 @@
-
 import numpy as np
 
 from llsi.utils import rise_time, settling_time
