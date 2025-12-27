@@ -158,16 +158,81 @@ class SysIdData:
         next_code |= ~(((code << 1 & 0x0E) | (next_code >> 31 & 0x01)) ^ (next_code >> 28)) & 0x0000000F
         return next_code
 
-    # @classmethod
-    # def from_excel(cls, filename, column_names=None):
-    #     import pandas as pd
+    def to_pandas(self):
+        """
+        Convert to pandas DataFrame.
+        """
+        try:
+            import pandas as pd
+        except ImportError:
+            raise ImportError("pandas is required for this method")
 
-    #     data = pd.read_excel(filename)
-    #     d = {}
-    #     for key in data.columns:
-    #         if key in column_names or column_names is None:
-    #             d[key] = data[key]
-    #             N = data[key].values.shape[0]
-    #     t = np.arange(0, N, 1)
-    #     sysiddata = cls(t=t, **d)
-    #     return sysiddata
+        index = self.time()
+        return pd.DataFrame(self.series, index=index)
+
+    @classmethod
+    def from_pandas(cls, df, time_col=None, Ts=None):
+        """
+        Create SysIdData from pandas DataFrame.
+
+        Parameters
+        ----------
+        df : pandas.DataFrame
+            The dataframe containing the data.
+        time_col : str, optional
+            Name of the column to use as time. If None, the index is used.
+        Ts : float, optional
+            Sampling time. If None, it is inferred from the time index if possible.
+        """
+        try:
+            import pandas as pd
+        except ImportError:
+            raise ImportError("pandas is required for this method")
+
+        if time_col:
+            t_values = df[time_col].values
+            data_df = df.drop(columns=[time_col])
+        else:
+            t_values = df.index.values
+            data_df = df
+
+        series_data = {col: data_df[col].values for col in data_df.columns}
+
+        # Infer Ts if not provided
+        t_start = None
+        t_vec = None
+
+        if Ts is None:
+            # Check if t_values are numeric or datetime
+            if pd.api.types.is_numeric_dtype(t_values):
+                diffs = np.diff(t_values)
+                if len(diffs) > 0 and np.allclose(diffs, diffs[0]):
+                    Ts = float(diffs[0])
+                    t_start = float(t_values[0])
+                else:
+                    t_vec = t_values
+            elif pd.api.types.is_datetime64_any_dtype(t_values):
+                # Convert to seconds relative to start
+                t_start_timestamp = t_values[0]
+                t_seconds = (t_values - t_start_timestamp) / np.timedelta64(1, "s")
+
+                diffs = np.diff(t_seconds)
+                if len(diffs) > 0 and np.allclose(diffs, diffs[0]):
+                    Ts = float(diffs[0])
+                    t_start = 0.0  # Relative time
+                else:
+                    t_vec = t_seconds
+                    t_start = 0.0
+            else:
+                # Fallback, maybe just index
+                t_vec = np.arange(len(t_values))
+                Ts = 1.0
+                t_start = 0.0
+        else:
+            # Ts provided
+            if pd.api.types.is_numeric_dtype(t_values):
+                t_start = float(t_values[0])
+            else:
+                t_start = 0.0
+
+        return cls(t=t_vec, Ts=Ts, t_start=t_start, **series_data)

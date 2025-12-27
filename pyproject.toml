@@ -26,6 +26,7 @@ dependencies = [
         "matplotlib",
 	"numba",
   "tqdm",
+  "pandas",
 ]
 
 [project.optional-dependencies]
