@@ -162,7 +162,6 @@ class Figure:
 
     @staticmethod
     def _compare(fig, ax, obj, col="#1f77b4"):
-
         mods = obj.get("mod")
         data = obj.get("data")
         y_name = obj.get("y_name")

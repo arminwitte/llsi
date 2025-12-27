@@ -49,8 +49,7 @@ def test_po_moesp(data_siso_deterministic, ss_mod):
 
 
 def test_n4sid_mimo(data_mimo_deterministic):
-
-    with pytest.raises(Exception) as e_info:
+    with pytest.raises(Exception):
         identifyer = N4SID(data_mimo_deterministic, ["y0", "y1"], ["u0", "u1"])
 
     return

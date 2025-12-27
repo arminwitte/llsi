@@ -5,9 +5,9 @@ Created on Sun Aug  7 00:01:33 2022
 
 @author: armin
 """
+
 import numpy as np
 import pytest
-import scipy.signal
 
 from llsi.ltimodel import LTIModel
 

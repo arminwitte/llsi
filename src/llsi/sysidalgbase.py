@@ -13,7 +13,6 @@ import numpy as np
 
 class SysIdAlgBase(ABC):
     def __init__(self, data, y_name, u_name, settings):
-
         self.input_names = u_name
         self.output_names = y_name
 

@@ -110,4 +110,4 @@ def test_remove():
     data = SysIdData(t=t, u=u, v=v)
     data.remove("v")
     with pytest.raises(KeyError):
-        a = data["v"]
+        data["v"]
