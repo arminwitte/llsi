@@ -52,3 +52,35 @@ def test_settling_time_oscillatory():
     # Last time it is outside [0.99, 1.01] is around t=2
     st = settling_time(mod)
     assert np.isclose(st, 2.0, atol=0.2)
+
+
+from llsi.utils import cv
+from llsi.sysiddata import SysIdData
+
+
+def test_cv():
+    # Generate simple data
+    np.random.seed(42)
+    N = 100
+    u = np.random.randn(N)
+    # y[k] = 0.5*u[k]
+    y = 0.5 * u + 0.01 * np.random.randn(N)
+
+    # Split into training and validation
+    train_data = SysIdData(Ts=1.0, u=u[:50], y=y[:50])
+    val_data = SysIdData(Ts=1.0, u=u[50:], y=y[50:])
+
+    # Run CV
+    # We use ARX which supports lambda regularization
+    best_lambda, best_fit = cv(
+        train_data,
+        val_data,
+        "y",
+        "u",
+        order=(1, 1, 0),
+        method="arx",
+        bounds=(1e-4, 1e-1),
+    )
+
+    assert best_lambda > 0
+    assert isinstance(best_fit, float)
