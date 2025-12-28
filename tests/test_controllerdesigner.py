@@ -115,11 +115,13 @@ class TestZPETCDesigner:
 class TestZMETCDesigner:
     """Test suite for ZMETC Designer."""
 
-    def test_not_implemented(self, sample_system):
-        """Test that ZMETC raises NotImplementedError."""
+    def test_design_result(self, sample_system):
+        """Test ZMETC design method results."""
         designer = ZMETCDesigner(sample_system)
-        with pytest.raises(NotImplementedError):
-            designer.design()
+        tf = designer.design()
+
+        assert isinstance(tf, TransferFunction)
+        assert tf.dt == sample_system.dt
 
 
 class TestFactoryFunction:
@@ -127,7 +129,7 @@ class TestFactoryFunction:
 
     def test_valid_methods(self, sample_system):
         """Test factory function with all valid methods."""
-        valid_methods = ["npzic", "zpetc"]
+        valid_methods = ["npzic", "zpetc", "zmetc"]
 
         for method in valid_methods:
             designer = create_designer(sample_system, method)

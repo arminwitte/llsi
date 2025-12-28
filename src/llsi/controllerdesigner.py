@@ -1,10 +1,22 @@
+"""
+Controller design methods for stable inversion of non-minimum phase systems.
+"""
+
 from abc import ABC, abstractmethod
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Type
 
 import numpy as np
 import scipy.signal
 from numpy.polynomial import Polynomial
 from scipy.signal import TransferFunction
+
+__all__ = [
+    "ControllerDesigner",
+    "NPZICDesigner",
+    "ZPETCDesigner",
+    "ZMETCDesigner",
+    "create_designer",
+]
 
 
 class ControllerDesigner(ABC):
@@ -66,11 +78,22 @@ class ControllerDesigner(ABC):
         return acceptable_sys_zeros, unacceptable_sys_zeros, poles.tolist(), sys_.gain
 
     def _polynomials(self) -> Tuple[Polynomial, Polynomial, Polynomial]:
-        """Compute system polynomials from roots."""
+        """
+        Compute system polynomials from roots.
+        
+        Returns:
+            B_a: Polynomial of acceptable zeros (monic)
+            B_u: Polynomial of unacceptable zeros (monic)
+            A: Denominator polynomial (scaled by 1/gain)
+        """
         acceptable_sys_zeros, unacceptable_sys_zeros, sys_poles, gain = self._extract_roots_gain()
 
         B_a = Polynomial.fromroots(acceptable_sys_zeros) if acceptable_sys_zeros else Polynomial([1.0])
         B_u = Polynomial.fromroots(unacceptable_sys_zeros) if unacceptable_sys_zeros else Polynomial([1.0])
+        
+        # A includes the inverse gain to ensure A/B matches 1/G structure
+        # G = k * B / A_monic  =>  G^-1 = A_monic / (k * B)
+        # Here A = A_monic / k.
         A = Polynomial.fromroots(sys_poles) * (1 / gain)
 
         return B_a, B_u, A
@@ -96,6 +119,8 @@ class NPZICDesigner(ControllerDesigner):
     """
     Designer for Non-minimum Phase Zero Ignore Controller (NPZIC) method.
 
+    Replaces unstable zeros with their DC gain value to maintain steady-state accuracy.
+    
     References:
         Ohnishi, W., & Fujimoto, H. (2018). Perfect tracking control method by multirate
         feedforward and state trajectory generation based on time axis reversal.
@@ -111,6 +136,7 @@ class NPZICDesigner(ControllerDesigner):
         z_q = self._rel_deg_poly(q)
 
         num = A
+        # Replace B_u(z) with B_u(1) (sum of coefficients)
         den = z_q * B_a * np.sum(B_u.coef)
 
         self.designed_tf = self._create_tf(num, den)
@@ -120,6 +146,9 @@ class NPZICDesigner(ControllerDesigner):
 class ZPETCDesigner(ControllerDesigner):
     """
     Designer for Zero Phase Error Tracking Controller (ZPETC) method.
+
+    Cancels phase error introduced by unstable zeros but introduces gain error
+    at high frequencies. DC gain is preserved.
 
     References:
         Tomizuka, M. (1987). Zero phase error tracking algorithm for digital control.
@@ -131,12 +160,15 @@ class ZPETCDesigner(ControllerDesigner):
         Design controller using zero phase error tracking method.
         """
         B_a, B_u, A = self._polynomials()
+        # B_u*(z) = z^s B_u(z^-1)
         B_u_ast = Polynomial(np.flip(B_u.coef))
 
+        # q = deg(A) + deg(B_u) - deg(B_a)
         q = self._rel_deg(A * B_u_ast, B_a)
         z_q = self._rel_deg_poly(q)
 
         num = A * B_u_ast
+        # Denominator includes [B_u(1)]^2 to normalize DC gain
         den = z_q * B_a * np.sum(B_u.coef) ** 2
 
         self.designed_tf = self._create_tf(num, den)
@@ -147,16 +179,58 @@ class ZMETCDesigner(ControllerDesigner):
     """
     Designer for Zero Magnitude Error Tracking Controller (ZMETC) method.
 
-    References:
-        To be added with implementation.
+    Reflects unstable zeros across the unit circle to create a stable inverse
+    with the same magnitude response as the plant.
     """
 
     def design(self) -> TransferFunction:
         """
         Design controller using zero magnitude error tracking method.
         """
-        # Implementation needed
-        raise NotImplementedError("ZMETC design method not yet implemented")
+        B_a, B_u, A = self._polynomials()
+        
+        # Extract unstable zeros
+        # B_u is monic, constructed from roots
+        unstable_zeros = B_u.roots()
+        
+        if len(unstable_zeros) == 0:
+            # Fallback to simple inversion if no unstable zeros
+            q = self._rel_deg(A, B_a)
+            z_q = self._rel_deg_poly(q)
+            num = A
+            den = z_q * B_a
+            self.designed_tf = self._create_tf(num, den)
+            return self.designed_tf
+
+        # Reflect zeros: z_new = 1 / z_old*
+        reflected_zeros = 1.0 / np.conj(unstable_zeros)
+        
+        # Construct polynomial from reflected zeros
+        B_u_reflected = Polynomial.fromroots(reflected_zeros)
+        
+        # Calculate scaling factor to match magnitude
+        # |z - p| = |p| * |z - 1/p*| for z on unit circle
+        # So |B_u| = |B_u_reflected| * prod(|p|)
+        scaling_factor = np.prod(np.abs(unstable_zeros))
+        
+        # Ensure DC gain is matched (preserve sign)
+        den_part = B_u_reflected * scaling_factor
+        
+        val_orig = np.real(B_u(1))
+        val_new = np.real(den_part(1))
+        
+        if np.sign(val_orig) != np.sign(val_new) and np.abs(val_orig) > 1e-10:
+             scaling_factor *= -1
+             den_part = B_u_reflected * scaling_factor
+
+        q = self._rel_deg(A, B_a * B_u_reflected)
+        z_q = self._rel_deg_poly(q)
+
+        num = A
+        den = z_q * B_a * den_part
+
+        self.designed_tf = self._create_tf(num, den)
+        return self.designed_tf
 
 
 def create_designer(sys: TransferFunction, method: str = "npzic") -> ControllerDesigner:
@@ -168,9 +242,13 @@ def create_designer(sys: TransferFunction, method: str = "npzic") -> ControllerD
         method: Design method ('npzic', 'zpetc', or 'zmetc')
 
     Returns:
-        StableInversionDesigner: Appropriate designer instance
+        ControllerDesigner: Appropriate designer instance
     """
-    designers = {"npzic": NPZICDesigner, "zpetc": ZPETCDesigner, "zmetc": ZMETCDesigner}
+    designers = {
+        "npzic": NPZICDesigner, 
+        "zpetc": ZPETCDesigner, 
+        "zmetc": ZMETCDesigner
+    }
 
     designer_class = designers.get(method.lower())
     if designer_class is None:
