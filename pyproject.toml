@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "llsi"
 description = "A lightweight linear system identification tool"
-version = "0.4.0"
+version = "0.5.0"
 authors = [
   { name="Armin Witte"},
 ]
