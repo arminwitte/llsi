@@ -147,6 +147,7 @@ def test_po_moesp_mimo(data_mimo_deterministic):
         atol=1e-5,
     )
 
+
 def test_enforce_stability():
     # Create an unstable matrix
     # Eigenvalues: 2, 0.5
@@ -154,22 +155,24 @@ def test_enforce_stability():
     D = np.diag([2.0, 0.5])
     V = np.array([[1, 1], [0, 1]])
     A = V @ D @ np.linalg.inv(V)
-    
+
     # Stabilize
     from llsi.subspace import SubspaceIdent
+
     A_stable = SubspaceIdent.enforce_stability(A)
-    
+
     vals = np.linalg.eigvals(A_stable)
     assert np.all(np.abs(vals) <= 1.0 + 1e-9)
     # The unstable eigenvalue 2 should become 0.99 (default radius).
     # The stable eigenvalue 0.5 should remain 0.5.
-    
+
     vals_sorted = np.sort(np.abs(vals))
     np.testing.assert_allclose(vals_sorted, [0.5, 0.99])
 
+
 def test_n4sid_enforce_stability(data_siso_deterministic):
     # Just check if it runs without error and returns a stable model
-    identifyer = N4SID(data_siso_deterministic, 'y', 'u', settings={'enforce_stability': True})
+    identifyer = N4SID(data_siso_deterministic, "y", "u", settings={"enforce_stability": True})
     mod = identifyer.ident(2)
     vals = np.linalg.eigvals(mod.A)
     assert np.all(np.abs(vals) <= 1.0 + 1e-9)
@@ -177,8 +180,7 @@ def test_n4sid_enforce_stability(data_siso_deterministic):
 
 def test_po_moesp_enforce_stability(data_siso_deterministic):
     # Just check if it runs without error and returns a stable model
-    identifyer = PO_MOESP(data_siso_deterministic, 'y', 'u', settings={'enforce_stability': True})
+    identifyer = PO_MOESP(data_siso_deterministic, "y", "u", settings={"enforce_stability": True})
     mod = identifyer.ident(2)
     vals = np.linalg.eigvals(mod.A)
     assert np.all(np.abs(vals) <= 1.0 + 1e-9)
-
