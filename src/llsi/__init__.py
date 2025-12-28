@@ -9,7 +9,13 @@ from .utils import cv
 try:
     from .sklearn import LTIModel
 except ImportError:
-    LTIModel = None
+
+    class LTIModel:
+        def __init__(self, *args, **kwargs):
+            raise ImportError(
+                "scikit-learn is required to use LTIModel. Install it with 'pip install llsi[sklearn]'."
+            ) from None
+
 
 __all__ = [
     "Figure",
