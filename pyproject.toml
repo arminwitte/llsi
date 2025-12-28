@@ -23,10 +23,11 @@ classifiers = [
 dependencies = [
 	"numpy>=1.19.0",
 	"scipy>=1.8.0",
-        "matplotlib",
+	"matplotlib",
 	"numba",
-  "tqdm",
-  "pandas",
+	"tqdm",
+	"pandas",
+	"statsmodels>=0.14.1",
 ]
 
 [project.optional-dependencies]
