@@ -29,6 +29,7 @@ dependencies = [
 	"tqdm",
 	"pandas",
 	"requests>=2.32.4",
+	"statsmodels>=0.14.1",
 ]
 
 [project.optional-dependencies]
