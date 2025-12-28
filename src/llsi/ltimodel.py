@@ -129,10 +129,10 @@ class LTIModel(ABC):
                     raise ValueError("Model has no output names defined.")
                 y_list = [data[name] for name in self.output_names]
                 y = np.column_stack(y_list)
-            except (KeyError, TypeError, AttributeError):
+            except (KeyError, TypeError, AttributeError) as e:
                 raise ValueError(
                     "Data object must have 'u' and 'y' attributes, or contain the model's input/output names."
-                )
+                ) from e
 
         y_pred = self.simulate(u)
         residuals = y - y_pred
