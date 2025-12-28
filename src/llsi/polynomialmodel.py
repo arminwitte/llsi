@@ -217,3 +217,63 @@ class PolynomialModel(LTIModel):
 
     def __str__(self) -> str:
         return self.__repr__()
+
+    def to_json(self, filename: Optional[str] = None) -> str:
+        import json
+
+        data = {}
+        data["a"] = self.a.tolist()
+        data["b"] = self.b.tolist()
+        data["na"] = self.na
+        data["nb"] = self.nb
+        data["nk"] = self.nk
+        data["Ts"] = self.Ts
+        data["nu"] = self.nu
+        data["ny"] = self.ny
+        data["input_names"] = self.input_names
+        data["output_names"] = self.output_names
+
+        try:
+            data["info"] = str(self.info)
+        except AttributeError:
+            data["info"] = ""
+
+        if self.cov is not None:
+            data["cov"] = self.cov.tolist()
+        else:
+            data["cov"] = None
+
+        if filename is not None:
+            with open(filename, "w") as f:
+                json.dump(data, f, indent=4)
+            return ""
+
+        return json.dumps(data, indent=4)
+
+    @classmethod
+    def from_json(cls, filename: str) -> "PolynomialModel":
+        import json
+
+        with open(filename) as f:
+            data = json.load(f)
+
+        cov = data.get("cov")
+        if cov is not None:
+            cov = np.array(cov)
+
+        mod = PolynomialModel(
+            a=data["a"],
+            b=data["b"],
+            na=data.get("na", 1),
+            nb=data.get("nb", 1),
+            nk=data.get("nk", 0),
+            Ts=data["Ts"],
+            nu=data.get("nu", 1),
+            ny=data.get("ny", 1),
+            cov=cov,
+            input_names=data.get("input_names"),
+            output_names=data.get("output_names"),
+        )
+        if "info" in data:
+            mod.info = data["info"]
+        return mod

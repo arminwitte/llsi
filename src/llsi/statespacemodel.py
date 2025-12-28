@@ -401,6 +401,12 @@ class StateSpaceModel(LTIModel):
         data["input_names"] = self.input_names
         data["output_names"] = self.output_names
 
+        if self.x_init is not None:
+            data["x_init"] = self.x_init.tolist()
+
+        if self.cov is not None:
+            data["cov"] = self.cov.tolist()
+
         if filename is not None:
             with open(filename, "w") as f:
                 json.dump(data, f, indent=4)
@@ -427,6 +433,13 @@ class StateSpaceModel(LTIModel):
         )
         if "info" in data:
             mod.info = data["info"]
+
+        if "x_init" in data:
+            mod.x_init = np.array(data["x_init"])
+
+        if "cov" in data:
+            mod.cov = np.array(data["cov"])
+
         return mod
 
     def __repr__(self) -> str:

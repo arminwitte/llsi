@@ -137,3 +137,62 @@ def settling_time(mod: LTIModel, margin: float = 0.01, N: int = 200) -> float:
     # Let's return t[last_idx] as approximation.
 
     return float(t[last_idx])
+
+
+def save_model(model: LTIModel, filename: str) -> None:
+    """
+    Save an LTI model to a JSON file.
+
+    Args:
+        model: The model to save.
+        filename: The path to the file.
+    """
+    if hasattr(model, "to_json"):
+        # Add type info to the JSON so we know which class to load
+        import json
+
+        # Get the JSON string from the model
+        json_str = model.to_json()
+        data = json.loads(json_str)
+
+        # Add class name
+        data["__class__"] = model.__class__.__name__
+
+        with open(filename, "w") as f:
+            json.dump(data, f, indent=4)
+    else:
+        raise NotImplementedError(f"Model type {type(model)} does not support to_json serialization.")
+
+
+def load_model(filename: str) -> LTIModel:
+    """
+    Load an LTI model from a JSON file.
+
+    Args:
+        filename: The path to the file.
+
+    Returns:
+        LTIModel: The loaded model.
+    """
+    import json
+
+    from .polynomialmodel import PolynomialModel
+    from .statespacemodel import StateSpaceModel
+
+    with open(filename) as f:
+        data = json.load(f)
+
+    class_name = data.get("__class__")
+
+    if class_name == "StateSpaceModel":
+        return StateSpaceModel.from_json(filename)
+    elif class_name == "PolynomialModel":
+        return PolynomialModel.from_json(filename)
+    else:
+        # Fallback: try to infer from keys
+        if "A" in data and "B" in data:
+            return StateSpaceModel.from_json(filename)
+        elif "a" in data and "b" in data:
+            return PolynomialModel.from_json(filename)
+        else:
+            raise ValueError(f"Unknown model type in {filename}")
