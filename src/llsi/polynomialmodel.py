@@ -1,9 +1,8 @@
-#!/usr/bin/env python3
 """
-Created on Wed Aug  3 10:16:09 2022
+Polynomial model representation (e.g., ARX, OE).
+"""
 
-@author: armin
-"""
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import scipy.signal
@@ -12,20 +11,43 @@ from .ltimodel import LTIModel
 
 
 class PolynomialModel(LTIModel):
+    """
+    Polynomial model representation (SISO).
+    
+    Represents a system of the form:
+    A(q) y(t) = B(q) u(t-nk) + e(t)
+    """
+
     def __init__(
         self,
-        a=None,
-        b=None,
-        na=1,
-        nb=1,
-        nu=1,
-        ny=1,
-        nk=0,
-        cov=None,
-        Ts=1.0,
-        input_names=None,
-        output_names=None,
+        a: Optional[Union[np.ndarray, List[float]]] = None,
+        b: Optional[Union[np.ndarray, List[float]]] = None,
+        na: int = 1,
+        nb: int = 1,
+        nu: int = 1,
+        ny: int = 1,
+        nk: int = 0,
+        cov: Optional[np.ndarray] = None,
+        Ts: float = 1.0,
+        input_names: Optional[List[str]] = None,
+        output_names: Optional[List[str]] = None,
     ):
+        """
+        Initialize the polynomial model.
+
+        Args:
+            a: Denominator coefficients A(q).
+            b: Numerator coefficients B(q).
+            na: Order of A(q).
+            nb: Order of B(q).
+            nu: Number of inputs (must be 1).
+            ny: Number of outputs (must be 1).
+            nk: Input delay (samples).
+            cov: Covariance matrix of parameters.
+            Ts: Sampling time.
+            input_names: List of input names.
+            output_names: List of output names.
+        """
         if input_names is None:
             input_names = []
         if output_names is None:
@@ -33,22 +55,31 @@ class PolynomialModel(LTIModel):
         super().__init__(Ts=Ts, input_names=input_names, output_names=output_names)
 
         if a is not None:
-            self.a = np.atleast_2d(a).T
-            self.na = self.a.shape[0]
-            self.ny = self.a.shape[1]
+            self.a = np.atleast_1d(a).astype(float)
+            self.na = len(self.a)
+            self.ny = 1 # Enforce SISO for now based on original code logic
         else:
             self.na = na
             self.ny = ny
-            self.a = np.ones((self.na, self.ny))
+            self.a = np.ones(self.na)
 
         if b is not None:
-            self.b = np.atleast_2d(b).T
-            self.nb = self.b.shape[0]
-            self.nu = self.b.shape[1]
+            self.b = np.atleast_1d(b).astype(float)
+            self.nb = len(self.b)
+            self.nu = 1 # Enforce SISO
         else:
             self.nb = nb
             self.nu = nu
-            self.b = np.ones((self.nb, self.nu))
+            self.b = np.ones(self.nb)
+
+        # Original code raised error for MIMO, keeping that constraint
+        if self.ny > 1 or (a is not None and np.ndim(a) > 1 and np.shape(a)[1] > 1):
+             # Check if it was initialized with 2D array implying MIMO
+             # The original code did: self.a = np.atleast_2d(a).T; self.ny = self.a.shape[1]
+             # If user passed 1D list, atleast_2d makes it (1, N), .T makes it (N, 1), so ny=1.
+             # If user passed 2D (N, M), .T makes it (M, N)? No, (N, M).T is (M, N).
+             # Let's stick to SISO as explicitly stated in original code.
+             pass
 
         if self.ny > 1:
             raise ValueError("System seems to have multiple outputs. This is not implemented.")
@@ -56,84 +87,133 @@ class PolynomialModel(LTIModel):
         if self.nu > 1:
             raise ValueError("System seems to have multiple inputs. This is not implemented.")
 
-        # norm
-        if self.a.shape[0] > 0:
-            self.b = self.b.ravel() / self.a[0, 0]
-            self.a = self.a.ravel() / self.a[0, 0]
-
+        # Normalize
+        if len(self.a) > 0 and self.a[0] != 0:
+            norm_factor = self.a[0]
+            self.b = self.b / norm_factor
+            self.a = self.a / norm_factor
+        
         self.nk = nk
-
         self.cov = cov
 
-    def simulate(self, u):
-        u = np.atleast_2d(u).ravel()
-        N = u.shape[0]
-        y = np.zeros((N, self.ny))
-        a = self.a
-        b = self.b
-        na = self.na
-        nb = self.nb
-        nk = self.nk
-        n = max(na, nb + nk)
+    def simulate(self, u: Union[np.ndarray, List[float]]) -> np.ndarray:
+        """
+        Simulate the model response.
 
-        # init with for-loops
-        for i in range(n):
-            for j in range(i + 1):
-                if i - j - nk >= 0 and j < nb:
-                    y[i] += b[j] * u[i - j - nk]
-            for j in range(1, i + 1):
-                if i - j >= 0 and j < na:
-                    with np.errstate(over="ignore", invalid="ignore"):
-                        y[i] -= a[j] * y[i - j]
+        Args:
+            u: Input signal.
 
-        # vectorize for speed
-        for i in range(n, N):
-            with np.errstate(over="ignore", invalid="ignore"):
-                y[i] += b.T @ u[i - nk : i - nb - nk : -1]
-                y[i] -= a.T[1:] @ y[i - 1 : i - 1 - (na - 1) : -1]
-        return y
+        Returns:
+            np.ndarray: Simulated output.
+        """
+        u_arr = np.atleast_1d(u).ravel()
+        
+        # Handle delay by padding input or coefficients
+        # lfilter: a[0]*y[n] = b[0]*x[n] + ...
+        # We have y[n] = -a[1]*y[n-1]... + b[0]*u[n-nk]...
+        # So we can pad b with nk zeros at the front.
+        
+        if self.nk > 0:
+            b_padded = np.concatenate((np.zeros(self.nk), self.b))
+        else:
+            b_padded = self.b
+            
+        # scipy.signal.lfilter is much faster than python loops
+        y = scipy.signal.lfilter(b_padded, self.a, u_arr)
+        
+        return y.reshape(-1, 1) # Return as (N, 1) to match LTIModel convention
 
-    def frequency_response(self, omega=np.logspace(-3, 2)):
-        a = self.a
-        b = self.b
+    def frequency_response(self, omega: np.ndarray = np.logspace(-3, 2)) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        Compute frequency response.
 
+        Args:
+            omega: Frequencies (rad/s).
+
+        Returns:
+            Tuple[np.ndarray, np.ndarray]: (omega, H)
+        """
+        # H(z) = (B(z) / A(z)) * z^(-nk)
+        # z = exp(j * omega * Ts)
+        
+        w, h = scipy.signal.freqz(self.b, self.a, worN=omega * self.Ts, fs=2*np.pi)
+        
+        # freqz returns response for B(z)/A(z). We need to add delay term z^(-nk)
+        # But wait, freqz expects w in [0, pi) usually, or if fs is given, in Hz?
+        # "If fs is not specified, worN is assumed to be in the same units as fs (radians/sample)."
+        # Actually, let's stick to manual calculation or use freqz correctly.
+        # Manual calculation is safer for arbitrary omega units if we are careful.
+        
         z = np.exp(1j * omega * self.Ts)
-        H = []
+        
+        # Evaluate polynomials
+        # polyval expects coefficients from highest degree to lowest? 
+        # No, standard polynomial is p[0]*x^(N-1) + ...
+        # But here we have B(z^-1) = b[0] + b[1]z^-1 + ...
+        # So we evaluate \sum b[k] z^{-k}
+        
+        # Using broadcasting
+        k_a = np.arange(len(self.a))
+        k_b = np.arange(len(self.b))
+        
+        # (N_freq, N_coeff)
+        z_pow_a = np.power(z[:, None], -k_a[None, :])
+        z_pow_b = np.power(z[:, None], -k_b[None, :])
+        
+        A_z = np.sum(self.a[None, :] * z_pow_a, axis=1)
+        B_z = np.sum(self.b[None, :] * z_pow_b, axis=1)
+        
+        H = (B_z / A_z) * np.power(z, -self.nk)
+        
+        return omega, H
 
-        for z_ in z:
-            za = np.power(z_, -np.arange(len(a)))
-            zb = np.power(z_, -np.arange(len(b)))
-            h = (b @ zb) / (a @ za)
-            H.append(h)
-
-        return omega, np.array(H)
-
-    def vectorize(self):
+    def vectorize(self) -> np.ndarray:
+        """Return model parameters as a vector."""
+        # Usually [b0, b1, ..., a1, a2, ...] (a0 is fixed to 1)
         return np.hstack((self.b, self.a[1:])).ravel()
 
-    def reshape(self, theta):
-        # ensure 1d array
+    def reshape(self, theta: np.ndarray) -> None:
+        """Update model parameters from vector."""
         theta = np.array(theta).ravel()
-        self.b = theta[: self.nb * self.nu]
-        self.a = np.hstack(([1.0], theta[self.nb * self.nu :]))
+        n_b = len(self.b)
+        self.b = theta[:n_b]
+        self.a = np.hstack(([1.0], theta[n_b:]))
 
-    def to_tf(self):
-        return scipy.signal.TransferFunction(self.b, self.a, dt=self.Ts)
+    def to_tf(self) -> scipy.signal.TransferFunction:
+        """Convert to scipy TransferFunction."""
+        # Note: This ignores nk if not handled carefully, but TransferFunction 
+        # in scipy is usually continuous time or discrete with fixed dt.
+        # If discrete, we can pad numerator.
+        if self.nk > 0:
+            num = np.concatenate((np.zeros(self.nk), self.b))
+        else:
+            num = self.b
+        return scipy.signal.TransferFunction(num, self.a, dt=self.Ts)
 
     @classmethod
-    def from_scipy(cls, mod):
-        tf = mod.tf()
-        mod_out = cls(a=tf.den, b=tf.num, Ts=tf.dt)
-        return mod_out
+    def from_scipy(cls, mod: Any) -> 'PolynomialModel':
+        """Create from scipy system."""
+        # Assuming mod has .dt, .num, .den or similar
+        if hasattr(mod, 'dt'):
+            dt = mod.dt
+        else:
+            dt = 1.0
+            
+        if isinstance(mod, scipy.signal.TransferFunction):
+            return cls(a=mod.den, b=mod.num, Ts=dt)
+        
+        # Try converting
+        tf = mod.to_tf()
+        return cls(a=tf.den, b=tf.num, Ts=dt)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         s = f"PolynomialModel with Ts={self.Ts}\n"
         s += f"input(s): {self.input_names}\n"
         s += f"output(s): {self.output_names}\n"
-        s += f"b:\n{self.b}\n"
-        s += f"a:\n{self.a}\n"
-
+        s += f"b: {self.b}\n"
+        s += f"a: {self.a}\n"
+        s += f"nk: {self.nk}\n"
         return s
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.__repr__()

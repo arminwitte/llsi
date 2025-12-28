@@ -1,12 +1,10 @@
-#!/usr/bin/env python3
 """
-Created on Sun Apr  4 19:40:17 2021
-
-@author: armin
+Data container for system identification.
 """
 
 import copy
 import logging
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import scipy.interpolate
@@ -14,17 +12,39 @@ import scipy.signal
 
 
 class SysIdData:
-    def __init__(self, t=None, Ts=None, t_start=None, **kwargs):
-        self.N = None
-        self.series = {}
+    """
+    Container for time-series data used in system identification.
+    
+    Stores multiple time series (input/output channels) sharing a common time axis.
+    Supports both equidistant and non-equidistant time sampling.
+    """
+
+    def __init__(
+        self,
+        t: Optional[np.ndarray] = None,
+        Ts: Optional[float] = None,
+        t_start: Optional[float] = None,
+        **kwargs: Any,
+    ):
+        """
+        Initialize SysIdData.
+
+        Args:
+            t: Time vector (for non-equidistant data).
+            Ts: Sampling time (for equidistant data).
+            t_start: Start time (for equidistant data). Default is 0.0.
+            **kwargs: Time series data as keyword arguments (name=data).
+        """
+        self.N: Optional[int] = None
+        self.series: Dict[str, np.ndarray] = {}
         self.add_series(**kwargs)
         self.t = t
         self.Ts = Ts
 
         if self.Ts is None and self.t is None:
             raise ValueError(
-                "No time specified. Use eiter keyword t to give a series or Ts to "
-                + "give a scalar for equidistant time series."
+                "No time specified. Use either keyword 't' to give a time vector or 'Ts' to "
+                "give a scalar for equidistant time series."
             )
 
         if self.t is not None:
@@ -37,10 +57,16 @@ class SysIdData:
 
         self.logger = logging.getLogger(__name__)
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: str) -> np.ndarray:
         return self.series[key]
 
-    def add_series(self, **kwargs):
+    def add_series(self, **kwargs: Any) -> None:
+        """
+        Add time series to the dataset.
+
+        Args:
+            **kwargs: Time series data as keyword arguments (name=data).
+        """
         for key, val in kwargs.items():
             s = np.array(val).ravel()
             self.series[key] = s
@@ -50,46 +76,79 @@ class SysIdData:
             else:
                 if self.N != s.shape[0]:
                     raise ValueError(
-                        f"length of vector to add ({s.shape[0]}) " + "does not match length of time series ({self.N})"
+                        f"Length of vector to add ({s.shape[0]}) "
+                        f"does not match length of time series ({self.N})"
                     )
 
-    def remove(self, key):
+    def remove(self, key: str) -> None:
+        """Remove a time series."""
         del self.series[key]
 
-    def time(self):
+    def time(self) -> np.ndarray:
+        """
+        Get the time vector.
+
+        Returns:
+            The time vector.
+        """
         if self.t is not None:
             return self.t
         else:
+            if self.N is None:
+                return np.array([])
             t_start = self.t_start
-            t_end = t_start + (self.N - 1) * self.Ts
-            return np.linspace(t_start, t_end, self.N)
+            return t_start + np.arange(self.N) * self.Ts
 
-    def equidistant(self, N=None):
+    def equidistant(self, N: Optional[int] = None) -> None:
+        """
+        Resample data to be equidistant.
+        
+        Modifies the object in-place.
+
+        Args:
+            N: Number of points for the new grid. If None, keeps current N.
+        """
+        if self.t is None:
+            # Already equidistant
+            if N is not None and N != self.N:
+                # Resample equidistant data
+                pass 
+            else:
+                return
+
         if N is None:
             N = self.N
 
         if N < self.N:
-            self.logger.warning("Downsampling without filter!")
+            self.logger.warning("Downsampling without filter! Aliasing may occur.")
 
-        t_ = self.time()
+        t_current = self.time()
+        t_start = t_current[0]
+        t_end = t_current[-1]
 
-        t_start = t_[0]
-        t_end = t_[-1]
-
-        t = np.linspace(t_start, t_end, N)
+        t_new = np.linspace(t_start, t_end, N)
+        
         for key, val in self.series.items():
-            f = scipy.interpolate.interp1d(self.t, val)
-            self.series[key] = f(t)
+            f = scipy.interpolate.interp1d(t_current, val, kind='linear', fill_value="extrapolate")
+            self.series[key] = f(t_new)
 
         self.N = N
-        self.Ts = (t_end - t_start) / (self.N - 1)
-        self.t = None
+        self.Ts = (t_end - t_start) / (self.N - 1) if self.N > 1 else 0.0
+        self.t = None # Now it is equidistant
 
-    def center(self):
+    def center(self) -> None:
+        """Remove the mean from all series."""
         for key, val in self.series.items():
             self.series[key] -= np.mean(val)
 
-    def crop(self, start=None, end=None):
+    def crop(self, start: Optional[int] = None, end: Optional[int] = None) -> None:
+        """
+        Crop the data.
+
+        Args:
+            start: Start index.
+            end: End index.
+        """
         if self.t is not None:
             self.t = self.t[start:end]
         else:
@@ -98,38 +157,120 @@ class SysIdData:
 
         for key, val in self.series.items():
             self.series[key] = val[start:end]
-            self.N = self.series[key].shape[0]
+            
+        if self.series:
+            self.N = next(iter(self.series.values())).shape[0]
+        else:
+            self.N = 0
 
-    def downsample(self, q):
+    def split(self, proportion: Optional[float] = None, sample: Optional[int] = None) -> Tuple['SysIdData', 'SysIdData']:
+        """
+        Split the data into two sets.
+
+        Args:
+            proportion: Ratio of the first set (0 to 1). Default 0.5.
+            sample: Index to split at. Overrides proportion.
+
+        Returns:
+            A tuple containing two SysIdData objects.
+        """
+        if not sample and not proportion:
+            proportion = 0.5
+
+        if sample is None and proportion is not None:
+            sample = int(round(self.N * proportion))
+
+        # print(f"Splitting at {sample}")
+
+        d1 = copy.deepcopy(self)
+        d1.crop(end=sample)
+        d2 = copy.deepcopy(self)
+        d2.crop(start=sample)
+
+        return d1, d2
+
+    def resample(self, factor: float) -> None:
+        """
+        Resample the data.
+
+        Args:
+            factor: Resampling factor. >1 upsamples, <1 downsamples.
+        """
+        N_new = int(self.N * factor)
+        
+        for key, val in self.series.items():
+            self.series[key] = scipy.signal.resample(val, N_new)
+            
+        if self.t is not None:
+             self.t = scipy.signal.resample(self.t, N_new)
+        else:
+             self.Ts = self.Ts / factor
+             
+        self.N = N_new
+
+    def downsample(self, q: int) -> None:
+        """
+        Downsample the data by an integer factor.
+
+        Args:
+            q: Downsampling factor.
+        """
         for key, val in self.series.items():
             self.series[key] = scipy.signal.decimate(val, q)
-            self.N = self.series[key].shape[0]
+            
+        if self.series:
+            self.N = next(iter(self.series.values())).shape[0]
+            
+        if self.Ts is not None:
             self.Ts *= q
+        if self.t is not None:
+            self.t = self.t[::q]
 
-    def lowpass(self, order, corner_frequency):
+    def lowpass(self, order: int, corner_frequency: float) -> None:
+        """
+        Apply a lowpass filter to all series.
+
+        Args:
+            order: Filter order.
+            corner_frequency: Corner frequency in Hz.
+        """
         sos = scipy.signal.butter(order, corner_frequency, "low", analog=False, fs=1.0 / self.Ts, output="sos")
 
         for key in self.series.keys():
             self.series[key] = scipy.signal.sosfilt(sos, self.series[key])
 
-    def split(self, proportion=None, sample=None):
-        if not sample and not proportion:
-            proportion = 0.5
+    def plot(self) -> None:
+        """Plot the data."""
+        import matplotlib.pyplot as plt
 
-        if proportion:
-            sample = int(round(self.N * proportion))
-
-        print(f"Splitting at {sample}")
-
-        data1 = copy.deepcopy(self)  # .crop(start=0,end=sample)
-        data1.crop(end=sample)
-        data2 = copy.deepcopy(self)  # .crop(start=sample)
-        data2.crop(start=sample)
-
-        return data1, data2
+        t = self.time()
+        n_series = len(self.series)
+        
+        fig, axes = plt.subplots(n_series, 1, sharex=True, figsize=(10, 2 * n_series))
+        if n_series == 1:
+            axes = [axes]
+            
+        for ax, (key, val) in zip(axes, self.series.items()):
+            ax.plot(t, val, label=key)
+            ax.legend()
+            ax.grid(True)
+            
+        plt.xlabel("Time")
+        plt.show()
 
     @staticmethod
-    def generate_prbs(N, Ts, seed=42):
+    def generate_prbs(N: int, Ts: float, seed: int = 42) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        Generate a Pseudo-Random Binary Sequence (PRBS).
+
+        Args:
+            N: Number of samples.
+            Ts: Sampling time.
+            seed: Random seed.
+
+        Returns:
+            Tuple of (time vector, PRBS signal).
+        """
         u = np.zeros((N,), dtype=float)
         t = np.linspace(0, Ts * N, num=N, endpoint=False)
 
@@ -146,26 +287,35 @@ class SysIdData:
         return t, u
 
     @staticmethod
-    def prbs31(code):
+    def prbs31(code: int) -> int:
+        """PRBS31 generator step."""
         for _ in range(32):
             next_bit = ~((code >> 30) ^ (code >> 27)) & 0x01
             code = ((code << 1) | next_bit) & 0xFFFFFFFF
         return code
 
     @staticmethod
-    def prbs31_fast(code):
+    def prbs31_fast(code: int) -> int:
+        """Fast PRBS31 generator step."""
         next_code = ~((code << 1) ^ (code << 4)) & 0xFFFFFFF0
         next_code |= ~(((code << 1 & 0x0E) | (next_code >> 31 & 0x01)) ^ (next_code >> 28)) & 0x0000000F
         return next_code
 
-    def to_pandas(self):
+    def to_pandas(self) -> Any:
         """
         Convert to pandas DataFrame.
+        
+        Returns:
+            pandas.DataFrame: The data as a DataFrame.
         """
         try:
             import pandas as pd
         except ImportError:
             raise ImportError("pandas is required for this method") from None
+            
+        df = pd.DataFrame(self.series)
+        df.index = self.time()
+        return df
 
         index = self.time()
         return pd.DataFrame(self.series, index=index)

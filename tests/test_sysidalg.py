@@ -285,8 +285,8 @@ def test_oe_deterministic_stochastic(data_siso_deterministic_stochastic, poly_mo
 
 def test_poly_input_output_name(data_siso_deterministic, poly_mod):
     mod = sysid(data_siso_deterministic, "y", "u", (0, 100, 0), method="fir")
-    assert mod.input_names == "u"
-    assert mod.output_names == "y"
+    assert mod.input_names == ["u"]
+    assert mod.output_names == ["y"]
 
 
 def test_ss_input_output_name(data_mimo_deterministic, poly_mod):

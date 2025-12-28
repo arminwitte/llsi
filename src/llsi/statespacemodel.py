@@ -1,15 +1,14 @@
-#!/usr/bin/env python3
 """
-Created on Fri Apr  2 22:54:53 2021
-
-@author: armin
+State-space model representation.
 """
 
 import json
 import logging
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import scipy.linalg
+import scipy.signal
 
 from .ltimodel import LTIModel
 from .math import evaluate_state_space
@@ -17,54 +16,50 @@ from .math import evaluate_state_space
 
 class StateSpaceModel(LTIModel):
     """
-    State Space model class
-    https://en.wikipedia.org/wiki/State-space_representation
+    State Space model class.
+    
+    Represents a discrete-time system:
+    x[k+1] = A x[k] + B u[k]
+    y[k]   = C x[k] + D u[k]
     """
 
     def __init__(
         self,
-        A=None,
-        B=None,
-        C=None,
-        D=None,
-        Ts=1.0,
-        nx=0,
-        nu=1,
-        ny=1,
-        input_names=None,
-        output_names=None,
+        A: Optional[Union[np.ndarray, List[List[float]]]] = None,
+        B: Optional[Union[np.ndarray, List[List[float]]]] = None,
+        C: Optional[Union[np.ndarray, List[List[float]]]] = None,
+        D: Optional[Union[np.ndarray, List[List[float]]]] = None,
+        Ts: float = 1.0,
+        nx: int = 0,
+        nu: int = 1,
+        ny: int = 1,
+        input_names: Optional[List[str]] = None,
+        output_names: Optional[List[str]] = None,
     ):
+        """
+        Initialize StateSpaceModel.
+
+        Args:
+            A: State transition matrix.
+            B: Input matrix.
+            C: Output matrix.
+            D: Feedthrough matrix.
+            Ts: Sampling time.
+            nx: Number of states (used if A is None).
+            nu: Number of inputs (used if B is None).
+            ny: Number of outputs (used if C is None).
+            input_names: List of input names.
+            output_names: List of output names.
+        """
         if input_names is None:
             input_names = []
         if output_names is None:
             output_names = []
-        """
-
-        Parameters
-        ----------
-        A : TYPE, optional
-            DESCRIPTION. The default is None.
-        B : TYPE, optional
-            DESCRIPTION. The default is None.
-        C : TYPE, optional
-            DESCRIPTION. The default is None.
-        D : TYPE, optional
-            DESCRIPTION. The default is None.
-        Ts : TYPE, optional
-            DESCRIPTION. The default is 1.0.
-        Nx : TYPE, optional
-            DESCRIPTION. The default is 0.
-
-        Returns
-        -------
-        None.
-
-        """
         super().__init__(Ts=Ts, input_names=input_names, output_names=output_names)
 
         # set A matrix and number of states
         if A is not None:
-            self.A = np.array(A)
+            self.A = np.array(A, dtype=float)
             self.nx = self.A.shape[0]
         else:
             self.nx = nx
@@ -72,7 +67,7 @@ class StateSpaceModel(LTIModel):
 
         # set B matrix and number of inputs
         if B is not None:
-            self.B = np.array(B).reshape(self.nx, -1)
+            self.B = np.array(B, dtype=float).reshape(self.nx, -1)
             self.nu = self.B.shape[1]
         else:
             self.nu = nu
@@ -80,23 +75,23 @@ class StateSpaceModel(LTIModel):
 
         # set C matrix and number of outputs
         if C is not None:
-            self.C = np.array(C).reshape(-1, self.nx)
+            self.C = np.array(C, dtype=float).reshape(-1, self.nx)
             self.ny = self.C.shape[0]
         else:
             self.ny = ny
             self.C = np.zeros((self.ny, self.nx))
 
         if D is not None:
-            self.D = np.array(D).reshape(self.ny, self.nu)
+            self.D = np.array(D, dtype=float).reshape(self.ny, self.nu)
         else:
             self.D = np.zeros((self.ny, self.nu))
 
         self.x_init = np.zeros((self.nx, 1))
-
-        self.cov = None
+        self.cov: Optional[np.ndarray] = None
         self.logger = logging.getLogger(__name__)
 
-    def vectorize(self, include_init_state=True):
+    def vectorize(self, include_init_state: bool = True) -> np.ndarray:
+        """Vectorize model parameters."""
         theta = np.vstack(
             [
                 self.A.reshape(-1, 1),
@@ -112,7 +107,8 @@ class StateSpaceModel(LTIModel):
 
         return np.array(theta).ravel()
 
-    def reshape(self, theta: np.ndarray, include_init_state=True):
+    def reshape(self, theta: np.ndarray, include_init_state: bool = True) -> None:
+        """Update model parameters from vector."""
         nx = self.nx
         nu = self.nu
         ny = self.ny
@@ -127,14 +123,43 @@ class StateSpaceModel(LTIModel):
         self.C = theta[na + nb : na + nb + nc].reshape(ny, nx)
         self.D = theta[na + nb + nc : na + nb + nc + nd].reshape(ny, nu)
 
-        self.x_init = theta[na + nb + nc + nd :].reshape(nx, 1)
+        if include_init_state:
+            self.x_init = theta[na + nb + nc + nd :].reshape(nx, 1)
 
-    def simulate(self, u: np.ndarray):
+    def simulate(self, u: np.ndarray) -> np.ndarray:
+        """Simulate the model."""
         u = np.atleast_2d(u)
-        u = u.reshape(self.nu, -1)
+        if u.shape[0] != self.nu:
+             # Try transposing if dimensions mismatch but match after transpose
+             if u.shape[1] == self.nu:
+                 u = u.T
+        
+        # Ensure u is (nu, N) for evaluate_state_space?
+        # evaluate_state_space expects u as (nu, N) or (N, nu)?
+        # Looking at math.py:
+        # u : (nu, N) array
+        
+        # But wait, usually we pass (N, nu) or (N,) to simulate.
+        # The original code did: u = u.reshape(self.nu, -1)
+        # This implies it expects input to be flattened into (nu, N) somehow?
+        # If u is (N, nu), reshape(nu, -1) might scramble data if not careful.
+        # If u is (N, 1), reshape(1, -1) -> (1, N). Correct.
+        # If u is (N, 2), reshape(2, -1) -> (2, N). Correct ONLY if data is row-major and we want to split rows?
+        # No, if u is (N, nu), we want (nu, N). u.T is better.
+        
+        # Let's assume u is (N, nu) or (N,).
+        if u.ndim == 1:
+            u = u.reshape(1, -1) # (1, N)
+        elif u.shape[0] == self.nu:
+            pass # Already (nu, N)
+        elif u.shape[1] == self.nu:
+            u = u.T # Convert (N, nu) to (nu, N)
+        else:
+            # Fallback to original behavior but it's risky
+            u = u.reshape(self.nu, -1)
+
         u = np.ascontiguousarray(u)
-        # N = u.shape[1]
-        # TODO: initialize x properly
+
         if self.x_init is None:
             x1 = np.zeros((self.nx, 1))
         else:
@@ -148,9 +173,11 @@ class StateSpaceModel(LTIModel):
             u.astype(np.float64),
             x1.astype(np.float64),
         )
+        # y is returned as (N, ny) from evaluate_state_space
         return y
 
-    def frequency_response(self, omega=np.logspace(-3, 2)):
+    def frequency_response(self, omega: np.ndarray = np.logspace(-3, 2)) -> Tuple[np.ndarray, np.ndarray]:
+        """Compute frequency response."""
         A = self.A
         B = self.B
         C = self.C
@@ -159,37 +186,48 @@ class StateSpaceModel(LTIModel):
         z = np.exp(1j * omega * self.Ts)
         H = []
 
+        # H(z) = C(zI - A)^-1 B + D
+        # This loop is slow for many frequencies.
+        # Could use scipy.signal.freqresp if we convert to ss.
+        
+        eye = np.eye(A.shape[0])
         for z_ in z:
-            h = C @ np.linalg.inv(z_ * np.eye(A.shape[0]) - A) @ B + D
+            # Solve (zI - A) X = B -> X = (zI - A)^-1 B
+            # Then H = C X + D
+            try:
+                X = scipy.linalg.solve(z_ * eye - A, B)
+                h = C @ X + D
+            except scipy.linalg.LinAlgError:
+                h = np.full((self.ny, self.nu), np.nan)
             H.append(h)
 
         return omega, np.array(H)
 
     @classmethod
-    def from_PT1(cls, K: float, tauC: float, Ts=1.0):
+    def from_PT1(cls, K: float, tauC: float, Ts: float = 1.0) -> 'StateSpaceModel':
+        """Create from PT1 parameters."""
         t = 2 * tauC
         tt = 1 / (Ts + t)
         b = K * Ts * tt
         a = (Ts - t) * tt
 
-        B = [(1 - a) * b]
-        D = b
+        B = [[(1 - a) * b]]
+        D = [[b]]
 
         A = [[-a]]
-        C = [1]
+        C = [[1]]
 
         mod = cls(A=A, B=B, C=C, D=D, Ts=Ts, nx=1)
 
         return mod
 
-    def to_ss(self, continuous=False, method="bilinear") -> scipy.signal.StateSpace:
-        from scipy import signal
-
+    def to_ss(self, continuous: bool = False, method: str = "bilinear") -> scipy.signal.StateSpace:
+        """Convert to scipy StateSpace."""
         if continuous:
             A, B, C, D = self._d2c(self.A, self.B, self.C, self.D, self.Ts, method=method)
-            sys = signal.StateSpace(A, B, C, D)
+            sys = scipy.signal.StateSpace(A, B, C, D)
         else:
-            sys = signal.StateSpace(self.A, self.B, self.C, self.D, dt=self.Ts)
+            sys = scipy.signal.StateSpace(self.A, self.B, self.C, self.D, dt=self.Ts)
         return sys
 
     @staticmethod
@@ -199,10 +237,9 @@ class StateSpaceModel(LTIModel):
         C: np.ndarray,
         D: np.ndarray,
         Ts: float,
-        method="bilinear",
-    ):
-        # https://math.stackexchange.com/questions/3820100/discrete-time-to-continuous-time-state-space
-        if method in "bilinear":
+        method: str = "bilinear",
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+        if method == "bilinear":
             return StateSpaceModel._d2c_bilinear(A, B, C, D, Ts)
         else:
             return StateSpaceModel._d2c_euler(A, B, C, D, Ts)
@@ -238,29 +275,15 @@ class StateSpaceModel(LTIModel):
         ss = tf.to_ss()
         return StateSpaceModel(A=ss.A, B=ss.B, C=ss.C, D=ss.D, Ts=self.Ts)
 
-    def reduce_order(self, n: int):
+    def reduce_order(self, n: int) -> Tuple['StateSpaceModel', np.ndarray]:
         """
-        Perform order reduction using balanced truncation
+        Perform order reduction using balanced truncation.
 
-        Parameters
-        ----------
-        n : int
-            New (reduced) model order.
+        Args:
+            n: New (reduced) model order.
 
-        Returns
-        -------
-        TYPE
-            DESCRIPTION.
-        s : TYPE
-            DESCRIPTION.
-
-        References
-        ----------
-        Stanisławski R., Rydel M., Latawiec K.J.: Modeling of discrete-time
-        fractional- order state space systems using the balanced truncation method,
-        Journal of the Franklin Institute, vol. 354, no. 7, 2017, pp. 3008-3020.
-        http://doi.org/10.1016/j.jfranklin.2017.02.003
-
+        Returns:
+            Tuple[StateSpaceModel, np.ndarray]: (Reduced model, Hankel singular values)
         """
         A = self.A
         B = self.B
@@ -285,19 +308,13 @@ class StateSpaceModel(LTIModel):
 
         # truncation
         U1 = U[:, :n]
-        # s1 = s[:n]
         V1 = V[:, :n]
-        # Sigma1 = np.diag(1 / s1)
-
-        # # Square root algorithm
-        # # create transformation matrices
-        # T_l = np.sqrt(Sigma1) @ U1.T @ R
-        # T_r = S.T @ V1 @ np.sqrt(Sigma1)
 
         # balancing-free square root algorithm
         W, X = scipy.linalg.qr(S.T @ U1, mode="economic")
         Z, Y = scipy.linalg.qr(R.T @ V1, mode="economic")
         UE, sE, VE = scipy.linalg.svd(Z.T @ W)
+
         SigmaE = np.diag(1 / sE)
         T_l = np.sqrt(SigmaE) @ UE.T @ Z.T
         T_r = W @ VE @ np.sqrt(SigmaE)
@@ -310,16 +327,35 @@ class StateSpaceModel(LTIModel):
         return StateSpaceModel(A=A_, B=B_, C=C_, D=self.D, Ts=self.Ts), s
 
     @classmethod
-    def from_scipy(cls, mod):
-        ss = mod.ss()
-        mod_out = cls(A=ss.A, B=ss.B, C=ss.C, D=ss.D, Ts=ss.dt)
+    def from_scipy(cls, mod: Any) -> 'StateSpaceModel':
+        if hasattr(mod, 'ss'):
+            ss = mod.ss()
+        elif isinstance(mod, scipy.signal.StateSpace):
+            ss = mod
+        else:
+            ss = mod.to_ss()
+            
+        # Check for dt
+        dt = getattr(ss, 'dt', 1.0)
+        if dt is None:
+            dt = 1.0
+            
+        mod_out = cls(A=ss.A, B=ss.B, C=ss.C, D=ss.D, Ts=dt)
         return mod_out
 
     @classmethod
-    def from_fir(cls, mod):
-        nk = mod.nk
-        b = np.vstack([np.zeros((nk, 1)), mod.b.reshape(-1, 1)])
+    def from_fir(cls, mod: Any) -> 'StateSpaceModel':
+        """Create state-space model from FIR model (PolynomialModel)."""
+        nk = getattr(mod, 'nk', 0)
+        b_coeffs = getattr(mod, 'b', np.array([1.0]))
+        
+        b = np.vstack([np.zeros((nk, 1)), b_coeffs.reshape(-1, 1)])
         n = b.ravel().shape[0] - 1
+        
+        if n < 1:
+             # Trivial case
+             return cls(A=[[0]], B=[[0]], C=[[0]], D=[[b[0,0]]], Ts=mod.Ts)
+
         A = np.diag(np.ones((n - 1,)), k=-1)
         B = np.zeros((n, 1))
         B[0] = 1.0
@@ -336,7 +372,7 @@ class StateSpaceModel(LTIModel):
         )
         return mod_out
 
-    def to_json(self, filename=None):
+    def to_json(self, filename: Optional[str] = None) -> str:
         data = {}
         data["A"] = self.A.tolist()
         data["B"] = self.B.tolist()
@@ -344,24 +380,25 @@ class StateSpaceModel(LTIModel):
         data["D"] = self.D.tolist()
         data["Ts"] = self.Ts
         try:
-            data["info"] = self.info.__repr__()
+            data["info"] = str(self.info)
         except AttributeError:
-            data["info"] = {}
-        data["nx"] = self.ny
-        data["nu"] = self.ny
+            data["info"] = ""
+            
+        data["nx"] = self.nx
+        data["nu"] = self.nu
         data["ny"] = self.ny
         data["input_names"] = self.input_names
         data["output_names"] = self.output_names
 
         if filename is not None:
             with open(filename, "w") as f:
-                json.dump(data, f)
-                return
+                json.dump(data, f, indent=4)
+            return ""
 
-        return json.dumps(data)
+        return json.dumps(data, indent=4)
 
     @classmethod
-    def from_json(cls, filename):
+    def from_json(cls, filename: str) -> 'StateSpaceModel':
         with open(filename) as f:
             data = json.load(f)
         mod = StateSpaceModel(
@@ -370,13 +407,14 @@ class StateSpaceModel(LTIModel):
             C=data["C"],
             D=data["D"],
             Ts=data["Ts"],
-            nx=data["nx"],
-            nu=data["nu"],
-            ny=data["ny"],
-            input_names=data["input_names"],
-            output_names=data["output_names"],
+            nx=data.get("nx", 0),
+            nu=data.get("nu", 1),
+            ny=data.get("ny", 1),
+            input_names=data.get("input_names"),
+            output_names=data.get("output_names"),
         )
-        mod.info = data["info"]
+        if "info" in data:
+            mod.info = data["info"]
         return mod
 
     def __repr__(self) -> str:
@@ -389,5 +427,5 @@ class StateSpaceModel(LTIModel):
         s += f"D:\n{self.D}\n"
         return s
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.__repr__()

@@ -28,6 +28,7 @@ dependencies = [
 	"numba",
 	"tqdm",
 	"pandas",
+	"requests>=2.32.4",
 ]
 
 [project.optional-dependencies]
