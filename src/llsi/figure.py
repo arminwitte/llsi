@@ -56,21 +56,16 @@ class Figure:
 
         rows = int(np.floor((self.counter + 1) / 2))
         cols = 1 if self.counter < 2 else 2
-        
+
         # Handle case where no plots were added
         if rows == 0:
             return
 
-        self.fig, self.ax = plt.subplots(
-            rows,
-            cols,
-            figsize=self.figsize,
-            constrained_layout=True
-        )
-        
-        # Ensure self.ax is always indexable for consistency if possible, 
+        self.fig, self.ax = plt.subplots(rows, cols, figsize=self.figsize, constrained_layout=True)
+
+        # Ensure self.ax is always indexable for consistency if possible,
         # but matplotlib returns Axes or array of Axes.
-        
+
         for i in range(len(self.objects)):
             plot_type = self.plot_types[i]
             obj = self.objects[i]
@@ -154,7 +149,7 @@ class Figure:
     def _step(fig: MplFigure, ax: Axes, lti_mod: LTIModel, col: str = "#1f77b4"):
         if isinstance(lti_mod, LTIModel):
             t, y = lti_mod.step_response(N=200)
-            ax.step(t, y, where='post', color=col)
+            ax.step(t, y, where="post", color=col)
             ax.set_title("Step response")
             ax.grid(True, alpha=0.3)
 
@@ -166,16 +161,16 @@ class Figure:
 
             ax2 = ax.twinx()
 
-            ax.plot(omega.ravel(), np.abs(H.ravel()), color=col, label='Magnitude')
+            ax.plot(omega.ravel(), np.abs(H.ravel()), color=col, label="Magnitude")
             ax.set_ylabel("Magnitude")
             ax.set_xlabel("Frequency [rad/s]")
             ax.set_title("Frequency response")
             ax.grid(True, alpha=0.3)
 
-            ax2.plot(omega, np.angle(H.ravel()), linestyle="dashed", color=col, alpha=0.6, label='Phase')
+            ax2.plot(omega, np.angle(H.ravel()), linestyle="dashed", color=col, alpha=0.6, label="Phase")
             ax2.set_ylabel("Phase [rad]")
             ax2.set_yticks([-np.pi, -np.pi / 2, 0, np.pi / 2, np.pi])
-            ax2.set_yticklabels([r'$-\pi$', r'$-\pi/2$', '0', r'$\pi/2$', r'$\pi$'])
+            ax2.set_yticklabels([r"$-\pi$", r"$-\pi/2$", "0", r"$\pi/2$", r"$\pi$"])
 
     @staticmethod
     def _hsv(fig: MplFigure, ax: Axes, ss_mod: StateSpaceModel, col: str = "#1f77b4"):
@@ -188,14 +183,14 @@ class Figure:
                 ax.set_xlabel("State")
                 ax.set_ylabel("Normalized HSV")
             else:
-                ax.text(0.5, 0.5, "No HSV data available", ha='center', va='center')
+                ax.text(0.5, 0.5, "No HSV data available", ha="center", va="center")
 
     @staticmethod
     def _time_series(fig: MplFigure, ax: Axes, data: SysIdData, col: str = "#1f77b4"):
         t = data.time()
 
         for key, val in data.series.items():
-            ax.plot(t, val, label=key) # Use default colors for multiple series
+            ax.plot(t, val, label=key)  # Use default colors for multiple series
 
         ax.set_title("Time series")
         ax.legend()
@@ -207,11 +202,11 @@ class Figure:
         mods = obj.get("mod", [])
         if not isinstance(mods, list):
             mods = [mods]
-            
+
         data = obj.get("data")
         y_name = obj.get("y_name")
         u_name = obj.get("u_name")
-        
+
         if data is None or y_name is None or u_name is None:
             return
 
@@ -221,14 +216,13 @@ class Figure:
         for i, m in enumerate(mods):
             # Cycle colors for models
             c = plt.rcParams["axes.prop_cycle"].by_key()["color"][(i) % 10]
-            
+
             y_hat = m.simulate(data[u_name])
             fit = m.compare(data[y_name], data[u_name])
-            ax.plot(t, y_hat, color=c, label=f"Model {i+1} (Fit={fit:.1f}%)")
+            ax.plot(t, y_hat, color=c, label=f"Model {i + 1} (Fit={fit:.1f}%)")
 
         ax.set_title("Model Comparison")
         ax.legend()
         ax.set_xlabel("Time [s]")
         ax.set_ylabel(y_name)
         ax.grid(True, alpha=0.3)
-

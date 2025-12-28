@@ -33,11 +33,11 @@ class SubspaceIdent(SysIdAlgBase):
     def hankel(x: np.ndarray, n: int) -> np.ndarray:
         """
         Construct Block Hankel matrix.
-        
+
         Args:
             x: Data array (N, n_channels).
             n: Number of block rows.
-            
+
         Returns:
             np.ndarray: Hankel matrix.
         """
@@ -45,46 +45,46 @@ class SubspaceIdent(SysIdAlgBase):
         # We want a Hankel matrix with n block rows.
         # If x has 1 column, it's standard Hankel.
         # If x has m columns, it's block Hankel.
-        
+
         N_samples, n_channels = x.shape
         # Number of block columns
         # If we have n block rows, we need enough samples.
         # H is (n * n_channels, N_cols)
         # N_cols = N_samples - n + 1
-        
+
         # The original implementation:
         # n = n // x.shape[1]  <-- This suggests 'n' passed in is total rows, not block rows?
         # "n = order[0]; r = (2 * n + 1) * self.nu * self.ny"
         # "Y = self.hankel(self.y, 2 * r)"
         # So 'n' passed to hankel is 2*r, which is total rows.
-        
+
         n_block_rows = n // n_channels
         if n_block_rows <= 0:
-             raise ValueError(f"Not enough rows requested for Hankel matrix. n={n}, channels={n_channels}")
-             
+            raise ValueError(f"Not enough rows requested for Hankel matrix. n={n}, channels={n_channels}")
+
         N_cols = N_samples - n_block_rows + 1
-        
+
         if N_cols <= 0:
             raise ValueError(f"Not enough samples for Hankel matrix. Samples={N_samples}, Block rows={n_block_rows}")
 
         # Efficient Hankel construction using stride_tricks or simple loop
         # Original implementation used loops and lists.
-        
+
         # Let's stick to a cleaner loop or optimized approach.
         # H = [x[0:N_cols], x[1:N_cols+1], ..., x[n_block_rows-1:]]
         # But stacked vertically.
-        
+
         # Actually, let's follow the original logic to ensure compatibility, but clean it up.
         # Original:
         # for i in range(n): (where n is block rows)
         #   for x_ in x.T: (iterate over channels)
         #     A.append(x_[i : -n + i])
-        
+
         # Wait, x_[i : -n + i] ?
         # if i=0, x_[0 : -n]. Length N-n.
         # if i=n-1, x_[n-1 : -1]. Length N-n.
         # This creates columns of length N-n.
-        
+
         A = []
         for i in range(n_block_rows):
             for j in range(n_channels):
@@ -95,7 +95,7 @@ class SubspaceIdent(SysIdAlgBase):
                 # x[i : i + N_cols]
                 # N_cols = N_samples - n_block_rows + 1
                 # So x[i : i + N_samples - n_block_rows + 1]
-                
+
                 # Original code: x_[i : -n + i]
                 # -n + i = -(n - i).
                 # If n=10, i=0 -> :-10. Length N-10.
@@ -104,70 +104,72 @@ class SubspaceIdent(SysIdAlgBase):
                 # This drops the last sample?
                 # Usually Hankel uses all samples.
                 # Let's use standard definition: N_cols = N - n + 1.
-                
+
                 # But to match original behavior exactly if needed:
                 # The original code used `x_[i : -n + i]` which excludes the last `n-i` elements?
                 # No, `x_[:-n]` excludes last n elements.
                 # `x_[i : -n + i]` has length `(N - n + i) - i = N - n`.
                 # So it produces `N - n` columns.
-                
+
                 # I will use `N - n_block_rows + 1` columns which is standard.
                 # But wait, if I change dimensions, it might break math downstream.
                 # Let's stick to `N - n_block_rows` columns as per original code implication (N-n).
-                
+
                 end_idx = -n_block_rows + i
                 if end_idx == 0:
                     segment = col[i:]
                 else:
-                    segment = col[i : end_idx]
+                    segment = col[i:end_idx]
                 A.append(segment)
 
         return np.array(A)
 
-    def _abcd_state(self, Xf: np.ndarray, s: int, n: int, r: int) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    def _abcd_state(
+        self, Xf: np.ndarray, s: int, n: int, r: int
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         # Xf: State sequence (n, N)
         # s: Number of columns in Hankel matrix (N)
         # n: Order
         # r: Window size parameter?
-        
+
         # Y_ is (n + ny, N-1) ?
         # Xf[:, 1:s-1] is X_{k+1}
         # Xf[:, :s-2] is X_k
-        
+
         # We want to solve:
         # [X_{k+1}; Y_k] = [A B; C D] [X_k; U_k]
-        
+
         # Original code:
         # Y_ = np.vstack((Xf[:, 1 : s - 1], self.y[r : r + s - 2, :].T))
         # X_ = np.vstack((Xf[:, : s - 2], self.u[r : r + s - 2, :].T))
-        
+
         # Indices seem to be aligning Xf with y and u.
         # Xf corresponds to states at times r, r+1, ... ?
-        
+
         # Let's trust the indices for now but add types.
-        
+
         # Ensure dimensions match
         # Xf is (n, s)
         # We use columns 1 to s-1 (length s-2) for LHS top
         # We use columns 0 to s-2 (length s-2) for RHS top
-        
+
         # y and u need to be sliced to match length s-2.
         # self.y is (N_total, ny).
         # We take slice [r : r + s - 2].
-        
+
         Y_ = np.vstack((Xf[:, 1 : s - 1], self.y[r : r + s - 2, :].T))
         X_ = np.vstack((Xf[:, : s - 2], self.u[r : r + s - 2, :].T))
 
         lmbd = self.settings.get("lambda", 0.0)
-        
+
         # Regularized least squares via SVD
         # Theta = Y_ @ pinv(X_)
         # X_ = U S Vh
         # pinv(X_) = Vh.T S^-1 U.T
         # Regularized: S^-1 -> S / (S^2 + lambda)
-        
+
         U, s_svd, Vh = scipy.linalg.svd(X_, full_matrices=False)
-        
+
         # s_svd are singular values
         # rho = s^2 / (s^2 + lambda) * (1/s) = s / (s^2 + lambda)
         # Wait, original code:
@@ -176,10 +178,10 @@ class SubspaceIdent(SysIdAlgBase):
         # Theta = Y_ @ (Vh.T @ rho @ Sigma @ U.T)
         # rho @ Sigma = diag( s^2/(s^2+L) * 1/s ) = diag( s / (s^2+L) )
         # This is Tikhonov regularization on singular values. Correct.
-        
+
         # Handle division by zero if s_svd has zeros (unlikely with float)
         s_filt = s_svd / (s_svd**2 + lmbd)
-        
+
         Theta = Y_ @ (Vh.T @ np.diag(s_filt) @ U.T)
 
         A = Theta[:n, :n]
@@ -202,7 +204,7 @@ class SubspaceIdent(SysIdAlgBase):
 
         # Estimate B and D
         # This part is complex PO-MOESP logic.
-        
+
         P = np.split(U2.T, U2.T.shape[1] // ny, axis=1)
 
         nn = len(P) * P[0].shape[0]
@@ -303,7 +305,7 @@ class N4SID(SubspaceIdent):
         Xf = Sigma_sqrt @ V1  # state matrix # TANGIRALA SAYS IT SHOULD BE TRANSPOSED !?!
 
         A, B, C, D = self._abcd_state(Xf, s, n, r)
-        
+
         mod = StateSpaceModel(
             A=A,
             B=B,

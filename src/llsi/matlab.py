@@ -128,7 +128,7 @@ def pem(data: SysIdData, order: Union[int, List[int], Tuple[int, ...], None] = N
     else:
         # Polynomial PEM (default init is arx)
         if order is None:
-             raise ValueError("Order must be specified for PEM.")
+            raise ValueError("Order must be specified for PEM.")
         return sysid(data, y_names, u_names, tuple(order), method="pem")
 
 
@@ -229,4 +229,3 @@ def impulse(model: LTIModel, Tfinal: Optional[float] = None) -> Tuple[np.ndarray
     plt.grid(True, alpha=0.3)
     plt.show()
     return y, t
-

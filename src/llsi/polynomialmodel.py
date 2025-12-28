@@ -2,7 +2,7 @@
 Polynomial model representation (e.g., ARX, OE).
 """
 
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, List, Optional, Tuple, Union
 
 import numpy as np
 import scipy.signal
@@ -13,7 +13,7 @@ from .ltimodel import LTIModel
 class PolynomialModel(LTIModel):
     """
     Polynomial model representation (SISO).
-    
+
     Represents a system of the form:
     A(q) y(t) = B(q) u(t-nk) + e(t)
     """
@@ -57,7 +57,7 @@ class PolynomialModel(LTIModel):
         if a is not None:
             self.a = np.atleast_1d(a).astype(float)
             self.na = len(self.a)
-            self.ny = 1 # Enforce SISO for now based on original code logic
+            self.ny = 1  # Enforce SISO for now based on original code logic
         else:
             self.na = na
             self.ny = ny
@@ -66,7 +66,7 @@ class PolynomialModel(LTIModel):
         if b is not None:
             self.b = np.atleast_1d(b).astype(float)
             self.nb = len(self.b)
-            self.nu = 1 # Enforce SISO
+            self.nu = 1  # Enforce SISO
         else:
             self.nb = nb
             self.nu = nu
@@ -74,12 +74,12 @@ class PolynomialModel(LTIModel):
 
         # Original code raised error for MIMO, keeping that constraint
         if self.ny > 1 or (a is not None and np.ndim(a) > 1 and np.shape(a)[1] > 1):
-             # Check if it was initialized with 2D array implying MIMO
-             # The original code did: self.a = np.atleast_2d(a).T; self.ny = self.a.shape[1]
-             # If user passed 1D list, atleast_2d makes it (1, N), .T makes it (N, 1), so ny=1.
-             # If user passed 2D (N, M), .T makes it (M, N)? No, (N, M).T is (M, N).
-             # Let's stick to SISO as explicitly stated in original code.
-             pass
+            # Check if it was initialized with 2D array implying MIMO
+            # The original code did: self.a = np.atleast_2d(a).T; self.ny = self.a.shape[1]
+            # If user passed 1D list, atleast_2d makes it (1, N), .T makes it (N, 1), so ny=1.
+            # If user passed 2D (N, M), .T makes it (M, N)? No, (N, M).T is (M, N).
+            # Let's stick to SISO as explicitly stated in original code.
+            pass
 
         if self.ny > 1:
             raise ValueError("System seems to have multiple outputs. This is not implemented.")
@@ -92,7 +92,7 @@ class PolynomialModel(LTIModel):
             norm_factor = self.a[0]
             self.b = self.b / norm_factor
             self.a = self.a / norm_factor
-        
+
         self.nk = nk
         self.cov = cov
 
@@ -107,21 +107,21 @@ class PolynomialModel(LTIModel):
             np.ndarray: Simulated output.
         """
         u_arr = np.atleast_1d(u).ravel()
-        
+
         # Handle delay by padding input or coefficients
         # lfilter: a[0]*y[n] = b[0]*x[n] + ...
         # We have y[n] = -a[1]*y[n-1]... + b[0]*u[n-nk]...
         # So we can pad b with nk zeros at the front.
-        
+
         if self.nk > 0:
             b_padded = np.concatenate((np.zeros(self.nk), self.b))
         else:
             b_padded = self.b
-            
+
         # scipy.signal.lfilter is much faster than python loops
         y = scipy.signal.lfilter(b_padded, self.a, u_arr)
-        
-        return y.reshape(-1, 1) # Return as (N, 1) to match LTIModel convention
+
+        return y.reshape(-1, 1)  # Return as (N, 1) to match LTIModel convention
 
     def frequency_response(self, omega: np.ndarray = np.logspace(-3, 2)) -> Tuple[np.ndarray, np.ndarray]:
         """
@@ -135,36 +135,36 @@ class PolynomialModel(LTIModel):
         """
         # H(z) = (B(z) / A(z)) * z^(-nk)
         # z = exp(j * omega * Ts)
-        
-        w, h = scipy.signal.freqz(self.b, self.a, worN=omega * self.Ts, fs=2*np.pi)
-        
+
+        w, h = scipy.signal.freqz(self.b, self.a, worN=omega * self.Ts, fs=2 * np.pi)
+
         # freqz returns response for B(z)/A(z). We need to add delay term z^(-nk)
         # But wait, freqz expects w in [0, pi) usually, or if fs is given, in Hz?
         # "If fs is not specified, worN is assumed to be in the same units as fs (radians/sample)."
         # Actually, let's stick to manual calculation or use freqz correctly.
         # Manual calculation is safer for arbitrary omega units if we are careful.
-        
+
         z = np.exp(1j * omega * self.Ts)
-        
+
         # Evaluate polynomials
-        # polyval expects coefficients from highest degree to lowest? 
+        # polyval expects coefficients from highest degree to lowest?
         # No, standard polynomial is p[0]*x^(N-1) + ...
         # But here we have B(z^-1) = b[0] + b[1]z^-1 + ...
         # So we evaluate \sum b[k] z^{-k}
-        
+
         # Using broadcasting
         k_a = np.arange(len(self.a))
         k_b = np.arange(len(self.b))
-        
+
         # (N_freq, N_coeff)
         z_pow_a = np.power(z[:, None], -k_a[None, :])
         z_pow_b = np.power(z[:, None], -k_b[None, :])
-        
+
         A_z = np.sum(self.a[None, :] * z_pow_a, axis=1)
         B_z = np.sum(self.b[None, :] * z_pow_b, axis=1)
-        
+
         H = (B_z / A_z) * np.power(z, -self.nk)
-        
+
         return omega, H
 
     def vectorize(self) -> np.ndarray:
@@ -181,7 +181,7 @@ class PolynomialModel(LTIModel):
 
     def to_tf(self) -> scipy.signal.TransferFunction:
         """Convert to scipy TransferFunction."""
-        # Note: This ignores nk if not handled carefully, but TransferFunction 
+        # Note: This ignores nk if not handled carefully, but TransferFunction
         # in scipy is usually continuous time or discrete with fixed dt.
         # If discrete, we can pad numerator.
         if self.nk > 0:
@@ -191,17 +191,17 @@ class PolynomialModel(LTIModel):
         return scipy.signal.TransferFunction(num, self.a, dt=self.Ts)
 
     @classmethod
-    def from_scipy(cls, mod: Any) -> 'PolynomialModel':
+    def from_scipy(cls, mod: Any) -> "PolynomialModel":
         """Create from scipy system."""
         # Assuming mod has .dt, .num, .den or similar
-        if hasattr(mod, 'dt'):
+        if hasattr(mod, "dt"):
             dt = mod.dt
         else:
             dt = 1.0
-            
+
         if isinstance(mod, scipy.signal.TransferFunction):
             return cls(a=mod.den, b=mod.num, Ts=dt)
-        
+
         # Try converting
         tf = mod.to_tf()
         return cls(a=tf.den, b=tf.num, Ts=dt)

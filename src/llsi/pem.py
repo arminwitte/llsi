@@ -45,7 +45,7 @@ class PEM(SysIdAlgBase):
         if settings is None:
             settings = {}
         super().__init__(data, y_name, u_name, settings=settings)
-        
+
         from .sysidalg import sysidalg
 
         init_method = self.settings.get("init", "arx")
@@ -67,7 +67,7 @@ class PEM(SysIdAlgBase):
         """
         # Initialize model using the specified method
         mod = self.alg_inst.ident(order)
-        
+
         lambda_l1 = self.settings.get("lambda_l1", 0.0)
         lambda_l2 = self.settings.get("lambda_l2", 0.0)
 
@@ -75,22 +75,22 @@ class PEM(SysIdAlgBase):
             mod.reshape(x)
             y_hat = mod.simulate(self.u)
             sse = self._sse(self.y, y_hat)
-            
+
             # Handle numerical instability
             sse = np.nan_to_num(sse, nan=1e300)
-            
+
             # Regularization
             x_flat = x.ravel()
             J = sse + lambda_l1 * np.sum(np.abs(x_flat)) + lambda_l2 * (x_flat.T @ x_flat)
-            
+
             self.logger.debug(f"Cost: {J:10.6g}")
             return float(J)
 
         x0 = mod.vectorize()
-        
+
         minimizer_kwargs = self.settings.get("minimizer_kwargs", {"method": "powell"})
         res = scipy.optimize.minimize(cost_function, x0, **minimizer_kwargs)
-        
+
         # Update model with optimized parameters
         mod.reshape(res.x)
 
@@ -102,18 +102,18 @@ class PEM(SysIdAlgBase):
         # The current implementation seems to approximate it using the gradient of the scalar cost function?
         # That doesn't seem right for parameter covariance.
         # However, preserving original logic for now but cleaning up.
-        
+
         # Original code:
         # J = scipy.optimize.approx_fprime(res.x, fun).reshape(1, -1)
         # var_e = np.var(self.y - mod.simulate(self.u))
-        # mod.cov = var_e * (J.T @ J) 
-        
+        # mod.cov = var_e * (J.T @ J)
+
         # This looks like outer product of gradients (OPG) estimate but J is scalar gradient?
         # If J is 1xP gradient, J.T @ J is PxP rank 1 matrix. This is likely incorrect for covariance.
         # But I will keep it consistent with the original logic unless it's clearly broken.
         # Actually, let's try to do it slightly better if possible, or just leave it.
         # Given "modernization" task, I'll leave the logic as is but type it.
-        
+
         grad = scipy.optimize.approx_fprime(res.x, cost_function, epsilon=1e-8).reshape(1, -1)
         var_e = np.var(self.y - mod.simulate(self.u))
         mod.cov = var_e * (grad.T @ grad)
@@ -141,7 +141,7 @@ class ADAM(SysIdAlgBase):
         if settings is None:
             settings = {}
         super().__init__(data, y_name, u_name, settings=settings)
-        
+
         from .sysidalg import sysidalg
 
         init_method = self.settings.get("init", "arx")
@@ -161,14 +161,14 @@ class ADAM(SysIdAlgBase):
         # Regularization parameters
         self.lambda_l1 = settings.get("lambda_l1", 0.0)
         self.lambda_l2 = settings.get("lambda_l2", 0.0)
-        
+
         self.model: Optional[LTIModel] = None
 
     def compute_loss(self, x: np.ndarray, y_batch: np.ndarray, u_batch: np.ndarray) -> float:
         """Compute loss for given parameters and batch."""
         if self.model is None:
             raise RuntimeError("Model not initialized.")
-            
+
         self.model.reshape(x)
         y_hat = self.model.simulate(u_batch)
         loss = self._sse(y_batch, y_hat)
@@ -183,6 +183,7 @@ class ADAM(SysIdAlgBase):
 
     def compute_gradient(self, x: np.ndarray, y_batch: np.ndarray, u_batch: np.ndarray) -> np.ndarray:
         """Compute gradient using scipy's approx_fprime."""
+
         def loss_func(params):
             return self.compute_loss(params, y_batch, u_batch)
 
@@ -217,7 +218,7 @@ class ADAM(SysIdAlgBase):
                 desc=f"Epoch {epoch + 1}/{self.max_epochs}",
                 unit="batch",
                 total=n_batches,
-                leave=False
+                leave=False,
             )
 
             for i in batch_pbar:
@@ -269,11 +270,11 @@ class ADAM(SysIdAlgBase):
 class OE(PEM):
     """
     Output Error (OE) identification.
-    
-    Special case of PEM initialized with ARX but typically implies 
+
+    Special case of PEM initialized with ARX but typically implies
     Output Error model structure B(q)/F(q).
     """
-    
+
     def __init__(
         self,
         data: SysIdData,

@@ -4,7 +4,7 @@ Data container for system identification.
 
 import copy
 import logging
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, Optional, Tuple
 
 import numpy as np
 import scipy.interpolate
@@ -14,7 +14,7 @@ import scipy.signal
 class SysIdData:
     """
     Container for time-series data used in system identification.
-    
+
     Stores multiple time series (input/output channels) sharing a common time axis.
     Supports both equidistant and non-equidistant time sampling.
     """
@@ -76,8 +76,7 @@ class SysIdData:
             else:
                 if self.N != s.shape[0]:
                     raise ValueError(
-                        f"Length of vector to add ({s.shape[0]}) "
-                        f"does not match length of time series ({self.N})"
+                        f"Length of vector to add ({s.shape[0]}) does not match length of time series ({self.N})"
                     )
 
     def remove(self, key: str) -> None:
@@ -102,7 +101,7 @@ class SysIdData:
     def equidistant(self, N: Optional[int] = None) -> None:
         """
         Resample data to be equidistant.
-        
+
         Modifies the object in-place.
 
         Args:
@@ -112,7 +111,7 @@ class SysIdData:
             # Already equidistant
             if N is not None and N != self.N:
                 # Resample equidistant data
-                pass 
+                pass
             else:
                 return
 
@@ -127,14 +126,14 @@ class SysIdData:
         t_end = t_current[-1]
 
         t_new = np.linspace(t_start, t_end, N)
-        
+
         for key, val in self.series.items():
-            f = scipy.interpolate.interp1d(t_current, val, kind='linear', fill_value="extrapolate")
+            f = scipy.interpolate.interp1d(t_current, val, kind="linear", fill_value="extrapolate")
             self.series[key] = f(t_new)
 
         self.N = N
         self.Ts = (t_end - t_start) / (self.N - 1) if self.N > 1 else 0.0
-        self.t = None # Now it is equidistant
+        self.t = None  # Now it is equidistant
 
     def center(self) -> None:
         """Remove the mean from all series."""
@@ -157,13 +156,15 @@ class SysIdData:
 
         for key, val in self.series.items():
             self.series[key] = val[start:end]
-            
+
         if self.series:
             self.N = next(iter(self.series.values())).shape[0]
         else:
             self.N = 0
 
-    def split(self, proportion: Optional[float] = None, sample: Optional[int] = None) -> Tuple['SysIdData', 'SysIdData']:
+    def split(
+        self, proportion: Optional[float] = None, sample: Optional[int] = None
+    ) -> Tuple["SysIdData", "SysIdData"]:
         """
         Split the data into two sets.
 
@@ -197,15 +198,15 @@ class SysIdData:
             factor: Resampling factor. >1 upsamples, <1 downsamples.
         """
         N_new = int(self.N * factor)
-        
+
         for key, val in self.series.items():
             self.series[key] = scipy.signal.resample(val, N_new)
-            
+
         if self.t is not None:
-             self.t = scipy.signal.resample(self.t, N_new)
+            self.t = scipy.signal.resample(self.t, N_new)
         else:
-             self.Ts = self.Ts / factor
-             
+            self.Ts = self.Ts / factor
+
         self.N = N_new
 
     def downsample(self, q: int) -> None:
@@ -217,10 +218,10 @@ class SysIdData:
         """
         for key, val in self.series.items():
             self.series[key] = scipy.signal.decimate(val, q)
-            
+
         if self.series:
             self.N = next(iter(self.series.values())).shape[0]
-            
+
         if self.Ts is not None:
             self.Ts *= q
         if self.t is not None:
@@ -245,16 +246,16 @@ class SysIdData:
 
         t = self.time()
         n_series = len(self.series)
-        
+
         fig, axes = plt.subplots(n_series, 1, sharex=True, figsize=(10, 2 * n_series))
         if n_series == 1:
             axes = [axes]
-            
+
         for ax, (key, val) in zip(axes, self.series.items()):
             ax.plot(t, val, label=key)
             ax.legend()
             ax.grid(True)
-            
+
         plt.xlabel("Time")
         plt.show()
 
@@ -304,7 +305,7 @@ class SysIdData:
     def to_pandas(self) -> Any:
         """
         Convert to pandas DataFrame.
-        
+
         Returns:
             pandas.DataFrame: The data as a DataFrame.
         """
@@ -312,7 +313,7 @@ class SysIdData:
             import pandas as pd
         except ImportError:
             raise ImportError("pandas is required for this method") from None
-            
+
         df = pd.DataFrame(self.series)
         df.index = self.time()
         return df

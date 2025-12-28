@@ -44,7 +44,7 @@ class ARX(SysIdAlgBase):
         if settings is None:
             settings = {}
         super().__init__(data, y_name, u_name, settings=settings)
-        
+
         # ARX implementation currently supports SISO only
         if self.u.shape[1] > 1:
             raise NotImplementedError("Multiple inputs are not yet implemented for ARX.")
@@ -112,14 +112,14 @@ class ARX(SysIdAlgBase):
         y = self.y
         nn = max(nb + nk, na)
         N = u.shape[0]
-        
+
         # Pre-allocate Phi
         Phi = np.empty((N - nn, nb + na))
-        
+
         # Fill Phi with lagged inputs
         for i in range(nb):
             Phi[:, i] = u[nn - i - nk : N - i - nk]
-            
+
         # Fill Phi with lagged outputs (negative)
         for i in range(na):
             Phi[:, nb + i] = -y[nn - i - 1 : N - i - 1]
@@ -155,22 +155,22 @@ class ARX(SysIdAlgBase):
         # Regularization by appending rows
         Phi_ = np.vstack([Phi, lmb * np.eye(Phi.shape[1])])
         y_ = np.vstack([y.reshape(-1, 1), np.zeros((Phi.shape[1], 1))]).ravel()
-        
+
         Q, R = scipy.linalg.qr(Phi_, mode="economic")
         theta = scipy.linalg.solve_triangular(R, Q.T @ y_)
 
         e = y - (Phi @ theta)
         var_e = np.var(e)
-        
+
         # More stable covariance calculation: cov = var_e * (R.T @ R)^-1
         # (R.T @ R)^-1 = R^-1 @ R^-T
         try:
             R_inv = scipy.linalg.solve_triangular(R, np.eye(R.shape[0]))
             cov = var_e * (R_inv @ R_inv.T)
         except Exception:
-             # Fallback if R is singular (though QR usually handles this, solve_triangular might fail)
+            # Fallback if R is singular (though QR usually handles this, solve_triangular might fail)
             cov = var_e * scipy.linalg.pinv(R.T @ R)
-            
+
         return theta, cov
 
     @staticmethod
@@ -187,12 +187,12 @@ class ARX(SysIdAlgBase):
 
         e = y - (Phi @ theta)
         var_e = np.var(e)
-        
+
         if lmb > 0:
             Sigma_sqr = np.diag(s**2 / (s**2 + lmb) ** 2)
         else:
             Sigma_sqr = np.diag(1 / s**2)
-            
+
         cov = var_e * (Vh.T @ Sigma_sqr @ Vh)
         return theta, cov
 
@@ -204,11 +204,11 @@ class ARX(SysIdAlgBase):
 class FIR(ARX):
     """
     Finite Impulse Response (FIR) model identification.
-    
+
     Special case of ARX where na=0.
     y(t) = B(q)u(t-nk) + e(t)
     """
-    
+
     def __init__(
         self,
         data: SysIdData,
@@ -225,7 +225,7 @@ class FIR(ARX):
         Identify the FIR model.
 
         Args:
-            order: A tuple (nb, nk) or (na, nb, nk). 
+            order: A tuple (nb, nk) or (na, nb, nk).
                    If 3 elements are provided, the first element (na) is ignored and set to 0.
         """
         order_list = list(order)
@@ -238,7 +238,7 @@ class FIR(ARX):
             order_list[0] = 0
         else:
             raise ValueError("Order must be a tuple of 2 (nb, nk) or 3 (na, nb, nk) integers.")
-            
+
         return super().ident(tuple(order_list))
 
     @staticmethod

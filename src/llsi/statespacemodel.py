@@ -4,7 +4,7 @@ State-space model representation.
 
 import json
 import logging
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, List, Optional, Tuple, Union
 
 import numpy as np
 import scipy.linalg
@@ -17,7 +17,7 @@ from .math import evaluate_state_space
 class StateSpaceModel(LTIModel):
     """
     State Space model class.
-    
+
     Represents a discrete-time system:
     x[k+1] = A x[k] + B u[k]
     y[k]   = C x[k] + D u[k]
@@ -130,15 +130,15 @@ class StateSpaceModel(LTIModel):
         """Simulate the model."""
         u = np.atleast_2d(u)
         if u.shape[0] != self.nu:
-             # Try transposing if dimensions mismatch but match after transpose
-             if u.shape[1] == self.nu:
-                 u = u.T
-        
+            # Try transposing if dimensions mismatch but match after transpose
+            if u.shape[1] == self.nu:
+                u = u.T
+
         # Ensure u is (nu, N) for evaluate_state_space?
         # evaluate_state_space expects u as (nu, N) or (N, nu)?
         # Looking at math.py:
         # u : (nu, N) array
-        
+
         # But wait, usually we pass (N, nu) or (N,) to simulate.
         # The original code did: u = u.reshape(self.nu, -1)
         # This implies it expects input to be flattened into (nu, N) somehow?
@@ -146,14 +146,14 @@ class StateSpaceModel(LTIModel):
         # If u is (N, 1), reshape(1, -1) -> (1, N). Correct.
         # If u is (N, 2), reshape(2, -1) -> (2, N). Correct ONLY if data is row-major and we want to split rows?
         # No, if u is (N, nu), we want (nu, N). u.T is better.
-        
+
         # Let's assume u is (N, nu) or (N,).
         if u.ndim == 1:
-            u = u.reshape(1, -1) # (1, N)
+            u = u.reshape(1, -1)  # (1, N)
         elif u.shape[0] == self.nu:
-            pass # Already (nu, N)
+            pass  # Already (nu, N)
         elif u.shape[1] == self.nu:
-            u = u.T # Convert (N, nu) to (nu, N)
+            u = u.T  # Convert (N, nu) to (nu, N)
         else:
             # Fallback to original behavior but it's risky
             u = u.reshape(self.nu, -1)
@@ -189,7 +189,7 @@ class StateSpaceModel(LTIModel):
         # H(z) = C(zI - A)^-1 B + D
         # This loop is slow for many frequencies.
         # Could use scipy.signal.freqresp if we convert to ss.
-        
+
         eye = np.eye(A.shape[0])
         for z_ in z:
             # Solve (zI - A) X = B -> X = (zI - A)^-1 B
@@ -204,7 +204,7 @@ class StateSpaceModel(LTIModel):
         return omega, np.array(H)
 
     @classmethod
-    def from_PT1(cls, K: float, tauC: float, Ts: float = 1.0) -> 'StateSpaceModel':
+    def from_PT1(cls, K: float, tauC: float, Ts: float = 1.0) -> "StateSpaceModel":
         """Create from PT1 parameters."""
         t = 2 * tauC
         tt = 1 / (Ts + t)
@@ -275,7 +275,7 @@ class StateSpaceModel(LTIModel):
         ss = tf.to_ss()
         return StateSpaceModel(A=ss.A, B=ss.B, C=ss.C, D=ss.D, Ts=self.Ts)
 
-    def reduce_order(self, n: int) -> Tuple['StateSpaceModel', np.ndarray]:
+    def reduce_order(self, n: int) -> Tuple["StateSpaceModel", np.ndarray]:
         """
         Perform order reduction using balanced truncation.
 
@@ -327,34 +327,34 @@ class StateSpaceModel(LTIModel):
         return StateSpaceModel(A=A_, B=B_, C=C_, D=self.D, Ts=self.Ts), s
 
     @classmethod
-    def from_scipy(cls, mod: Any) -> 'StateSpaceModel':
-        if hasattr(mod, 'ss'):
+    def from_scipy(cls, mod: Any) -> "StateSpaceModel":
+        if hasattr(mod, "ss"):
             ss = mod.ss()
         elif isinstance(mod, scipy.signal.StateSpace):
             ss = mod
         else:
             ss = mod.to_ss()
-            
+
         # Check for dt
-        dt = getattr(ss, 'dt', 1.0)
+        dt = getattr(ss, "dt", 1.0)
         if dt is None:
             dt = 1.0
-            
+
         mod_out = cls(A=ss.A, B=ss.B, C=ss.C, D=ss.D, Ts=dt)
         return mod_out
 
     @classmethod
-    def from_fir(cls, mod: Any) -> 'StateSpaceModel':
+    def from_fir(cls, mod: Any) -> "StateSpaceModel":
         """Create state-space model from FIR model (PolynomialModel)."""
-        nk = getattr(mod, 'nk', 0)
-        b_coeffs = getattr(mod, 'b', np.array([1.0]))
-        
+        nk = getattr(mod, "nk", 0)
+        b_coeffs = getattr(mod, "b", np.array([1.0]))
+
         b = np.vstack([np.zeros((nk, 1)), b_coeffs.reshape(-1, 1)])
         n = b.ravel().shape[0] - 1
-        
+
         if n < 1:
-             # Trivial case
-             return cls(A=[[0]], B=[[0]], C=[[0]], D=[[b[0,0]]], Ts=mod.Ts)
+            # Trivial case
+            return cls(A=[[0]], B=[[0]], C=[[0]], D=[[b[0, 0]]], Ts=mod.Ts)
 
         A = np.diag(np.ones((n - 1,)), k=-1)
         B = np.zeros((n, 1))
@@ -383,7 +383,7 @@ class StateSpaceModel(LTIModel):
             data["info"] = str(self.info)
         except AttributeError:
             data["info"] = ""
-            
+
         data["nx"] = self.nx
         data["nu"] = self.nu
         data["ny"] = self.ny
@@ -398,7 +398,7 @@ class StateSpaceModel(LTIModel):
         return json.dumps(data, indent=4)
 
     @classmethod
-    def from_json(cls, filename: str) -> 'StateSpaceModel':
+    def from_json(cls, filename: str) -> "StateSpaceModel":
         with open(filename) as f:
             data = json.load(f)
         mod = StateSpaceModel(

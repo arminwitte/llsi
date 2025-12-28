@@ -3,7 +3,7 @@ Linear Time-Invariant (LTI) Model base class.
 """
 
 from abc import ABC, abstractmethod
-from typing import List, Optional, Tuple, Union
+from typing import List, Optional, Tuple
 
 import numpy as np
 
@@ -35,7 +35,7 @@ class LTIModel(ABC):
             input_names = []
         if output_names is None:
             output_names = []
-            
+
         self.Ts = Ts
         self.info = {}
         self.nu = nu

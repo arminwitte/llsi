@@ -40,9 +40,9 @@ class FIROR(SysIdAlgBase):
         if settings is None:
             settings = {}
         super().__init__(data, y_name, u_name, settings=settings)
-        
+
         lmb = self.settings.get("lambda", 1e-3)
-        
+
         # Use ARX directly instead of going through sysidalg factory
         # This avoids circular imports and is more explicit
         self.alg_inst = ARX(data, y_name, u_name, settings={"lambda": lmb})
@@ -59,14 +59,14 @@ class FIROR(SysIdAlgBase):
             StateSpaceModel: The identified state-space model.
         """
         fir_order = self.settings.get("fir_order", 100)
-        
+
         # Identify high-order FIR model: (na=0, nb=fir_order, nk=0)
         mod_fir = self.alg_inst.ident((0, fir_order, 0))
 
         # Convert FIR to StateSpace and reduce order
         red_mod = StateSpaceModel.from_fir(mod_fir)
         red_mod, s = red_mod.reduce_order(order)
-        
+
         self.logger.debug(f"Hankel singular values (s): {s}")
         return red_mod
 

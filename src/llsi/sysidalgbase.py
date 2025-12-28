@@ -3,7 +3,7 @@ Base class for system identification algorithms.
 """
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Union
 
 import numpy as np
 
@@ -90,13 +90,13 @@ class SysIdAlgBase(ABC):
             # We want sum of squared errors over all samples and channels.
             # e.T @ e would be (ny, ny). Trace of that is sum of squares.
             # Or just np.sum(e**2)
-            
+
             # Original: sse = e.T @ e; return np.sum(sse)
             # If e is (N, 1), e.T @ e is scalar.
             # If e is (N, ny), e.T @ e is (ny, ny). Sum of that is sum of all cross terms?
             # Usually SSE is sum(e_i^2).
             # np.sum(e**2) is safer and clearer.
-            
+
             sse = np.sum(e**2)
-            
+
         return float(sse)

@@ -37,23 +37,23 @@ def evaluate_state_space(
     nu = B.shape[1]
 
     y = np.empty((N, ny))
-    
+
     # Initialize current state
     x = x0
-    
+
     # Iterate over time steps
     # u.T is (N, nu)
     u_T = u.T
-    
+
     for i in range(N):
         # Extract input vector for current time step
         ui = np.ascontiguousarray(u_T[i]).reshape(nu, 1)
-        
+
         # Calculate output: y[k] = C x[k] + D u[k]
         y_ = C @ x + D @ ui
         y[i, :] = y_.ravel()
-        
+
         # Update state: x[k+1] = A x[k] + B u[k]
         x = A @ x + B @ ui
-        
+
     return y
