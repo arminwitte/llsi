@@ -14,6 +14,8 @@ def test_matlab_api(monkeypatch):
     monkeypatch.setattr("matplotlib.pyplot.xlabel", lambda *args, **kwargs: None)
     monkeypatch.setattr("matplotlib.pyplot.ylabel", lambda *args, **kwargs: None)
     monkeypatch.setattr("matplotlib.pyplot.title", lambda *args, **kwargs: None)
+    monkeypatch.setattr("matplotlib.pyplot.grid", lambda *args, **kwargs: None)
+    monkeypatch.setattr("matplotlib.pyplot.stem", lambda *args, **kwargs: None)
 
     # Generate data
     N = 100
@@ -71,6 +73,8 @@ def test_matlab_mimo(monkeypatch):
     monkeypatch.setattr("matplotlib.pyplot.xlabel", lambda *args, **kwargs: None)
     monkeypatch.setattr("matplotlib.pyplot.ylabel", lambda *args, **kwargs: None)
     monkeypatch.setattr("matplotlib.pyplot.title", lambda *args, **kwargs: None)
+    monkeypatch.setattr("matplotlib.pyplot.grid", lambda *args, **kwargs: None)
+    monkeypatch.setattr("matplotlib.pyplot.stem", lambda *args, **kwargs: None)
 
     N = 100
     Ts = 0.1
@@ -103,6 +107,8 @@ def test_matlab_mimo(monkeypatch):
         m.setattr("matplotlib.pyplot.xlabel", lambda *args, **kwargs: None)
         m.setattr("matplotlib.pyplot.ylabel", lambda *args, **kwargs: None)
         m.setattr("matplotlib.pyplot.title", lambda *args, **kwargs: None)
+        m.setattr("matplotlib.pyplot.grid", lambda *args, **kwargs: None)
+        m.setattr("matplotlib.pyplot.stem", lambda *args, **kwargs: None)
 
         compare(data, sys)
         step(sys)
