@@ -5,9 +5,11 @@ Lightweight Linear System Identification package.
 
 To try it out online, you can use [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/arminwitte/llsi/HEAD?labpath=notebooks%2Fexample.ipynb).
 
-[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
-[![Imports: isort](https://img.shields.io/badge/%20imports-isort-%231674b1?style=flat&labelColor=ef8336)](https://pycqa.github.io/isort/)
 [![PyPI version](https://badge.fury.io/py/llsi.svg)](https://badge.fury.io/py/llsi)
+[![Python package](https://github.com/arminwitte/llsi/actions/workflows/python-package.yml/badge.svg)](https://github.com/arminwitte/llsi/actions/workflows/python-package.yml)
+[![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 
 ## Installation
 
