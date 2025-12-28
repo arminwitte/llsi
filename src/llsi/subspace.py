@@ -124,6 +124,37 @@ class SubspaceIdent(SysIdAlgBase):
 
         return np.array(A)
 
+    @staticmethod
+    def enforce_stability(A: np.ndarray, radius: float = 0.99) -> np.ndarray:
+        """
+        Enforces stability by scaling eigenvalues of A to be within the unit circle.
+
+        Args:
+            A: The system matrix (n x n).
+            radius: The maximum allowed absolute value for eigenvalues (e.g., 0.99).
+
+        Returns:
+            A_stable: The stabilized system matrix.
+        """
+        # Eigenwertzerlegung: A = V * diag(w) * V^-1
+        w, v = scipy.linalg.eig(A)
+
+        # Prüfen, ob Eigenwerte außerhalb des Radius liegen
+        abs_w = np.abs(w)
+        if np.any(abs_w >= 1.0):
+            # Skaliere nur die instabilen Eigenwerte
+            # w_new = w / |w| * radius
+            unstable_mask = abs_w >= 1.0
+            w[unstable_mask] = (w[unstable_mask] / abs_w[unstable_mask]) * radius
+
+            # Rekonstruktion
+            # Wir nehmen den Realteil, da A ursprünglich reell war und
+            # numerisches Rauschen kleine imaginäre Anteile erzeugen kann.
+            A_stable = (v @ np.diag(w) @ np.linalg.inv(v)).real
+            return A_stable
+
+        return A
+
     def _abcd_state(
         self, Xf: np.ndarray, s: int, n: int, r: int
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
@@ -306,6 +337,9 @@ class N4SID(SubspaceIdent):
 
         A, B, C, D = self._abcd_state(Xf, s, n, r)
 
+        if self.settings.get("enforce_stability", False):
+            A = self.enforce_stability(A)
+
         mod = StateSpaceModel(
             A=A,
             B=B,
@@ -384,6 +418,9 @@ class PO_MOESP(SubspaceIdent):
         Sigma_sqrt = np.diag(np.sqrt(s_[:n]))
 
         A, B, C, D = self._abcd_observability_matrix(U1, U2, L11, L31, Sigma_sqrt, n, r)
+
+        if self.settings.get("enforce_stability", False):
+            A = self.enforce_stability(A)
 
         mod = StateSpaceModel(
             A=A,

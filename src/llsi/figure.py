@@ -219,7 +219,7 @@ class Figure:
 
             y_hat = m.simulate(data[u_name])
             fit = m.compare(data[y_name], data[u_name])
-            ax.plot(t, y_hat, color=c, label=f"Model {i + 1} (Fit={fit:.1f}%)")
+            ax.plot(t, y_hat, color=c, label=f"Model {i + 1} (Fit={fit * 100:.1f}%)")
 
         ax.set_title("Model Comparison")
         ax.legend()
