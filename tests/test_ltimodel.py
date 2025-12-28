@@ -49,3 +49,33 @@ def test_MSE(e):
 def test_RMSE(e):
     print(LTIModel.RMSE(e))
     np.testing.assert_allclose(LTIModel.RMSE(e), [0.1])
+
+
+
+def test_compute_residuals_analysis(poly_mod):
+    # Create dummy data
+    t = np.linspace(0, 10, 100)
+    u = np.random.randn(100, 1)
+    y = poly_mod.simulate(u)
+    
+    # Add some noise to make residuals non-zero
+    y_noisy = y + 0.1 * np.random.randn(100, 1)
+    
+    class Data:
+        pass
+    data = Data()
+    data.u = u
+    data.y = y_noisy
+    
+    res_analysis = poly_mod.compute_residuals_analysis(data)
+    
+    assert 'residuals' in res_analysis
+    assert 'acf' in res_analysis
+    assert 'ccf' in res_analysis
+    assert 'lags' in res_analysis
+    assert 'conf_interval' in res_analysis
+    
+    assert len(res_analysis['acf']) == len(res_analysis['lags'])
+    assert len(res_analysis['ccf']) == len(res_analysis['lags'])
+    assert isinstance(res_analysis['conf_interval'], float)
+

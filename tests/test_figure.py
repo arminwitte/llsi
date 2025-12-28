@@ -50,3 +50,23 @@ def test_data(data_siso_deterministic_stochastic):
         fig.plot([data_siso_deterministic_stochastic])
 
     assert isinstance(fig.fig, plt.Figure)
+
+def test_residuals(poly_mod):
+    # Create dummy data
+    import numpy as np
+    t = np.linspace(0, 10, 100)
+    u = np.random.randn(100, 1)
+    y = poly_mod.simulate(u)
+    y_noisy = y + 0.1 * np.random.randn(100, 1)
+    
+    class Data:
+        pass
+    data = Data()
+    data.u = u
+    data.y = y_noisy
+    
+    with Figure() as fig:
+        fig.plot({'mod': poly_mod, 'data': data}, 'residuals')
+        
+    assert isinstance(fig.fig, plt.Figure)
+

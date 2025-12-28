@@ -3,9 +3,10 @@ Linear Time-Invariant (LTI) Model base class.
 """
 
 from abc import ABC, abstractmethod
-from typing import List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
+import scipy.signal
 
 
 class LTIModel(ABC):
@@ -94,6 +95,84 @@ class LTIModel(ABC):
         y_hat = self.simulate(u)
         # NRMSE returns error ratio, so 1 - NRMSE is the fit
         return 1.0 - self.NRMSE(y, y_hat)
+
+    def compute_residuals_analysis(self, data: Any) -> Dict[str, Any]:
+        """
+        Compute residual analysis metrics (ACF, CCF) on validation data.
+
+        Args:
+            data: SysIdData object containing validation u and y.
+
+        Returns:
+            Dict containing:
+                'residuals': The residuals (y - y_hat)
+                'acf': Auto-correlation function of residuals (normalized)
+                'ccf': Cross-correlation function of residuals and input (normalized)
+                'lags': Lags for the correlations
+                'conf_interval': 99% confidence interval value
+        """
+        # Extract u and y from data
+        if hasattr(data, "u") and hasattr(data, "y"):
+            u = data.u
+            y = data.y
+        else:
+            # Try to extract using model's input/output names
+            try:
+                # Construct u
+                if not self.input_names:
+                    raise ValueError("Model has no input names defined.")
+                u_list = [data[name] for name in self.input_names]
+                u = np.column_stack(u_list)
+
+                # Construct y
+                if not self.output_names:
+                    raise ValueError("Model has no output names defined.")
+                y_list = [data[name] for name in self.output_names]
+                y = np.column_stack(y_list)
+            except (KeyError, TypeError, AttributeError):
+                raise ValueError(
+                    "Data object must have 'u' and 'y' attributes, or contain the model's input/output names."
+                )
+
+        y_pred = self.simulate(u)
+        residuals = y - y_pred
+
+        # Use first output for summary analysis
+        res_i = residuals[:, 0]
+        res_i_centered = res_i - np.mean(res_i)
+
+        # ACF
+        acf = scipy.signal.correlate(res_i_centered, res_i_centered, mode="full")
+        if np.max(acf) > 0:
+            acf = acf / np.max(acf)  # Normalize
+        lags = scipy.signal.correlation_lags(len(res_i_centered), len(res_i_centered))
+
+        # CCF (Input 0 vs Residuals)
+        u_0 = u[:, 0]
+        u_0_centered = u_0 - np.mean(u_0)
+        ccf = scipy.signal.correlate(res_i_centered, u_0_centered, mode="full")
+        # Normalize CCF
+        denom = np.std(res_i_centered) * np.std(u_0_centered) * len(res_i_centered)
+        if denom > 0:
+            ccf = ccf / denom
+        else:
+            ccf = np.zeros_like(ccf)
+
+        # Handle NaNs in CCF (e.g. if std is NaN)
+        if np.any(np.isnan(ccf)):
+            ccf = np.nan_to_num(ccf)
+
+        # Confidence interval (99%)
+        N = len(residuals)
+        conf_interval = 2.58 / np.sqrt(N)
+
+        return {
+            "residuals": residuals,
+            "acf": acf,
+            "ccf": ccf,
+            "lags": lags,
+            "conf_interval": conf_interval,
+        }
 
     @staticmethod
     def residuals(y: np.ndarray, y_hat: np.ndarray) -> np.ndarray:

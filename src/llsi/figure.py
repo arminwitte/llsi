@@ -7,6 +7,7 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 
 import matplotlib.pyplot as plt
 import numpy as np
+import scipy.signal
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure as MplFigure
 
@@ -38,6 +39,9 @@ class Figure:
             "hsv": self._hsv,
             "time_series": self._time_series,
             "compare": self._compare,
+            "residuals": self._residuals_acf,
+            "residuals_acf": self._residuals_acf,
+            "residuals_ccf": self._residuals_ccf,
         }
 
         self.figsize = figsize
@@ -127,6 +131,21 @@ class Figure:
             obj_list = [obj]
         else:
             obj_list = obj
+
+        if plot_type == "residuals":
+            # Special case: residuals implies both ACF and CCF
+            # We add two plots
+            for o in obj_list:
+                self.objects.append(o)
+                self.plot_types.append("residuals_acf")
+                self.place.append(self.counter)
+                self.counter += 1
+
+                self.objects.append(o)
+                self.plot_types.append("residuals_ccf")
+                self.place.append(self.counter)
+                self.counter += 1
+            return
 
         for o in obj_list:
             self.objects.append(o)
@@ -226,3 +245,173 @@ class Figure:
         ax.set_xlabel("Time [s]")
         ax.set_ylabel(y_name)
         ax.grid(True, alpha=0.3)
+
+    @staticmethod
+    def _residuals(fig: MplFigure, ax: Axes, obj: Dict[str, Any], col: str = "#1f77b4"):
+        mod = obj.get("mod")
+        data = obj.get("data")
+
+        if mod is None or data is None:
+            return
+
+        # Ensure data has u and y
+        if not hasattr(data, "u") or not hasattr(data, "y"):
+            return
+
+        # Simulate
+        y_pred = mod.simulate(data.u)
+        residuals = data.y - y_pred
+
+        # Use first output for summary plot
+        res_i = residuals[:, 0]
+        res_i = res_i - np.mean(res_i)
+
+        # ACF
+        acf = scipy.signal.correlate(res_i, res_i, mode="full")
+        if np.max(acf) > 0:
+            acf = acf / np.max(acf)  # Normalize
+        lags = scipy.signal.correlation_lags(len(res_i), len(res_i))
+
+        # CCF (Input 0 vs Residuals)
+        u_0 = data.u[:, 0]
+        u_0 = u_0 - np.mean(u_0)
+        ccf = scipy.signal.correlate(res_i, u_0, mode="full")
+        # Normalize CCF
+        denom = np.std(res_i) * np.std(u_0) * len(res_i)
+        if denom > 0:
+            ccf = ccf / denom
+
+        # Focus on a smaller window (e.g. +/- 50 lags)
+        mask = (lags > -50) & (lags < 50)
+
+        # Confidence interval (99%)
+        N = len(residuals)
+        conf_interval = 2.58 / np.sqrt(N)
+
+        # We need two axes for ACF and CCF.
+        # Since _residuals receives a single 'ax', we can't easily split it without subplots inside subplots
+        # unless we change how Figure allocates axes.
+        # However, the user requested "create extra plots".
+        # If we are inside a Figure context, we are limited to the grid created in __exit__.
+        # But we can try to plot both on the same axis with different colors/offsets, OR
+        # we can just plot ACF on the given axis and ignore CCF? No, user wants both.
+
+        # Let's assume the user is okay with clearing the current axis and creating a 2x1 grid
+        # strictly within the space of 'ax'.
+        # Wait, the user said "do not use this subplot (in subplot) structure".
+        # This implies they might want "residuals" to consume 2 slots in the main grid?
+        # The current Figure class architecture allocates 1 slot per plot() call.
+
+        # If I cannot use subplots-in-subplots (make_axes_locatable), and I have only 1 axis 'ax',
+        # I have a dilemma.
+        # Option A: Plot ACF and CCF on the same plot (confusing).
+        # Option B: Change Figure class to allocate 2 slots for "residuals" type (complex refactor).
+        # Option C: Use the passed 'ax' for ACF, and hijack the next axis for CCF? (Breaks encapsulation).
+
+        # Re-reading: "create extra plots for acf and ccf".
+        # Maybe the user means they will call plot() twice?
+        # "fig.plot(..., 'residuals_acf')" and "fig.plot(..., 'residuals_ccf')"?
+        # That would be the cleanest way to respect the grid structure.
+
+        # Let's split 'residuals' into 'residuals_acf' and 'residuals_ccf' internally,
+        # and if the user calls 'residuals', we might have to warn or just plot ACF?
+        # OR, we can modify the 'residuals' implementation to just do ACF, and add a new type for CCF.
+
+        # BUT, if I look at the previous implementation, I used make_axes_locatable which IS a subplot-in-subplot.
+        # The user explicitly said "do not use this... create extra plots".
+
+        # Let's implement two separate methods: _residuals_acf and _residuals_ccf.
+        # And update the registry.
+        # And update _residuals to maybe just call _residuals_acf (backward compat) or raise error?
+        # Or better: The user probably wants to see both.
+        # If I can't change the grid size dynamically in __exit__ based on plot type...
+        # (The grid size is determined by self.counter).
+
+        # PROPOSAL:
+        # 1. Rename _residuals to _residuals_acf (plots only ACF).
+        # 2. Add _residuals_ccf (plots only CCF).
+        # 3. Register both.
+        # 4. If the user calls 'residuals', it maps to _residuals_acf (default).
+        # 5. The user will have to call fig.plot(..., 'residuals_acf') and fig.plot(..., 'residuals_ccf')
+        #    to get separate plots.
+
+        # Wait, if I change the behavior of 'residuals' to only plot ACF, that satisfies "create extra plots"
+        # if the user is expected to call the other one.
+        # But if the user expects `fig.plot(..., 'residuals')` to magically make 2 plots in the main grid,
+        # I need to increment self.counter by 2 in plot().
+
+        pass
+
+    @staticmethod
+    def _residuals_acf(fig: MplFigure, ax: Axes, obj: Dict[str, Any], col: str = "#1f77b4"):
+        mod = obj.get("mod")
+        data = obj.get("data")
+
+        if mod is None or data is None:
+            return
+
+        # Handle list of models (take first one)
+        if isinstance(mod, list):
+            if len(mod) == 0:
+                return
+            mod = mod[0]
+
+        try:
+            res_analysis = mod.compute_residuals_analysis(data)
+        except ValueError:
+            return
+
+        acf = res_analysis["acf"]
+        lags = res_analysis["lags"]
+        conf_interval = res_analysis["conf_interval"]
+
+        # Handle NaNs
+        if np.any(np.isnan(acf)):
+            acf = np.nan_to_num(acf)
+
+        mask = (lags > -50) & (lags < 50)
+
+        ax.stem(lags[mask], acf[mask], markerfmt=".", label="ACF")
+        ax.axhspan(-conf_interval, conf_interval, alpha=0.3, color="red")
+        ax.set_title("Residuals ACF (Output 0)")
+        ax.set_ylabel("ACF")
+        ax.set_xlabel("Lag")
+        ax.grid(True, alpha=0.3)
+
+    @staticmethod
+    def _residuals_ccf(fig: MplFigure, ax: Axes, obj: Dict[str, Any], col: str = "#1f77b4"):
+        mod = obj.get("mod")
+        data = obj.get("data")
+
+        if mod is None or data is None:
+            return
+
+        # Handle list of models (take first one)
+        if isinstance(mod, list):
+            if len(mod) == 0:
+                return
+            mod = mod[0]
+
+        try:
+            res_analysis = mod.compute_residuals_analysis(data)
+        except ValueError:
+            return
+
+        ccf = res_analysis["ccf"]
+        lags = res_analysis["lags"]
+        conf_interval = res_analysis["conf_interval"]
+
+        # Handle NaNs
+        if np.any(np.isnan(ccf)):
+            ccf = np.nan_to_num(ccf)
+
+        mask = (lags > -50) & (lags < 50)
+
+        ax.stem(lags[mask], ccf[mask], markerfmt=".", linefmt="C1-", label="CCF")
+        ax.axhspan(-conf_interval, conf_interval, alpha=0.3, color="red")
+        ax.set_title("Residuals CCF (Output 0 vs Input 0)")
+        ax.set_ylabel("CCF")
+        ax.set_xlabel("Lag")
+        ax.grid(True, alpha=0.3)
+
+
