@@ -174,6 +174,20 @@ class LTIModel(ABC):
             "conf_interval": conf_interval,
         }
 
+    def check_residuals(self, data: Any, figsize: Tuple[int, int] = (10, 6)) -> None:
+        """
+        Plot residual analysis (ACF and CCF).
+
+        Args:
+            data: Validation data.
+            figsize: Figure size.
+        """
+        from .figure import Figure
+
+        with Figure(figsize=figsize) as fig:
+            fig.plot({"mod": self, "data": data}, "residuals_acf")
+            fig.plot({"mod": self, "data": data}, "residuals_ccf")
+
     @staticmethod
     def residuals(y: np.ndarray, y_hat: np.ndarray) -> np.ndarray:
         """Calculate residuals (error)."""

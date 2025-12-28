@@ -33,6 +33,7 @@ class StateSpaceModel(LTIModel):
         nx: int = 0,
         nu: int = 1,
         ny: int = 1,
+        nk: int = 0,
         input_names: Optional[List[str]] = None,
         output_names: Optional[List[str]] = None,
     ):
@@ -48,6 +49,7 @@ class StateSpaceModel(LTIModel):
             nx: Number of states (used if A is None).
             nu: Number of inputs (used if B is None).
             ny: Number of outputs (used if C is None).
+            nk: Input delay (samples).
             input_names: List of input names.
             output_names: List of output names.
         """
@@ -56,6 +58,8 @@ class StateSpaceModel(LTIModel):
         if output_names is None:
             output_names = []
         super().__init__(Ts=Ts, input_names=input_names, output_names=output_names)
+
+        self.nk = nk
 
         # set A matrix and number of states
         if A is not None:
@@ -157,6 +161,12 @@ class StateSpaceModel(LTIModel):
         else:
             # Fallback to original behavior but it's risky
             u = u.reshape(self.nu, -1)
+
+        # Apply input delay
+        if self.nk > 0:
+            # Prepend nk columns of zeros
+            zeros = np.zeros((self.nu, self.nk))
+            u = np.hstack((zeros, u[:, : -self.nk]))
 
         u = np.ascontiguousarray(u)
 
@@ -387,6 +397,7 @@ class StateSpaceModel(LTIModel):
         data["nx"] = self.nx
         data["nu"] = self.nu
         data["ny"] = self.ny
+        data["nk"] = self.nk
         data["input_names"] = self.input_names
         data["output_names"] = self.output_names
 
@@ -410,6 +421,7 @@ class StateSpaceModel(LTIModel):
             nx=data.get("nx", 0),
             nu=data.get("nu", 1),
             ny=data.get("ny", 1),
+            nk=data.get("nk", 0),
             input_names=data.get("input_names"),
             output_names=data.get("output_names"),
         )

@@ -29,6 +29,20 @@ class SubspaceIdent(SysIdAlgBase):
         self.nu = self.u.shape[1]
         self.ny = self.y.shape[1]
 
+        # Handle input delay (nk)
+        self.nk = settings.get("nk", 0)
+        if self.nk > 0:
+            # Shift data: y[k] depends on u[k-nk]
+            # We want to pair y[t] with u[t-nk].
+            # So we take y from index nk to end, and u from 0 to end-nk.
+            # This aligns y[nk] with u[0].
+            # Effective length is reduced by nk.
+            if self.y.shape[0] <= self.nk:
+                raise ValueError(f"Data length {self.y.shape[0]} is too short for delay nk={self.nk}")
+
+            self.y = self.y[self.nk :, :]
+            self.u = self.u[: -self.nk, :]
+
     @staticmethod
     def hankel(x: np.ndarray, n: int) -> np.ndarray:
         """
@@ -346,6 +360,7 @@ class N4SID(SubspaceIdent):
             C=C,
             D=D,
             Ts=self.Ts,
+            nk=self.nk,
             input_names=self.input_names,
             output_names=self.output_names,
         )
@@ -428,6 +443,7 @@ class PO_MOESP(SubspaceIdent):
             C=C,
             D=D,
             Ts=self.Ts,
+            nk=self.nk,
             input_names=self.input_names,
             output_names=self.output_names,
         )
