@@ -4,7 +4,7 @@ from .polynomialmodel import PolynomialModel
 from .statespacemodel import StateSpaceModel
 from .sysidalg import sysid
 from .sysiddata import SysIdData
-from .utils import cv
+from .utils import cv, load_model, save_model
 
 try:
     from .sklearn import LTIModel
@@ -25,6 +25,8 @@ __all__ = [
     "sysid",
     "SysIdData",
     "cv",
+    "load_model",
+    "save_model",
     "iddata",
     "arx",
     "n4sid",
