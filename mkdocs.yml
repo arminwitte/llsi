@@ -1,0 +1,52 @@
+site_name: llsi
+site_description: Lightweight Linear System Identification in Python
+site_url: https://arminwitte.github.io/llsi/
+repo_url: https://github.com/arminwitte/llsi
+repo_name: arminwitte/llsi
+edit_uri: edit/main/docs/
+
+theme:
+  name: material
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - toc.integrate
+    - content.code.copy
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [src]
+          options:
+            show_root_heading: true
+            show_source: true
+
+nav:
+  - Home: index.md
+  - Tutorials:
+      - Getting Started: tutorials/getting_started.md
+      - Advanced Usage: tutorials/advanced.md
+  - API Reference:
+      - LTI Model: api/ltimodel.md
+      - State Space: api/statespacemodel.md
+      - Polynomial (ARX/OE): api/polynomialmodel.md
+      - Subspace (N4SID): api/subspace.md
+      - Utilities: api/utils.md
+      - Data: api/sysiddata.md
+      - Plotting: api/figure.md

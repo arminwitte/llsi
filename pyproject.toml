@@ -46,6 +46,11 @@ dev = [
 sklearn = [
     "scikit-learn",
 ]
+docs = [
+    "mkdocs",
+    "mkdocs-material",
+    "mkdocstrings[python]",
+]
 
 [project.urls]
 "Homepage" = "https://github.com/arminwitte/llsi"
