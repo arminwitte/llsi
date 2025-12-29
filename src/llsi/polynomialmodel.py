@@ -179,8 +179,14 @@ class PolynomialModel(LTIModel):
         self.b = theta[:n_b]
         self.a = np.hstack(([1.0], theta[n_b:]))
 
-    def to_tf(self) -> scipy.signal.TransferFunction:
-        """Convert to scipy TransferFunction."""
+    def to_tf(self, continuous: bool = False, method: str = "bilinear") -> scipy.signal.TransferFunction:
+        """
+        Convert to scipy TransferFunction.
+
+        Args:
+            continuous: If True, convert to continuous time.
+            method: Conversion method ('bilinear' or 'euler').
+        """
         # Note: This ignores nk if not handled carefully, but TransferFunction
         # in scipy is usually continuous time or discrete with fixed dt.
         # If discrete, we can pad numerator.
@@ -188,7 +194,19 @@ class PolynomialModel(LTIModel):
             num = np.concatenate((np.zeros(self.nk), self.b))
         else:
             num = self.b
-        return scipy.signal.TransferFunction(num, self.a, dt=self.Ts)
+
+        if not continuous:
+            return scipy.signal.TransferFunction(num, self.a, dt=self.Ts)
+
+        # Convert to SS first
+        A, B, C, D = scipy.signal.tf2ss(num, self.a)
+
+        from .statespacemodel import StateSpaceModel
+
+        # Use StateSpaceModel's d2c logic
+        Ac, Bc, Cc, Dc = StateSpaceModel._d2c(A, B, C, D, self.Ts, method=method)
+
+        return scipy.signal.StateSpace(Ac, Bc, Cc, Dc).to_tf()
 
     @classmethod
     def from_scipy(cls, mod: Any) -> "PolynomialModel":
