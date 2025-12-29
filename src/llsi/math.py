@@ -3,7 +3,13 @@ Mathematical utility functions, primarily for accelerated simulation.
 """
 
 import numpy as np
-from numba import njit
+
+try:
+    from numba import njit
+except ImportError:
+    # Fallback if numba is not installed
+    def njit(func):
+        return func
 
 
 @njit

@@ -244,7 +244,12 @@ class SysIdData:
 
     def plot(self) -> None:
         """Plot the data."""
-        import matplotlib.pyplot as plt
+        try:
+            import matplotlib.pyplot as plt
+        except ImportError:
+            raise ImportError(
+                "matplotlib is required for plotting. Install it with 'pip install llsi[plot]'."
+            ) from None
 
         t = self.time()
         n_series = len(self.series)
@@ -314,14 +319,11 @@ class SysIdData:
         try:
             import pandas as pd
         except ImportError:
-            raise ImportError("pandas is required for this method") from None
+            raise ImportError("pandas is required for this method. Install it with 'pip install llsi[data]'.") from None
 
         df = pd.DataFrame(self.series)
         df.index = self.time()
         return df
-
-        index = self.time()
-        return pd.DataFrame(self.series, index=index)
 
     @classmethod
     def from_pandas(cls, df, time_col=None, Ts=None):
@@ -340,7 +342,7 @@ class SysIdData:
         try:
             import pandas as pd
         except ImportError:
-            raise ImportError("pandas is required for this method") from None
+            raise ImportError("pandas is required for this method. Install it with 'pip install llsi[data]'.") from None
 
         if time_col:
             t_values = df[time_col].values

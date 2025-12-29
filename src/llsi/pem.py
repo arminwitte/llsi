@@ -7,7 +7,14 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import scipy.optimize
-from tqdm.auto import tqdm
+
+try:
+    from tqdm.auto import tqdm
+except ImportError:
+
+    def tqdm(iterable, *args, **kwargs):
+        return iterable
+
 
 from .ltimodel import LTIModel
 from .sysidalgbase import SysIdAlgBase

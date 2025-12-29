@@ -24,16 +24,27 @@ classifiers = [
 dependencies = [
 	"numpy>=1.19.0",
 	"scipy>=1.8.0",
-	"matplotlib",
-	"numba",
-	"tqdm",
-	"pandas",
-	"requests>=2.32.4",
-	"statsmodels>=0.14.1",
-	"pytest>=8.3.5",
 ]
 
 [project.optional-dependencies]
+plot = [
+    "matplotlib",
+]
+data = [
+    "pandas",
+]
+accel = [
+    "numba",
+]
+progress = [
+    "tqdm",
+]
+full = [
+    "matplotlib",
+    "pandas",
+    "numba",
+    "tqdm",
+]
 dev = [
     "pytest",
     "coverage",
@@ -42,6 +53,10 @@ dev = [
     "twine",
     "scikit-learn",
     "statsmodels",
+    "matplotlib",
+    "pandas",
+    "numba",
+    "tqdm",
 ]
 sklearn = [
     "scikit-learn",

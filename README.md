@@ -19,10 +19,23 @@ Install `llsi` using pip:
 pip install llsi
 ```
 
-To include optional dependencies like `scikit-learn` support:
+To include optional dependencies:
 
 ```bash
+# For plotting support
+pip install llsi[plot]
+
+# For pandas integration
+pip install llsi[data]
+
+# For accelerated simulation (Numba)
+pip install llsi[accel]
+
+# For scikit-learn support
 pip install llsi[sklearn]
+
+# For everything
+pip install llsi[full]
 ```
 
 ## Features
@@ -31,7 +44,7 @@ pip install llsi[sklearn]
 *   **MATLAB-like API**: Familiar syntax for users migrating from MATLAB's System Identification Toolbox (`llsi.matlab`).
 *   **Pandas Integration**: Seamlessly convert between `SysIdData` and pandas DataFrames.
 *   **Scikit-learn Wrapper**: Use LTI models as scikit-learn estimators.
-*   **Lightweight**: Core dependencies are just `numpy`, `scipy`, `pandas`, and `matplotlib`.
+*   **Lightweight**: Core dependencies are just `numpy` and `scipy`. Plotting and other features are optional.
 
 ## Usage
 

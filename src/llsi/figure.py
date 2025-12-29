@@ -5,10 +5,16 @@ Plotting utilities for system identification.
 import logging
 from typing import Any, Dict, List, Optional, Tuple, Union
 
-import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib.axes import Axes
-from matplotlib.figure import Figure as MplFigure
+
+try:
+    import matplotlib.pyplot as plt
+    from matplotlib.axes import Axes
+    from matplotlib.figure import Figure as MplFigure
+except ImportError:
+    plt = None
+    Axes = Any
+    MplFigure = Any
 
 from .ltimodel import LTIModel
 from .statespacemodel import StateSpaceModel
@@ -27,6 +33,9 @@ class Figure:
         Args:
             figsize: Tuple of (width, height) for the figure.
         """
+        if plt is None:
+            raise ImportError("matplotlib is required for plotting. Install it with 'pip install llsi[plot]'.")
+
         self.objects: List[Any] = []
         self.plot_types: List[Optional[str]] = []
         self.place: List[int] = []

@@ -7,8 +7,12 @@ making it easier for users familiar with MATLAB to use this package.
 
 from typing import List, Optional, Tuple, Union
 
-import matplotlib.pyplot as plt
 import numpy as np
+
+try:
+    import matplotlib.pyplot as plt
+except ImportError:
+    plt = None
 
 from .ltimodel import LTIModel
 from .sysidalg import sysid
@@ -197,6 +201,9 @@ def step(model: LTIModel, Tfinal: Optional[float] = None) -> Tuple[np.ndarray, n
 
     t, y = model.step_response(N=N)
 
+    if plt is None:
+        raise ImportError("matplotlib is required for plotting. Install it with 'pip install llsi[plot]'.")
+
     plt.figure()
     plt.plot(t, y)
     plt.title("Step Response")
@@ -222,6 +229,10 @@ def impulse(model: LTIModel, Tfinal: Optional[float] = None) -> Tuple[np.ndarray
         N = int(Tfinal / model.Ts) + 1
 
     t, y = model.impulse_response(N=N)
+
+    if plt is None:
+        raise ImportError("matplotlib is required for plotting. Install it with 'pip install llsi[plot]'.")
+
     plt.figure()
     plt.stem(t, y)
     plt.title("Impulse Response")
