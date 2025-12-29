@@ -4,11 +4,13 @@ Welcome to the documentation for **llsi** (Lightweight Linear System Identificat
 
 ## Overview
 
-llsi offers easy access to system identification algorithms. Currently implemented are:
-- **n4sid**: Subspace identification
-- **PO-MOESP**: Subspace identification
-- **arx**: AutoRegressive with eXogenous input
-- **pem**: Prediction Error Method
+**llsi** is a Python library for identifying linear time-invariant (LTI) systems from data. It provides a simple, unified interface for various system identification algorithms.
+
+Currently implemented methods:
+
+*   **Subspace Identification**: `n4sid`, `po-moesp`
+*   **Polynomial Models**: `arx` (AutoRegressive with eXogenous input)
+*   **Optimization**: `pem` (Prediction Error Method), `oe` (Output Error)
 
 ## Installation
 
@@ -16,23 +18,28 @@ llsi offers easy access to system identification algorithms. Currently implement
 pip install llsi
 ```
 
-## Usage
+## Quick Start
 
-See the [README](../README.md) and the [notebooks](../notebooks/) folder for examples.
+```python
+import llsi
+import numpy as np
 
-## API Reference
+# 1. Prepare Data
+data = llsi.SysIdData(t=np.arange(100), u=np.random.randn(100), y=np.random.randn(100))
 
-### Core Models
-- `llsi.ltimodel`
-- `llsi.statespacemodel`
-- `llsi.polynomialmodel`
+# 2. Identify Model
+mod = llsi.sysid(data, 'y', 'u', method='n4sid')
 
-### Algorithms
-- `llsi.sysid`
-- `llsi.arx`
-- `llsi.subspace`
-- `llsi.pem`
+# 3. Validate
+with llsi.Figure() as fig:
+    fig.plot(mod)
+```
 
-### Utilities
-- `llsi.SysIdData`
-- `llsi.Figure`
+## Documentation Structure
+
+*   [Tutorials](tutorials/getting_started.md): Step-by-step guides for using `llsi`.
+*   [API Reference](api/ltimodel.md): Detailed documentation of classes and functions.
+
+## Examples
+
+For more interactive examples, check out the [notebooks](https://github.com/arminwitte/llsi/tree/main/notebooks) in the repository.

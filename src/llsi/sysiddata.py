@@ -229,11 +229,13 @@ class SysIdData:
 
     def lowpass(self, order: int, corner_frequency: float) -> None:
         """
-        Apply a lowpass filter to all series.
+        Apply a Butterworth lowpass filter to all data series.
+
+        This method modifies the data in-place.
 
         Args:
-            order: Filter order.
-            corner_frequency: Corner frequency in Hz.
+            order: The order of the filter.
+            corner_frequency: The corner frequency in Hz.
         """
         sos = scipy.signal.butter(order, corner_frequency, "low", analog=False, fs=1.0 / self.Ts, output="sos")
 
