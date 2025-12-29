@@ -232,7 +232,18 @@ class StateSpaceModel(LTIModel):
         return mod
 
     def to_ss(self, continuous: bool = False, method: str = "bilinear") -> scipy.signal.StateSpace:
-        """Convert to scipy StateSpace."""
+        """
+        Convert the model to a Scipy StateSpace representation.
+
+        Args:
+            continuous: If True, convert to a continuous-time system.
+            method: The method to use for discrete-to-continuous conversion if `continuous=True`.
+                    Options: 'bilinear' (Tustin), 'euler' (Forward Euler).
+                    Default is 'bilinear'.
+
+        Returns:
+            scipy.signal.StateSpace: The state-space representation.
+        """
         if continuous:
             A, B, C, D = self._d2c(self.A, self.B, self.C, self.D, self.Ts, method=method)
             sys = scipy.signal.StateSpace(A, B, C, D)
@@ -242,13 +253,15 @@ class StateSpaceModel(LTIModel):
 
     def d2c(self, method: str = "bilinear") -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """
-        Convert discrete-time model to continuous-time matrices.
+        Convert the discrete-time model matrices to continuous-time matrices.
 
         Args:
-            method: Conversion method ('bilinear' or 'euler').
+            method: The method to use for conversion.
+                    Options: 'bilinear' (Tustin), 'euler' (Forward Euler).
+                    Default is 'bilinear'.
 
         Returns:
-            Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]: (Ac, Bc, Cc, Dc)
+            Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]: The continuous-time matrices (Ac, Bc, Cc, Dc).
         """
         return self._d2c(self.A, self.B, self.C, self.D, self.Ts, method=method)
 
@@ -284,7 +297,19 @@ class StateSpaceModel(LTIModel):
         D_ = D
         return A_, B_, C_, D_
 
-    def to_tf(self, continuous=False, method="bilinear"):
+    def to_tf(self, continuous: bool = False, method: str = "bilinear") -> scipy.signal.TransferFunction:
+        """
+        Convert the model to a Scipy TransferFunction representation.
+
+        Args:
+            continuous: If True, convert to a continuous-time system.
+            method: The method to use for discrete-to-continuous conversion if `continuous=True`.
+                    Options: 'bilinear' (Tustin), 'euler' (Forward Euler).
+                    Default is 'bilinear'.
+
+        Returns:
+            scipy.signal.TransferFunction: The transfer function representation.
+        """
         sys = self.to_ss(continuous=continuous, method=method)
         return sys.to_tf()
 

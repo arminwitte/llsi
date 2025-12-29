@@ -22,20 +22,25 @@ def cv(
     bounds: Tuple[float, float] = (0, 100),
 ) -> Tuple[float, float]:
     """
-    Cross-validation to find optimal regularization parameter lambda.
+    Perform cross-validation to find the optimal regularization parameter (lambda).
+
+    This function optimizes the `lambda` setting for a system identification method
+    by minimizing the negative fit score on a validation dataset.
 
     Args:
-        training_data: Data for training.
-        validation_data: Data for validation.
-        y_name: Output channel name(s).
-        u_name: Input channel name(s).
-        order: Model order.
-        method: Identification method name.
-        settings: Base settings dictionary.
-        bounds: Bounds for lambda (min, max).
+        training_data: The dataset used for training the model.
+        validation_data: The dataset used for validating the model.
+        y_name: The name(s) of the output channel(s).
+        u_name: The name(s) of the input channel(s).
+        order: The order of the model to identify.
+        method: The identification method to use (e.g., 'n4sid', 'arx').
+        settings: A dictionary of base settings for the identification method.
+        bounds: A tuple (min, max) specifying the search range for lambda.
 
     Returns:
-        Tuple[float, float]: Optimal lambda and the corresponding fit score.
+        Tuple[float, float]: A tuple containing:
+            - The optimal lambda value.
+            - The corresponding fit score (higher is better).
     """
     # Import locally to avoid circular dependencies if any
     from .sysidalg import sysid

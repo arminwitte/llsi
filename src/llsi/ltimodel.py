@@ -155,33 +155,48 @@ class LTIModel(ABC):
 
     def aic(self, data: Any) -> float:
         """
-        Calculate Akaike Information Criterion (AIC).
+        Calculate the Akaike Information Criterion (AIC).
 
-        AIC = N * ln(SSE/N) + 2 * k
-        where N is number of samples, SSE is sum of squared errors,
-        and k is number of estimated parameters.
+        The AIC is a measure of the quality of a statistical model for a given set of data.
+        It estimates the quality of each model, relative to each of the other models.
+
+        Formula:
+            $AIC = N \\ln(SSE/N) + 2k$
+
+        where:
+        - $N$ is the number of samples.
+        - $SSE$ is the sum of squared errors.
+        - $k$ is the number of estimated parameters.
 
         Args:
             data: Validation data (SysIdData or object with u, y).
 
         Returns:
-            float: AIC value.
+            float: The AIC value.
         """
         return self._information_criterion(data, penalty_factor=2.0)
 
     def bic(self, data: Any) -> float:
         """
-        Calculate Bayesian Information Criterion (BIC).
+        Calculate the Bayesian Information Criterion (BIC).
 
-        BIC = N * ln(SSE/N) + k * ln(N)
-        where N is number of samples, SSE is sum of squared errors,
-        and k is number of estimated parameters.
+        The BIC is a criterion for model selection among a finite set of models;
+        the model with the lowest BIC is preferred. It is based, in part, on the likelihood function
+        and it is closely related to the Akaike information criterion (AIC).
+
+        Formula:
+            $BIC = N \\ln(SSE/N) + k \\ln(N)$
+
+        where:
+        - $N$ is the number of samples.
+        - $SSE$ is the sum of squared errors.
+        - $k$ is the number of estimated parameters.
 
         Args:
             data: Validation data (SysIdData or object with u, y).
 
         Returns:
-            float: BIC value.
+            float: The BIC value.
         """
         # For BIC, penalty is ln(N)
         # We need N first, so we can't just pass a constant penalty factor
