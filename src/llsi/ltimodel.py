@@ -111,28 +111,7 @@ class LTIModel(ABC):
                 'lags': Lags for the correlations
                 'conf_interval': 99% confidence interval value
         """
-        # Extract u and y from data
-        if hasattr(data, "u") and hasattr(data, "y"):
-            u = data.u
-            y = data.y
-        else:
-            # Try to extract using model's input/output names
-            try:
-                # Construct u
-                if not self.input_names:
-                    raise ValueError("Model has no input names defined.")
-                u_list = [data[name] for name in self.input_names]
-                u = np.column_stack(u_list)
-
-                # Construct y
-                if not self.output_names:
-                    raise ValueError("Model has no output names defined.")
-                y_list = [data[name] for name in self.output_names]
-                y = np.column_stack(y_list)
-            except (KeyError, TypeError, AttributeError) as e:
-                raise ValueError(
-                    "Data object must have 'u' and 'y' attributes, or contain the model's input/output names."
-                ) from e
+        u, y = self._extract_data(data)
 
         y_pred = self.simulate(u)
         residuals = y - y_pred
@@ -174,19 +153,128 @@ class LTIModel(ABC):
             "conf_interval": conf_interval,
         }
 
-    def check_residuals(self, data: Any, figsize: Tuple[int, int] = (10, 6)) -> None:
+    def aic(self, data: Any) -> float:
         """
-        Plot residual analysis (ACF and CCF).
+        Calculate Akaike Information Criterion (AIC).
+
+        AIC = N * ln(SSE/N) + 2 * k
+        where N is number of samples, SSE is sum of squared errors,
+        and k is number of estimated parameters.
 
         Args:
-            data: Validation data.
-            figsize: Figure size.
-        """
-        from .figure import Figure
+            data: Validation data (SysIdData or object with u, y).
 
-        with Figure(figsize=figsize) as fig:
-            fig.plot({"mod": self, "data": data}, "residuals_acf")
-            fig.plot({"mod": self, "data": data}, "residuals_ccf")
+        Returns:
+            float: AIC value.
+        """
+        return self._information_criterion(data, penalty_factor=2.0)
+
+    def bic(self, data: Any) -> float:
+        """
+        Calculate Bayesian Information Criterion (BIC).
+
+        BIC = N * ln(SSE/N) + k * ln(N)
+        where N is number of samples, SSE is sum of squared errors,
+        and k is number of estimated parameters.
+
+        Args:
+            data: Validation data (SysIdData or object with u, y).
+
+        Returns:
+            float: BIC value.
+        """
+        # For BIC, penalty is ln(N)
+        # We need N first, so we can't just pass a constant penalty factor
+        # unless we extract N inside _information_criterion.
+        # Let's implement logic here or make _information_criterion flexible.
+
+        # Extract u and y
+        u, y = self._extract_data(data)
+        N = len(y)
+
+        return self._information_criterion(data, penalty_factor=np.log(N))
+
+    def _extract_data(self, data: Any) -> Tuple[np.ndarray, np.ndarray]:
+        """Helper to extract u and y from data object."""
+        # Case 1: Object has .u and .y attributes
+        if hasattr(data, "u") and hasattr(data, "y"):
+            u = np.atleast_2d(data.u)
+            y = np.atleast_2d(data.y)
+            return u, y
+
+        # Case 2: Use model's input/output names
+        if self.input_names and self.output_names:
+            try:
+                u_list = [data[name] for name in self.input_names]
+                u = np.column_stack(u_list)
+                y_list = [data[name] for name in self.output_names]
+                y = np.column_stack(y_list)
+                return u, y
+            except (KeyError, TypeError):
+                pass  # Fall through
+
+        # Case 3: Try default 'u' and 'y' keys
+        try:
+            u = data["u"]
+            y = data["y"]
+            # Ensure 2D (N, 1) if 1D
+            if u.ndim == 1:
+                u = u.reshape(-1, 1)
+            if y.ndim == 1:
+                y = y.reshape(-1, 1)
+            return u, y
+        except (KeyError, TypeError, AttributeError):
+            pass
+
+        raise ValueError(
+            "Could not extract 'u' and 'y' from data. "
+            "Ensure data object has 'u'/'y' attributes, or 'u'/'y' keys, "
+            "or model has input_names/output_names matching data keys."
+        )
+
+    def _information_criterion(self, data: Any, penalty_factor: float) -> float:
+        """
+        Calculate information criterion.
+
+        IC = N * ln(SSE/N) + k * penalty_factor
+        """
+        u, y = self._extract_data(data)
+        N = len(y)
+
+        y_hat = self.simulate(u)
+        e = self.residuals(y, y_hat)
+        sse = self.SSE(e)
+
+        # Number of parameters k
+        # This depends on the model type.
+        # We can try to use vectorize() to count parameters if available.
+        try:
+            if hasattr(self, "vectorize"):
+                k = len(self.vectorize())
+            else:
+                # Fallback or raise error
+                # For StateSpace: k = nx*nx + nx*nu + ny*nx + ny*nu + nx (x0)
+                # For Polynomial: k = na + nb
+                raise NotImplementedError("Model must implement vectorize() or provide parameter count.")
+        except Exception:
+            # If vectorize is not implemented or fails, try to deduce
+            if hasattr(self, "nx"):  # StateSpace
+                nx = self.nx
+                nu = self.nu
+                ny = self.ny
+                k = nx * nx + nx * nu + ny * nx + ny * nu + nx  # +nx for x0
+            elif hasattr(self, "na") and hasattr(self, "nb"):  # Polynomial
+                k = self.na + self.nb
+            else:
+                k = 0  # Should not happen for implemented models
+
+        # Handle SSE=0 (perfect fit)
+        if sse <= 0:
+            term1 = -np.inf
+        else:
+            term1 = N * np.log(sse / N)
+
+        return term1 + k * penalty_factor
 
     @staticmethod
     def residuals(y: np.ndarray, y_hat: np.ndarray) -> np.ndarray:

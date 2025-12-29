@@ -240,6 +240,18 @@ class StateSpaceModel(LTIModel):
             sys = scipy.signal.StateSpace(self.A, self.B, self.C, self.D, dt=self.Ts)
         return sys
 
+    def d2c(self, method: str = "bilinear") -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+        """
+        Convert discrete-time model to continuous-time matrices.
+
+        Args:
+            method: Conversion method ('bilinear' or 'euler').
+
+        Returns:
+            Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]: (Ac, Bc, Cc, Dc)
+        """
+        return self._d2c(self.A, self.B, self.C, self.D, self.Ts, method=method)
+
     @staticmethod
     def _d2c(
         A: np.ndarray,
