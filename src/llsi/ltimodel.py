@@ -119,55 +119,55 @@ class LTIModel(ABC):
     def _propagate_uncertainty(self, func) -> np.ndarray:
         """
         Compute standard deviation of func() output using error propagation.
-        
+
         Args:
             func: Callable that returns a 1D array (or scalar).
                   It should use the model's current parameters.
-                  
+
         Returns:
             std: Standard deviation of the output (same shape as func output).
         """
         if not hasattr(self, "vectorize") or not hasattr(self, "reshape"):
             raise NotImplementedError("Model must implement vectorize() and reshape() for uncertainty propagation.")
-            
+
         theta_opt = self.vectorize()
         n_params = len(theta_opt)
         epsilon = 1e-8
-        
+
         # Compute nominal output
         y_nominal = func()
         n_out = y_nominal.size
-        
+
         # Compute Jacobian
         # Handle complex output if necessary, though currently we wrap to real
         is_complex = np.iscomplexobj(y_nominal)
         dtype = np.complex128 if is_complex else np.float64
-        
+
         J = np.zeros((n_out, n_params), dtype=dtype)
-        
+
         for i in range(n_params):
             theta_perturbed = theta_opt.copy()
             theta_perturbed[i] += epsilon
-            
+
             self.reshape(theta_perturbed)
             y_perturbed = func()
-            
+
             J[:, i] = (y_perturbed - y_nominal) / epsilon
-            
+
         # Restore parameters
         self.reshape(theta_opt)
-        
+
         # Compute variance: diag(J @ cov @ J.T)
         cov = self.cov
-        
+
         if is_complex:
-             var = np.sum((J @ cov) * np.conj(J), axis=1)
-             var = np.real(var)
+            var = np.sum((J @ cov) * np.conj(J), axis=1)
+            var = np.real(var)
         else:
-             var = np.sum((J @ cov) * J, axis=1)
-             
+            var = np.sum((J @ cov) * J, axis=1)
+
         var = np.maximum(var, 0.0)
-        
+
         return np.sqrt(var)
 
     def compare(self, y: np.ndarray, u: np.ndarray) -> float:
@@ -400,9 +400,7 @@ class LTIModel(ABC):
         return float(nrmse)
 
     @abstractmethod
-    def simulate(
-        self, u: np.ndarray, uncertainty: bool = False
-    ) -> Union[np.ndarray, Tuple[np.ndarray, np.ndarray]]:
+    def simulate(self, u: np.ndarray, uncertainty: bool = False) -> Union[np.ndarray, Tuple[np.ndarray, np.ndarray]]:
         """
         Simulate the model response to input u.
 

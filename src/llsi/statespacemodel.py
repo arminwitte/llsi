@@ -130,9 +130,7 @@ class StateSpaceModel(LTIModel):
         if include_init_state:
             self.x_init = theta[na + nb + nc + nd :].reshape(nx, 1)
 
-    def simulate(
-        self, u: np.ndarray, uncertainty: bool = False
-    ) -> Union[np.ndarray, Tuple[np.ndarray, np.ndarray]]:
+    def simulate(self, u: np.ndarray, uncertainty: bool = False) -> Union[np.ndarray, Tuple[np.ndarray, np.ndarray]]:
         """Simulate the model."""
         u = np.atleast_2d(u)
         if u.shape[0] != self.nu:

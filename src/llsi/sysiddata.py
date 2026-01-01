@@ -134,7 +134,7 @@ class SysIdData:
             raise ValueError(
                 f"Could not extract data. Missing series: {e}. "
                 f"Requested inputs {input_names} and outputs {output_names}."
-            )
+            ) from e
 
         u = np.column_stack(u_list)
         y = np.column_stack(y_list)
