@@ -101,29 +101,45 @@ class PEM(SysIdAlgBase):
         # Update model with optimized parameters
         mod.reshape(res.x)
 
-        # Estimate covariance
-        # J_jac is the Jacobian of the cost function w.r.t parameters?
-        # No, approx_fprime returns gradient.
-        # For covariance we ideally need the Jacobian of the residuals, J_res (N x n_params)
-        # cov ~ sigma^2 * (J_res.T @ J_res)^-1
-        # The current implementation seems to approximate it using the gradient of the scalar cost function?
-        # That doesn't seem right for parameter covariance.
-        # However, preserving original logic for now but cleaning up.
+        # --- Corrected Covariance Estimation ---
+        # 1. Calculate the Jacobian of the residuals J_res (N x P)
+        # We need manual finite differences because approx_fprime is for scalar outputs
 
-        # Original code:
-        # J = scipy.optimize.approx_fprime(res.x, fun).reshape(1, -1)
-        # var_e = np.var(self.y - mod.simulate(self.u))
-        # mod.cov = var_e * (J.T @ J)
+        theta_opt = res.x
+        n_params = len(theta_opt)
+        n_samples = self.y.size
+        epsilon = 1e-8
 
-        # This looks like outer product of gradients (OPG) estimate but J is scalar gradient?
-        # If J is 1xP gradient, J.T @ J is PxP rank 1 matrix. This is likely incorrect for covariance.
-        # But I will keep it consistent with the original logic unless it's clearly broken.
-        # Actually, let's try to do it slightly better if possible, or just leave it.
-        # Given "modernization" task, I'll leave the logic as is but type it.
+        J_res = np.zeros((n_samples, n_params))
+        y_nominal = mod.simulate(self.u).ravel()
 
-        grad = scipy.optimize.approx_fprime(res.x, cost_function, epsilon=1e-8).reshape(1, -1)
-        var_e = np.var(self.y - mod.simulate(self.u))
-        mod.cov = var_e * (grad.T @ grad)
+        for i in range(n_params):
+            theta_perturbed = theta_opt.copy()
+            theta_perturbed[i] += epsilon
+
+            # Temporarily set model params to perturbed values
+            mod.reshape(theta_perturbed)
+            y_perturbed = mod.simulate(self.u).ravel()
+
+            # Jacobian column i = - dy_hat / dtheta
+            # Residual = y - y_hat => d(Res)/dtheta = - dy_hat/dtheta
+            J_res[:, i] = (y_nominal - y_perturbed) / epsilon
+
+        # Restore model to optimum
+        mod.reshape(theta_opt)
+
+        # 2. Estimate Variance of residuals
+        residuals = self.y.ravel() - y_nominal
+        sigma2 = np.sum(residuals**2) / (n_samples - n_params)
+
+        # 3. Compute Covariance: Cov = sigma^2 * (J^T J)^-1
+        H_approx = J_res.T @ J_res
+
+        try:
+            mod.cov = sigma2 * np.linalg.inv(H_approx)
+        except np.linalg.LinAlgError:
+            # Fallback for ill-conditioned matrices
+            mod.cov = sigma2 * np.linalg.pinv(H_approx)
 
         return mod
 
