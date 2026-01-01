@@ -165,36 +165,79 @@ class Figure:
     @staticmethod
     def _impulse(fig: MplFigure, ax: Axes, lti_mod: LTIModel, col: str = "#1f77b4"):
         if isinstance(lti_mod, LTIModel):
-            t, y = lti_mod.impulse_response(N=200)
+            if hasattr(lti_mod, "impulse_response_with_uncertainty"):
+                t, y, y_std = lti_mod.impulse_response_with_uncertainty(N=200)
+            else:
+                t, y = lti_mod.impulse_response(N=200)
+                y_std = None
+
             markerline, stemlines, baseline = ax.stem(t, y)
             plt.setp(stemlines, "color", col)
             plt.setp(markerline, "color", col)
+
+            if y_std is not None:
+                y = y.ravel()
+                y_std = y_std.ravel()
+                ax.fill_between(t, y - 2 * y_std, y + 2 * y_std, color=col, alpha=0.2)
+
             ax.set_title("Impulse response")
             ax.grid(True, alpha=0.3)
 
     @staticmethod
     def _step(fig: MplFigure, ax: Axes, lti_mod: LTIModel, col: str = "#1f77b4"):
         if isinstance(lti_mod, LTIModel):
-            t, y = lti_mod.step_response(N=200)
+            if hasattr(lti_mod, "step_response_with_uncertainty"):
+                t, y, y_std = lti_mod.step_response_with_uncertainty(N=200)
+            else:
+                t, y = lti_mod.step_response(N=200)
+                y_std = None
+
             ax.step(t, y, where="post", color=col)
+
+            if y_std is not None:
+                y = y.ravel()
+                y_std = y_std.ravel()
+                try:
+                    ax.fill_between(t, y - 2 * y_std, y + 2 * y_std, color=col, alpha=0.2, step="post")
+                except (AttributeError, TypeError):
+                    ax.fill_between(t, y - 2 * y_std, y + 2 * y_std, color=col, alpha=0.2)
+
             ax.set_title("Step response")
             ax.grid(True, alpha=0.3)
 
     @staticmethod
     def _frequency(fig: MplFigure, ax: Axes, lti_mod: LTIModel, col: str = "#1f77b4"):
         if isinstance(lti_mod, LTIModel):
-            omega, H = lti_mod.frequency_response()
+            if hasattr(lti_mod, "frequency_response_with_uncertainty"):
+                omega, H, mag_std, phase_std = lti_mod.frequency_response_with_uncertainty()
+            else:
+                omega, H = lti_mod.frequency_response()
+                mag_std = None
+                phase_std = None
+
             H = H.squeeze()
+            mag = np.abs(H.ravel())
+            phase = np.angle(H.ravel())
 
             ax2 = ax.twinx()
 
-            ax.plot(omega.ravel(), np.abs(H.ravel()), color=col, label="Magnitude")
+            ax.plot(omega.ravel(), mag, color=col, label="Magnitude")
+
+            if mag_std is not None:
+                mag_std = mag_std.ravel()
+                ax.fill_between(omega.ravel(), mag - 2 * mag_std, mag + 2 * mag_std, color=col, alpha=0.2)
+
             ax.set_ylabel("Magnitude")
             ax.set_xlabel("Frequency [rad/s]")
             ax.set_title("Frequency response")
             ax.grid(True, alpha=0.3)
 
-            ax2.plot(omega, np.angle(H.ravel()), linestyle="dashed", color=col, alpha=0.6, label="Phase")
+            ax2.plot(omega, phase, linestyle="dashed", color=col, alpha=0.6, label="Phase")
+
+            if phase_std is not None:
+                phase_std = phase_std.ravel()
+                ax2.fill_between(omega.ravel(), phase - 2 * phase_std, phase + 2 * phase_std, color=col, alpha=0.1)
+
             ax2.set_ylabel("Phase [rad]")
             ax2.set_yticks([-np.pi, -np.pi / 2, 0, np.pi / 2, np.pi])
             ax2.set_yticklabels([r"$-\pi$", r"$-\pi/2$", "0", r"$\pi/2$", r"$\pi$"])
@@ -244,9 +287,19 @@ class Figure:
             # Cycle colors for models
             c = plt.rcParams["axes.prop_cycle"].by_key()["color"][(i) % 10]
 
-            y_hat = m.simulate(data[u_name])
+            if hasattr(m, "simulate_with_uncertainty"):
+                y_hat, y_std = m.simulate_with_uncertainty(data[u_name])
+            else:
+                y_hat = m.simulate(data[u_name])
+                y_std = None
+
             fit = m.compare(data[y_name], data[u_name])
             ax.plot(t, y_hat, color=c, label=f"Model {i + 1} (Fit={fit * 100:.1f}%)")
+
+            if y_std is not None:
+                y_hat = y_hat.ravel()
+                y_std = y_std.ravel()
+                ax.fill_between(t, y_hat - 2 * y_std, y_hat + 2 * y_std, color=c, alpha=0.2)
 
         ax.set_title("Model Comparison")
         ax.legend()
