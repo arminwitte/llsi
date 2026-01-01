@@ -8,6 +8,8 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 import numpy as np
 import scipy.signal
 
+from .sysiddata import SysIdData
+
 
 class LTIModel(ABC):
     """
@@ -184,7 +186,7 @@ class LTIModel(ABC):
         # NRMSE returns error ratio, so 1 - NRMSE is the fit
         return 1.0 - self.NRMSE(y, y_hat)
 
-    def compute_residuals_analysis(self, data: Any) -> Dict[str, Any]:
+    def compute_residuals_analysis(self, data: SysIdData) -> Dict[str, Any]:
         """
         Compute residual analysis metrics (ACF, CCF) on validation data.
 
@@ -199,7 +201,7 @@ class LTIModel(ABC):
                 'lags': Lags for the correlations
                 'conf_interval': 99% confidence interval value
         """
-        u, y = self._extract_data(data)
+        u, y = data.to_io_data(self.input_names, self.output_names)
 
         y_pred = self.simulate(u)
         residuals = y - y_pred
@@ -241,7 +243,7 @@ class LTIModel(ABC):
             "conf_interval": conf_interval,
         }
 
-    def aic(self, data: Any) -> float:
+    def aic(self, data: SysIdData) -> float:
         """
         Calculate the Akaike Information Criterion (AIC).
 
@@ -257,14 +259,14 @@ class LTIModel(ABC):
         - $k$ is the number of estimated parameters.
 
         Args:
-            data: Validation data (SysIdData or object with u, y).
+            data: Validation data (SysIdData).
 
         Returns:
             float: The AIC value.
         """
         return self._information_criterion(data, penalty_factor=2.0)
 
-    def bic(self, data: Any) -> float:
+    def bic(self, data: SysIdData) -> float:
         """
         Calculate the Bayesian Information Criterion (BIC).
 
@@ -281,7 +283,7 @@ class LTIModel(ABC):
         - $k$ is the number of estimated parameters.
 
         Args:
-            data: Validation data (SysIdData or object with u, y).
+            data: Validation data (SysIdData).
 
         Returns:
             float: The BIC value.
@@ -292,56 +294,18 @@ class LTIModel(ABC):
         # Let's implement logic here or make _information_criterion flexible.
 
         # Extract u and y
-        u, y = self._extract_data(data)
+        u, y = data.to_io_data(self.input_names, self.output_names)
         N = len(y)
 
         return self._information_criterion(data, penalty_factor=np.log(N))
 
-    def _extract_data(self, data: Any) -> Tuple[np.ndarray, np.ndarray]:
-        """Helper to extract u and y from data object."""
-        # Case 1: Object has .u and .y attributes
-        if hasattr(data, "u") and hasattr(data, "y"):
-            u = np.atleast_2d(data.u)
-            y = np.atleast_2d(data.y)
-            return u, y
-
-        # Case 2: Use model's input/output names
-        if self.input_names and self.output_names:
-            try:
-                u_list = [data[name] for name in self.input_names]
-                u = np.column_stack(u_list)
-                y_list = [data[name] for name in self.output_names]
-                y = np.column_stack(y_list)
-                return u, y
-            except (KeyError, TypeError):
-                pass  # Fall through
-
-        # Case 3: Try default 'u' and 'y' keys
-        try:
-            u = data["u"]
-            y = data["y"]
-            # Ensure 2D (N, 1) if 1D
-            if u.ndim == 1:
-                u = u.reshape(-1, 1)
-            if y.ndim == 1:
-                y = y.reshape(-1, 1)
-            return u, y
-        except (KeyError, TypeError, AttributeError):
-            pass
-
-        raise ValueError(
-            "Could not extract 'u' and 'y' from data. "
-            "Ensure data object has 'u'/'y' attributes, or 'u'/'y' keys, "
-            "or model has input_names/output_names matching data keys."
-        )
-
-    def _information_criterion(self, data: Any, penalty_factor: float) -> float:
+    def _information_criterion(self, data: SysIdData, penalty_factor: float) -> float:
         """
         Calculate information criterion.
 
         IC = N * ln(SSE/N) + k * penalty_factor
         """
-        u, y = self._extract_data(data)
+        u, y = data.to_io_data(self.input_names, self.output_names)
         N = len(y)
 
         y_hat = self.simulate(u)

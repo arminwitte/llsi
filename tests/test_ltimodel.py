@@ -9,6 +9,7 @@ import numpy as np
 import pytest
 
 from llsi.ltimodel import LTIModel
+from llsi.sysiddata import SysIdData
 
 
 @pytest.fixture
@@ -59,12 +60,7 @@ def test_compute_residuals_analysis(poly_mod):
     # Add some noise to make residuals non-zero
     y_noisy = y + 0.1 * np.random.randn(100, 1)
 
-    class Data:
-        pass
-
-    data = Data()
-    data.u = u
-    data.y = y_noisy
+    data = SysIdData(Ts=1.0, u=u, y=y_noisy)
 
     res_analysis = poly_mod.compute_residuals_analysis(data)
 
