@@ -96,15 +96,21 @@ class PolynomialModel(LTIModel):
         self.nk = nk
         self.cov = cov
 
-    def simulate(self, u: Union[np.ndarray, List[float]]) -> np.ndarray:
+    def simulate(
+        self, u: Union[np.ndarray, List[float]], uncertainty: bool = False
+    ) -> Union[np.ndarray, Tuple[np.ndarray, np.ndarray]]:
         """
         Simulate the model response.
 
         Args:
             u: Input signal.
+            uncertainty: If True, return standard deviation of the response.
 
         Returns:
-            np.ndarray: Simulated output.
+            If uncertainty is False:
+                np.ndarray: Simulated output.
+            If uncertainty is True:
+                Tuple[np.ndarray, np.ndarray]: Simulated output and standard deviation.
         """
         u_arr = np.atleast_1d(u).ravel()
 
@@ -120,23 +126,49 @@ class PolynomialModel(LTIModel):
 
         # scipy.signal.lfilter is much faster than python loops
         y = scipy.signal.lfilter(b_padded, self.a, u_arr)
+        y = y.reshape(-1, 1)  # Return as (N, 1) to match LTIModel convention
 
-        return y.reshape(-1, 1)  # Return as (N, 1) to match LTIModel convention
+        if uncertainty:
+            if not hasattr(self, "cov") or self.cov is None:
+                return y, None
 
-    def frequency_response(self, omega: np.ndarray = np.logspace(-3, 2)) -> Tuple[np.ndarray, np.ndarray]:
+            # Ensure u is correct shape for closure
+            u_for_closure = np.array(u)
+
+            def func():
+                # We need to call simulate with uncertainty=False to avoid recursion
+                # But since we are inside simulate, we can just call the logic directly or call self.simulate(..., uncertainty=False)
+                return self.simulate(u_for_closure, uncertainty=False).ravel()
+
+            y_std = self._propagate_uncertainty(func)
+            y_std = y_std.reshape(y.shape)
+            return y, y_std
+
+        return y
+
+    def frequency_response(
+        self, omega: np.ndarray = np.logspace(-3, 2), uncertainty: bool = False
+    ) -> Union[
+        Tuple[np.ndarray, np.ndarray],
+        Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray],
+    ]:
         """
         Compute frequency response.
 
         Args:
             omega: Frequencies (rad/s).
+            uncertainty: If True, return standard deviation of magnitude and phase.
 
         Returns:
-            Tuple[np.ndarray, np.ndarray]: (omega, H)
+            If uncertainty is False:
+                Tuple[np.ndarray, np.ndarray]: (omega, H)
+            If uncertainty is True:
+                Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]: (omega, H, mag_std, phase_std)
         """
         # H(z) = (B(z) / A(z)) * z^(-nk)
         # z = exp(j * omega * Ts)
 
-        w, h = scipy.signal.freqz(self.b, self.a, worN=omega * self.Ts, fs=2 * np.pi)
+        # w, h = scipy.signal.freqz(self.b, self.a, worN=omega * self.Ts, fs=2 * np.pi)
 
         # freqz returns response for B(z)/A(z). We need to add delay term z^(-nk)
         # But wait, freqz expects w in [0, pi) usually, or if fs is given, in Hz?
@@ -164,6 +196,24 @@ class PolynomialModel(LTIModel):
         B_z = np.sum(self.b[None, :] * z_pow_b, axis=1)
 
         H = (B_z / A_z) * np.power(z, -self.nk)
+
+        if uncertainty:
+            if not hasattr(self, "cov") or self.cov is None:
+                return omega, H, None, None
+
+            def func():
+                # Call self.frequency_response with uncertainty=False
+                _, H_ = self.frequency_response(omega, uncertainty=False)
+                H_ = H_.ravel()
+                # Use unwrap to avoid discontinuities in phase gradient
+                return np.concatenate([np.abs(H_), np.unwrap(np.angle(H_))])
+
+            std = self._propagate_uncertainty(func)
+            n = H.size
+            mag_std = std[:n].reshape(H.shape)
+            phase_std = std[n:].reshape(H.shape)
+
+            return omega, H, mag_std, phase_std
 
         return omega, H
 

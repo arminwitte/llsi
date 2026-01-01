@@ -165,10 +165,11 @@ class Figure:
     @staticmethod
     def _impulse(fig: MplFigure, ax: Axes, lti_mod: LTIModel, col: str = "#1f77b4"):
         if isinstance(lti_mod, LTIModel):
-            if hasattr(lti_mod, "impulse_response_with_uncertainty"):
-                t, y, y_std = lti_mod.impulse_response_with_uncertainty(N=200)
+            res = lti_mod.impulse_response(N=200, uncertainty=True)
+            if len(res) == 3:
+                t, y, y_std = res
             else:
-                t, y = lti_mod.impulse_response(N=200)
+                t, y = res
                 y_std = None
 
             markerline, stemlines, baseline = ax.stem(t, y)
@@ -178,7 +179,8 @@ class Figure:
             if y_std is not None:
                 y = y.ravel()
                 y_std = y_std.ravel()
-                ax.fill_between(t, y - 2 * y_std, y + 2 * y_std, color=col, alpha=0.2)
+                # Plot confidence region around y=0 (significance band)
+                ax.fill_between(t, -2 * y_std, 2 * y_std, color=col, alpha=0.2)
 
             ax.set_title("Impulse response")
             ax.grid(True, alpha=0.3)
@@ -186,10 +188,11 @@ class Figure:
     @staticmethod
     def _step(fig: MplFigure, ax: Axes, lti_mod: LTIModel, col: str = "#1f77b4"):
         if isinstance(lti_mod, LTIModel):
-            if hasattr(lti_mod, "step_response_with_uncertainty"):
-                t, y, y_std = lti_mod.step_response_with_uncertainty(N=200)
+            res = lti_mod.step_response(N=200, uncertainty=True)
+            if len(res) == 3:
+                t, y, y_std = res
             else:
-                t, y = lti_mod.step_response(N=200)
+                t, y = res
                 y_std = None
 
             ax.step(t, y, where="post", color=col)
@@ -208,10 +211,11 @@ class Figure:
     @staticmethod
     def _frequency(fig: MplFigure, ax: Axes, lti_mod: LTIModel, col: str = "#1f77b4"):
         if isinstance(lti_mod, LTIModel):
-            if hasattr(lti_mod, "frequency_response_with_uncertainty"):
-                omega, H, mag_std, phase_std = lti_mod.frequency_response_with_uncertainty()
+            res = lti_mod.frequency_response(uncertainty=True)
+            if len(res) == 4:
+                omega, H, mag_std, phase_std = res
             else:
-                omega, H = lti_mod.frequency_response()
+                omega, H = res
                 mag_std = None
                 phase_std = None
 
@@ -287,8 +291,13 @@ class Figure:
             # Cycle colors for models
             c = plt.rcParams["axes.prop_cycle"].by_key()["color"][(i) % 10]
 
-            if hasattr(m, "simulate_with_uncertainty"):
-                y_hat, y_std = m.simulate_with_uncertainty(data[u_name])
+            if isinstance(m, LTIModel):
+                res = m.simulate(data[u_name], uncertainty=True)
+                if len(res) == 2:
+                    y_hat, y_std = res
+                else:
+                    y_hat = res
+                    y_std = None
             else:
                 y_hat = m.simulate(data[u_name])
                 y_std = None

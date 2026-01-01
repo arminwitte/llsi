@@ -44,15 +44,21 @@ class LTIModel(ABC):
         self.input_names = input_names
         self.output_names = output_names
 
-    def impulse_response(self, N: int = 100) -> Tuple[np.ndarray, np.ndarray]:
+    def impulse_response(
+        self, N: int = 100, uncertainty: bool = False
+    ) -> Union[Tuple[np.ndarray, np.ndarray], Tuple[np.ndarray, np.ndarray, np.ndarray]]:
         """
         Simulate the impulse response of the system.
 
         Args:
             N: Number of time steps to simulate.
+            uncertainty: If True, return standard deviation of the response.
 
         Returns:
-            Tuple[np.ndarray, np.ndarray]: Time vector and output response.
+            If uncertainty is False:
+                Tuple[np.ndarray, np.ndarray]: Time vector and output response.
+            If uncertainty is True:
+                Tuple[np.ndarray, np.ndarray, np.ndarray]: Time vector, output response, and standard deviation.
         """
         t = np.linspace(0, (N - 1) * self.Ts, N)
         u = np.zeros((N, self.nu))
@@ -61,181 +67,52 @@ class LTIModel(ABC):
 
         y = self.simulate(u)
 
+        if uncertainty:
+            if not hasattr(self, "cov") or self.cov is None:
+                return t, y, None
+
+            def func():
+                return self.simulate(u).ravel()
+
+            y_std = self._propagate_uncertainty(func)
+            y_std = y_std.reshape(y.shape)
+            return t, y, y_std
+
         return t, y
 
-    def impulse_response_with_uncertainty(self, N: int = 100) -> Tuple[np.ndarray, np.ndarray, Optional[np.ndarray]]:
-        """
-        Simulate the impulse response with uncertainty.
-
-        Args:
-            N: Number of time steps.
-
-        Returns:
-            t, y, y_std (or None if no covariance)
-        """
-        t, y = self.impulse_response(N)
-        
-        if not hasattr(self, "cov") or self.cov is None:
-            return t, y, None
-            
-        u = np.zeros((N, self.nu))
-        u[0, :] = 1.0 / self.Ts
-        
-        # Define function for Jacobian
-        def func():
-            return self.simulate(u).ravel()
-            
-        y_std = self._propagate_uncertainty(func)
-        # Reshape to match y
-        y_std = y_std.reshape(y.shape)
-        
-        return t, y, y_std
-
-    def step_response(self, N: int = 100) -> Tuple[np.ndarray, np.ndarray]:
+    def step_response(
+        self, N: int = 100, uncertainty: bool = False
+    ) -> Union[Tuple[np.ndarray, np.ndarray], Tuple[np.ndarray, np.ndarray, np.ndarray]]:
         """
         Simulate the step response of the system.
 
         Args:
             N: Number of time steps to simulate.
+            uncertainty: If True, return standard deviation of the response.
 
         Returns:
-            Tuple[np.ndarray, np.ndarray]: Time vector and output response.
+            If uncertainty is False:
+                Tuple[np.ndarray, np.ndarray]: Time vector and output response.
+            If uncertainty is True:
+                Tuple[np.ndarray, np.ndarray, np.ndarray]: Time vector, output response, and standard deviation.
         """
         t = np.linspace(0, (N - 1) * self.Ts, N)
         u = np.ones((N, self.nu))
 
         y = self.simulate(u)
 
+        if uncertainty:
+            if not hasattr(self, "cov") or self.cov is None:
+                return t, y, None
+
+            def func():
+                return self.simulate(u).ravel()
+
+            y_std = self._propagate_uncertainty(func)
+            y_std = y_std.reshape(y.shape)
+            return t, y, y_std
+
         return t, y
-
-    def step_response_with_uncertainty(self, N: int = 100) -> Tuple[np.ndarray, np.ndarray, Optional[np.ndarray]]:
-        """
-        Simulate the step response with uncertainty.
-
-        Args:
-            N: Number of time steps.
-
-        Returns:
-            t, y, y_std (or None if no covariance)
-        """
-        t, y = self.step_response(N)
-        
-        if not hasattr(self, "cov") or self.cov is None:
-            return t, y, None
-            
-        u = np.ones((N, self.nu))
-        
-        def func():
-            return self.simulate(u).ravel()
-            
-        y_std = self._propagate_uncertainty(func)
-        y_std = y_std.reshape(y.shape)
-        
-        return t, y, y_std
-
-    def _propagate_uncertainty(self, func) -> np.ndarray:
-        """
-        Compute standard deviation of func() output using error propagation.
-        
-        Args:
-            func: Callable that returns a 1D array (or scalar).
-                  It should use the model's current parameters.
-                  
-        Returns:
-            std: Standard deviation of the output (same shape as func output).
-        """
-        if not hasattr(self, "vectorize") or not hasattr(self, "reshape"):
-            raise NotImplementedError("Model must implement vectorize() and reshape() for uncertainty propagation.")
-            
-        theta_opt = self.vectorize()
-        n_params = len(theta_opt)
-        epsilon = 1e-8
-        
-        # Compute nominal output
-        y_nominal = func()
-        n_out = y_nominal.size
-        
-        # Compute Jacobian
-        J = np.zeros((n_out, n_params))
-        
-        for i in range(n_params):
-            theta_perturbed = theta_opt.copy()
-            theta_perturbed[i] += epsilon
-            
-            self.reshape(theta_perturbed)
-            y_perturbed = func()
-            
-            J[:, i] = (y_perturbed - y_nominal) / epsilon
-            
-        # Restore parameters
-        self.reshape(theta_opt)
-        
-        # Compute variance: diag(J @ cov @ J.T)
-        # Efficiently: sum((J @ cov) * J, axis=1)
-        cov = self.cov
-        var = np.sum((J @ cov) * J, axis=1)
-        
-        # Handle negative variance due to numerical issues
-        var = np.maximum(var, 0.0)
-        
-        return np.sqrt(var)
-
-    def simulate_with_uncertainty(self, u: Union[np.ndarray, List[float]]) -> Tuple[np.ndarray, Optional[np.ndarray]]:
-        """
-        Simulate the model with uncertainty.
-
-        Args:
-            u: Input signal.
-
-        Returns:
-            y, y_std (or None)
-        """
-        y = self.simulate(u)
-        
-        if not hasattr(self, "cov") or self.cov is None:
-            return y, None
-            
-        # Ensure u is correct shape for closure
-        u_arr = np.array(u)
-        
-        def func():
-            return self.simulate(u_arr).ravel()
-            
-        y_std = self._propagate_uncertainty(func)
-        y_std = y_std.reshape(y.shape)
-        
-        return y, y_std
-
-    def frequency_response_with_uncertainty(self, omega: np.ndarray = np.logspace(-3, 2)) -> Tuple[np.ndarray, np.ndarray, Optional[np.ndarray], Optional[np.ndarray]]:
-        """
-        Compute frequency response with uncertainty.
-
-        Args:
-            omega: Frequencies.
-
-        Returns:
-            omega, H, mag_std, phase_std
-        """
-        if not hasattr(self, "frequency_response"):
-             raise NotImplementedError("Model does not implement frequency_response.")
-
-        omega, H = self.frequency_response(omega)
-        
-        if not hasattr(self, "cov") or self.cov is None:
-            return omega, H, None, None
-            
-        def func():
-            _, H_ = self.frequency_response(omega)
-            H_ = H_.ravel()
-            # Use unwrap to avoid discontinuities in phase gradient
-            return np.concatenate([np.abs(H_), np.unwrap(np.angle(H_))])
-            
-        std = self._propagate_uncertainty(func)
-        n = H.size
-        mag_std = std[:n].reshape(H.shape)
-        phase_std = std[n:].reshape(H.shape)
-        
-        return omega, H, mag_std, phase_std
 
     def _propagate_uncertainty(self, func) -> np.ndarray:
         """
@@ -559,27 +436,43 @@ class LTIModel(ABC):
         return float(nrmse)
 
     @abstractmethod
-    def simulate(self, u: np.ndarray) -> np.ndarray:
+    def simulate(
+        self, u: np.ndarray, uncertainty: bool = False
+    ) -> Union[np.ndarray, Tuple[np.ndarray, np.ndarray]]:
         """
         Simulate the model response to input u.
 
         Args:
             u: Input signal array of shape (N, nu).
+            uncertainty: If True, return standard deviation of the response.
 
         Returns:
-            np.ndarray: Output signal array of shape (N, ny).
+            If uncertainty is False:
+                np.ndarray: Output signal array of shape (N, ny).
+            If uncertainty is True:
+                Tuple[np.ndarray, np.ndarray]: Output signal and standard deviation.
         """
         pass
 
     @abstractmethod
-    def frequency_response(self, omega: Optional[np.ndarray] = None) -> Tuple[np.ndarray, np.ndarray]:
+    def frequency_response(
+        self, omega: Optional[np.ndarray] = None, uncertainty: bool = False
+    ) -> Union[
+        Tuple[np.ndarray, np.ndarray],
+        Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray],
+    ]:
         """
         Calculate frequency response.
 
         Args:
             omega: Frequency vector (rad/s). If None, a default range is used.
+            uncertainty: If True, return standard deviation of magnitude and phase.
 
         Returns:
-            Tuple[np.ndarray, np.ndarray]: Frequency vector and complex response.
+            If uncertainty is False:
+                Tuple[np.ndarray, np.ndarray]: Frequency vector and complex response.
+            If uncertainty is True:
+                Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+                    Frequency vector, complex response, magnitude std, phase std.
         """
         pass
