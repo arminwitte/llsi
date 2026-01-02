@@ -9,6 +9,7 @@ import numpy as np
 import pytest
 
 from llsi.ltimodel import LTIModel
+from llsi.sysidalgbase import compute_residuals_analysis
 from llsi.sysiddata import SysIdData
 
 
@@ -62,7 +63,7 @@ def test_compute_residuals_analysis(poly_mod):
 
     data = SysIdData(Ts=1.0, u=u, y=y_noisy)
 
-    res_analysis = poly_mod.compute_residuals_analysis(data)
+    res_analysis = compute_residuals_analysis(poly_mod, data)
 
     assert "residuals" in res_analysis
     assert "acf" in res_analysis

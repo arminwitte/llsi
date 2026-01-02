@@ -60,7 +60,7 @@ class PEM(SysIdAlgBase):
         self.alg_inst = alg_creator(data, y_name, u_name)
         self.logger = logging.getLogger(__name__)
 
-    def ident(self, order: Union[int, Tuple[int, ...]]) -> LTIModel:
+    def _ident(self, order: Union[int, Tuple[int, ...]]) -> LTIModel:
         """
         Identify the model using PEM.
 
@@ -81,7 +81,7 @@ class PEM(SysIdAlgBase):
         def cost_function(x: np.ndarray) -> float:
             mod.reshape(x)
             y_hat = mod.simulate(self.u)
-            sse = self._sse(self.y, y_hat)
+            sse = LTIModel.SSE(self.y - y_hat)
 
             # Handle numerical instability
             sse = np.nan_to_num(sse, nan=1e300)
@@ -194,7 +194,7 @@ class ADAM(SysIdAlgBase):
 
         self.model.reshape(x)
         y_hat = self.model.simulate(u_batch)
-        loss = self._sse(y_batch, y_hat)
+        loss = LTIModel.SSE(y_batch - y_hat)
 
         # Add regularization terms
         if self.lambda_l1 > 0:
@@ -212,7 +212,7 @@ class ADAM(SysIdAlgBase):
 
         return scipy.optimize.approx_fprime(x, loss_func, epsilon=1e-8)
 
-    def ident(self, order: Union[int, Tuple[int, ...]]) -> LTIModel:
+    def _ident(self, order: Union[int, Tuple[int, ...]]) -> LTIModel:
         """
         Identify the model using Adam optimizer.
         """

@@ -56,7 +56,7 @@ class ARX(SysIdAlgBase):
         self.y = self.y.ravel()
         self.logger = logging.getLogger(__name__)
 
-    def ident(self, order: Tuple[int, int, int]) -> PolynomialModel:
+    def _ident(self, order: Tuple[int, int, int]) -> PolynomialModel:
         """
         Identify the ARX model.
 
@@ -220,7 +220,7 @@ class FIR(ARX):
             settings = {}
         super().__init__(data, y_name, u_name, settings=settings)
 
-    def ident(self, order: Union[Tuple[int, int], Tuple[int, int, int]]) -> PolynomialModel:
+    def _ident(self, order: Union[Tuple[int, int], Tuple[int, int, int]]) -> PolynomialModel:
         """
         Identify the FIR model.
 
@@ -239,7 +239,7 @@ class FIR(ARX):
         else:
             raise ValueError("Order must be a tuple of 2 (nb, nk) or 3 (na, nb, nk) integers.")
 
-        return super().ident(tuple(order_list))
+        return super()._ident(tuple(order_list))
 
     @staticmethod
     def name() -> str:

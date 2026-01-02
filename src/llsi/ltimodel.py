@@ -6,9 +6,6 @@ from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
-import scipy.signal
-
-from .sysiddata import SysIdData
 
 
 class LTIModel(ABC):
@@ -45,6 +42,12 @@ class LTIModel(ABC):
         self.ny = ny
         self.input_names = input_names
         self.output_names = output_names
+
+        # Identification results
+        self.aic: Optional[float] = None
+        self.bic: Optional[float] = None
+        self.residuals: Optional[np.ndarray] = None
+        self.residuals_analysis: Optional[Dict[str, Any]] = None
 
     def impulse_response(
         self, N: int = 100, uncertainty: bool = False
@@ -185,163 +188,6 @@ class LTIModel(ABC):
         y_hat = self.simulate(u)
         # NRMSE returns error ratio, so 1 - NRMSE is the fit
         return 1.0 - self.NRMSE(y, y_hat)
-
-    def compute_residuals_analysis(self, data: SysIdData) -> Dict[str, Any]:
-        """
-        Compute residual analysis metrics (ACF, CCF) on validation data.
-
-        Args:
-            data: SysIdData object containing validation u and y.
-
-        Returns:
-            Dict containing:
-                'residuals': The residuals (y - y_hat)
-                'acf': Auto-correlation function of residuals (normalized)
-                'ccf': Cross-correlation function of residuals and input (normalized)
-                'lags': Lags for the correlations
-                'conf_interval': 99% confidence interval value
-        """
-        u, y = data.to_io_data(self.input_names, self.output_names)
-
-        y_pred = self.simulate(u)
-        residuals = y - y_pred
-
-        # Use first output for summary analysis
-        res_i = residuals[:, 0]
-        res_i_centered = res_i - np.mean(res_i)
-
-        # ACF
-        acf = scipy.signal.correlate(res_i_centered, res_i_centered, mode="full")
-        if np.max(acf) > 0:
-            acf = acf / np.max(acf)  # Normalize
-        lags = scipy.signal.correlation_lags(len(res_i_centered), len(res_i_centered))
-
-        # CCF (Input 0 vs Residuals)
-        u_0 = u[:, 0]
-        u_0_centered = u_0 - np.mean(u_0)
-        ccf = scipy.signal.correlate(res_i_centered, u_0_centered, mode="full")
-        # Normalize CCF
-        denom = np.std(res_i_centered) * np.std(u_0_centered) * len(res_i_centered)
-        if denom > 0:
-            ccf = ccf / denom
-        else:
-            ccf = np.zeros_like(ccf)
-
-        # Handle NaNs in CCF (e.g. if std is NaN)
-        if np.any(np.isnan(ccf)):
-            ccf = np.nan_to_num(ccf)
-
-        # Confidence interval (99%)
-        N = len(residuals)
-        conf_interval = 2.58 / np.sqrt(N)
-
-        return {
-            "residuals": residuals,
-            "acf": acf,
-            "ccf": ccf,
-            "lags": lags,
-            "conf_interval": conf_interval,
-        }
-
-    def aic(self, data: SysIdData) -> float:
-        """
-        Calculate the Akaike Information Criterion (AIC).
-
-        The AIC is a measure of the quality of a statistical model for a given set of data.
-        It estimates the quality of each model, relative to each of the other models.
-
-        Formula:
-            $AIC = N \\ln(SSE/N) + 2k$
-
-        where:
-        - $N$ is the number of samples.
-        - $SSE$ is the sum of squared errors.
-        - $k$ is the number of estimated parameters.
-
-        Args:
-            data: Validation data (SysIdData).
-
-        Returns:
-            float: The AIC value.
-        """
-        return self._information_criterion(data, penalty_factor=2.0)
-
-    def bic(self, data: SysIdData) -> float:
-        """
-        Calculate the Bayesian Information Criterion (BIC).
-
-        The BIC is a criterion for model selection among a finite set of models;
-        the model with the lowest BIC is preferred. It is based, in part, on the likelihood function
-        and it is closely related to the Akaike information criterion (AIC).
-
-        Formula:
-            $BIC = N \\ln(SSE/N) + k \\ln(N)$
-
-        where:
-        - $N$ is the number of samples.
-        - $SSE$ is the sum of squared errors.
-        - $k$ is the number of estimated parameters.
-
-        Args:
-            data: Validation data (SysIdData).
-
-        Returns:
-            float: The BIC value.
-        """
-        # For BIC, penalty is ln(N)
-        # We need N first, so we can't just pass a constant penalty factor
-        # unless we extract N inside _information_criterion.
-        # Let's implement logic here or make _information_criterion flexible.
-
-        # Extract u and y
-        u, y = data.to_io_data(self.input_names, self.output_names)
-        N = len(y)
-
-        return self._information_criterion(data, penalty_factor=np.log(N))
-
-    def _information_criterion(self, data: SysIdData, penalty_factor: float) -> float:
-        """
-        Calculate information criterion.
-
-        IC = N * ln(SSE/N) + k * penalty_factor
-        """
-        u, y = data.to_io_data(self.input_names, self.output_names)
-        N = len(y)
-
-        y_hat = self.simulate(u)
-        e = self.residuals(y, y_hat)
-        sse = self.SSE(e)
-
-        # Number of parameters k
-        # This depends on the model type.
-        # We can try to use vectorize() to count parameters if available.
-        try:
-            if hasattr(self, "vectorize"):
-                k = len(self.vectorize())
-            else:
-                # Fallback or raise error
-                # For StateSpace: k = nx*nx + nx*nu + ny*nx + ny*nu + nx (x0)
-                # For Polynomial: k = na + nb
-                raise NotImplementedError("Model must implement vectorize() or provide parameter count.")
-        except Exception:
-            # If vectorize is not implemented or fails, try to deduce
-            if hasattr(self, "nx"):  # StateSpace
-                nx = self.nx
-                nu = self.nu
-                ny = self.ny
-                k = nx * nx + nx * nu + ny * nx + ny * nu + nx  # +nx for x0
-            elif hasattr(self, "na") and hasattr(self, "nb"):  # Polynomial
-                k = self.na + self.nb
-            else:
-                k = 0  # Should not happen for implemented models
-
-        # Handle SSE=0 (perfect fit)
-        if sse <= 0:
-            term1 = -np.inf
-        else:
-            term1 = N * np.log(sse / N)
-
-        return term1 + k * penalty_factor
 
     @staticmethod
     def residuals(y: np.ndarray, y_hat: np.ndarray) -> np.ndarray:

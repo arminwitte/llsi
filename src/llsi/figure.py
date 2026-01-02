@@ -18,6 +18,7 @@ except ImportError:
 
 from .ltimodel import LTIModel
 from .statespacemodel import StateSpaceModel
+from .sysidalgbase import compute_residuals_analysis
 from .sysiddata import SysIdData
 
 
@@ -331,7 +332,7 @@ class Figure:
             mod = mod[0]
 
         try:
-            res_analysis = mod.compute_residuals_analysis(data)
+            res_analysis = compute_residuals_analysis(mod, data)
         except ValueError:
             return
 
@@ -367,7 +368,7 @@ class Figure:
             mod = mod[0]
 
         try:
-            res_analysis = mod.compute_residuals_analysis(data)
+            res_analysis = compute_residuals_analysis(mod, data)
         except ValueError:
             return
 

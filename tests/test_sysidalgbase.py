@@ -1,10 +1,11 @@
 import numpy as np
 
+from llsi.ltimodel import LTIModel
 from llsi.sysidalgbase import SysIdAlgBase
 
 
 class ConcreteSysIdAlg(SysIdAlgBase):
-    def ident(self, order):
+    def _ident(self, order):
         pass
 
     @staticmethod
@@ -45,5 +46,5 @@ def test_sse():
     # Error: -0.1, 0.1, 0.0
     # SSE: 0.01 + 0.01 + 0 = 0.02
 
-    sse = SysIdAlgBase._sse(y, y_hat)
+    sse = LTIModel.SSE(y - y_hat)
     assert np.isclose(sse, 0.02)
