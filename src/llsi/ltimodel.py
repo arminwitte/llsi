@@ -3,10 +3,9 @@ Linear Time-Invariant (LTI) Model base class.
 """
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
-import scipy.signal
 
 
 class LTIModel(ABC):
@@ -44,15 +43,27 @@ class LTIModel(ABC):
         self.input_names = input_names
         self.output_names = output_names
 
-    def impulse_response(self, N: int = 100) -> Tuple[np.ndarray, np.ndarray]:
+        # Identification results
+        self.aic: Optional[float] = None
+        self.bic: Optional[float] = None
+        self.residuals: Optional[np.ndarray] = None
+        self.residuals_analysis: Optional[Dict[str, Any]] = None
+
+    def impulse_response(
+        self, N: int = 100, uncertainty: bool = False
+    ) -> Union[Tuple[np.ndarray, np.ndarray], Tuple[np.ndarray, np.ndarray, np.ndarray]]:
         """
         Simulate the impulse response of the system.
 
         Args:
             N: Number of time steps to simulate.
+            uncertainty: If True, return standard deviation of the response.
 
         Returns:
-            Tuple[np.ndarray, np.ndarray]: Time vector and output response.
+            If uncertainty is False:
+                Tuple[np.ndarray, np.ndarray]: Time vector and output response.
+            If uncertainty is True:
+                Tuple[np.ndarray, np.ndarray, np.ndarray]: Time vector, output response, and standard deviation.
         """
         t = np.linspace(0, (N - 1) * self.Ts, N)
         u = np.zeros((N, self.nu))
@@ -61,24 +72,106 @@ class LTIModel(ABC):
 
         y = self.simulate(u)
 
+        if uncertainty:
+            if not hasattr(self, "cov") or self.cov is None:
+                return t, y, None
+
+            def func():
+                return self.simulate(u).ravel()
+
+            y_std = self._propagate_uncertainty(func)
+            y_std = y_std.reshape(y.shape)
+            return t, y, y_std
+
         return t, y
 
-    def step_response(self, N: int = 100) -> Tuple[np.ndarray, np.ndarray]:
+    def step_response(
+        self, N: int = 100, uncertainty: bool = False
+    ) -> Union[Tuple[np.ndarray, np.ndarray], Tuple[np.ndarray, np.ndarray, np.ndarray]]:
         """
         Simulate the step response of the system.
 
         Args:
             N: Number of time steps to simulate.
+            uncertainty: If True, return standard deviation of the response.
 
         Returns:
-            Tuple[np.ndarray, np.ndarray]: Time vector and output response.
+            If uncertainty is False:
+                Tuple[np.ndarray, np.ndarray]: Time vector and output response.
+            If uncertainty is True:
+                Tuple[np.ndarray, np.ndarray, np.ndarray]: Time vector, output response, and standard deviation.
         """
         t = np.linspace(0, (N - 1) * self.Ts, N)
         u = np.ones((N, self.nu))
 
         y = self.simulate(u)
 
+        if uncertainty:
+            if not hasattr(self, "cov") or self.cov is None:
+                return t, y, None
+
+            def func():
+                return self.simulate(u).ravel()
+
+            y_std = self._propagate_uncertainty(func)
+            y_std = y_std.reshape(y.shape)
+            return t, y, y_std
+
         return t, y
+
+    def _propagate_uncertainty(self, func) -> np.ndarray:
+        """
+        Compute standard deviation of func() output using error propagation.
+
+        Args:
+            func: Callable that returns a 1D array (or scalar).
+                  It should use the model's current parameters.
+
+        Returns:
+            std: Standard deviation of the output (same shape as func output).
+        """
+        if not hasattr(self, "vectorize") or not hasattr(self, "reshape"):
+            raise NotImplementedError("Model must implement vectorize() and reshape() for uncertainty propagation.")
+
+        theta_opt = self.vectorize()
+        n_params = len(theta_opt)
+        epsilon = 1e-8
+
+        # Compute nominal output
+        y_nominal = func()
+        n_out = y_nominal.size
+
+        # Compute Jacobian
+        # Handle complex output if necessary, though currently we wrap to real
+        is_complex = np.iscomplexobj(y_nominal)
+        dtype = np.complex128 if is_complex else np.float64
+
+        J = np.zeros((n_out, n_params), dtype=dtype)
+
+        for i in range(n_params):
+            theta_perturbed = theta_opt.copy()
+            theta_perturbed[i] += epsilon
+
+            self.reshape(theta_perturbed)
+            y_perturbed = func()
+
+            J[:, i] = (y_perturbed - y_nominal) / epsilon
+
+        # Restore parameters
+        self.reshape(theta_opt)
+
+        # Compute variance: diag(J @ cov @ J.T)
+        cov = self.cov
+
+        if is_complex:
+            var = np.sum((J @ cov) * np.conj(J), axis=1)
+            var = np.real(var)
+        else:
+            var = np.sum((J @ cov) * J, axis=1)
+
+        var = np.maximum(var, 0.0)
+
+        return np.sqrt(var)
 
     def compare(self, y: np.ndarray, u: np.ndarray) -> float:
         """
@@ -95,201 +188,6 @@ class LTIModel(ABC):
         y_hat = self.simulate(u)
         # NRMSE returns error ratio, so 1 - NRMSE is the fit
         return 1.0 - self.NRMSE(y, y_hat)
-
-    def compute_residuals_analysis(self, data: Any) -> Dict[str, Any]:
-        """
-        Compute residual analysis metrics (ACF, CCF) on validation data.
-
-        Args:
-            data: SysIdData object containing validation u and y.
-
-        Returns:
-            Dict containing:
-                'residuals': The residuals (y - y_hat)
-                'acf': Auto-correlation function of residuals (normalized)
-                'ccf': Cross-correlation function of residuals and input (normalized)
-                'lags': Lags for the correlations
-                'conf_interval': 99% confidence interval value
-        """
-        u, y = self._extract_data(data)
-
-        y_pred = self.simulate(u)
-        residuals = y - y_pred
-
-        # Use first output for summary analysis
-        res_i = residuals[:, 0]
-        res_i_centered = res_i - np.mean(res_i)
-
-        # ACF
-        acf = scipy.signal.correlate(res_i_centered, res_i_centered, mode="full")
-        if np.max(acf) > 0:
-            acf = acf / np.max(acf)  # Normalize
-        lags = scipy.signal.correlation_lags(len(res_i_centered), len(res_i_centered))
-
-        # CCF (Input 0 vs Residuals)
-        u_0 = u[:, 0]
-        u_0_centered = u_0 - np.mean(u_0)
-        ccf = scipy.signal.correlate(res_i_centered, u_0_centered, mode="full")
-        # Normalize CCF
-        denom = np.std(res_i_centered) * np.std(u_0_centered) * len(res_i_centered)
-        if denom > 0:
-            ccf = ccf / denom
-        else:
-            ccf = np.zeros_like(ccf)
-
-        # Handle NaNs in CCF (e.g. if std is NaN)
-        if np.any(np.isnan(ccf)):
-            ccf = np.nan_to_num(ccf)
-
-        # Confidence interval (99%)
-        N = len(residuals)
-        conf_interval = 2.58 / np.sqrt(N)
-
-        return {
-            "residuals": residuals,
-            "acf": acf,
-            "ccf": ccf,
-            "lags": lags,
-            "conf_interval": conf_interval,
-        }
-
-    def aic(self, data: Any) -> float:
-        """
-        Calculate the Akaike Information Criterion (AIC).
-
-        The AIC is a measure of the quality of a statistical model for a given set of data.
-        It estimates the quality of each model, relative to each of the other models.
-
-        Formula:
-            $AIC = N \\ln(SSE/N) + 2k$
-
-        where:
-        - $N$ is the number of samples.
-        - $SSE$ is the sum of squared errors.
-        - $k$ is the number of estimated parameters.
-
-        Args:
-            data: Validation data (SysIdData or object with u, y).
-
-        Returns:
-            float: The AIC value.
-        """
-        return self._information_criterion(data, penalty_factor=2.0)
-
-    def bic(self, data: Any) -> float:
-        """
-        Calculate the Bayesian Information Criterion (BIC).
-
-        The BIC is a criterion for model selection among a finite set of models;
-        the model with the lowest BIC is preferred. It is based, in part, on the likelihood function
-        and it is closely related to the Akaike information criterion (AIC).
-
-        Formula:
-            $BIC = N \\ln(SSE/N) + k \\ln(N)$
-
-        where:
-        - $N$ is the number of samples.
-        - $SSE$ is the sum of squared errors.
-        - $k$ is the number of estimated parameters.
-
-        Args:
-            data: Validation data (SysIdData or object with u, y).
-
-        Returns:
-            float: The BIC value.
-        """
-        # For BIC, penalty is ln(N)
-        # We need N first, so we can't just pass a constant penalty factor
-        # unless we extract N inside _information_criterion.
-        # Let's implement logic here or make _information_criterion flexible.
-
-        # Extract u and y
-        u, y = self._extract_data(data)
-        N = len(y)
-
-        return self._information_criterion(data, penalty_factor=np.log(N))
-
-    def _extract_data(self, data: Any) -> Tuple[np.ndarray, np.ndarray]:
-        """Helper to extract u and y from data object."""
-        # Case 1: Object has .u and .y attributes
-        if hasattr(data, "u") and hasattr(data, "y"):
-            u = np.atleast_2d(data.u)
-            y = np.atleast_2d(data.y)
-            return u, y
-
-        # Case 2: Use model's input/output names
-        if self.input_names and self.output_names:
-            try:
-                u_list = [data[name] for name in self.input_names]
-                u = np.column_stack(u_list)
-                y_list = [data[name] for name in self.output_names]
-                y = np.column_stack(y_list)
-                return u, y
-            except (KeyError, TypeError):
-                pass  # Fall through
-
-        # Case 3: Try default 'u' and 'y' keys
-        try:
-            u = data["u"]
-            y = data["y"]
-            # Ensure 2D (N, 1) if 1D
-            if u.ndim == 1:
-                u = u.reshape(-1, 1)
-            if y.ndim == 1:
-                y = y.reshape(-1, 1)
-            return u, y
-        except (KeyError, TypeError, AttributeError):
-            pass
-
-        raise ValueError(
-            "Could not extract 'u' and 'y' from data. "
-            "Ensure data object has 'u'/'y' attributes, or 'u'/'y' keys, "
-            "or model has input_names/output_names matching data keys."
-        )
-
-    def _information_criterion(self, data: Any, penalty_factor: float) -> float:
-        """
-        Calculate information criterion.
-
-        IC = N * ln(SSE/N) + k * penalty_factor
-        """
-        u, y = self._extract_data(data)
-        N = len(y)
-
-        y_hat = self.simulate(u)
-        e = self.residuals(y, y_hat)
-        sse = self.SSE(e)
-
-        # Number of parameters k
-        # This depends on the model type.
-        # We can try to use vectorize() to count parameters if available.
-        try:
-            if hasattr(self, "vectorize"):
-                k = len(self.vectorize())
-            else:
-                # Fallback or raise error
-                # For StateSpace: k = nx*nx + nx*nu + ny*nx + ny*nu + nx (x0)
-                # For Polynomial: k = na + nb
-                raise NotImplementedError("Model must implement vectorize() or provide parameter count.")
-        except Exception:
-            # If vectorize is not implemented or fails, try to deduce
-            if hasattr(self, "nx"):  # StateSpace
-                nx = self.nx
-                nu = self.nu
-                ny = self.ny
-                k = nx * nx + nx * nu + ny * nx + ny * nu + nx  # +nx for x0
-            elif hasattr(self, "na") and hasattr(self, "nb"):  # Polynomial
-                k = self.na + self.nb
-            else:
-                k = 0  # Should not happen for implemented models
-
-        # Handle SSE=0 (perfect fit)
-        if sse <= 0:
-            term1 = -np.inf
-        else:
-            term1 = N * np.log(sse / N)
-
-        return term1 + k * penalty_factor
 
     @staticmethod
     def residuals(y: np.ndarray, y_hat: np.ndarray) -> np.ndarray:
@@ -348,27 +246,41 @@ class LTIModel(ABC):
         return float(nrmse)
 
     @abstractmethod
-    def simulate(self, u: np.ndarray) -> np.ndarray:
+    def simulate(self, u: np.ndarray, uncertainty: bool = False) -> Union[np.ndarray, Tuple[np.ndarray, np.ndarray]]:
         """
         Simulate the model response to input u.
 
         Args:
             u: Input signal array of shape (N, nu).
+            uncertainty: If True, return standard deviation of the response.
 
         Returns:
-            np.ndarray: Output signal array of shape (N, ny).
+            If uncertainty is False:
+                np.ndarray: Output signal array of shape (N, ny).
+            If uncertainty is True:
+                Tuple[np.ndarray, np.ndarray]: Output signal and standard deviation.
         """
         pass
 
     @abstractmethod
-    def frequency_response(self, omega: Optional[np.ndarray] = None) -> Tuple[np.ndarray, np.ndarray]:
+    def frequency_response(
+        self, omega: Optional[np.ndarray] = None, uncertainty: bool = False
+    ) -> Union[
+        Tuple[np.ndarray, np.ndarray],
+        Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray],
+    ]:
         """
         Calculate frequency response.
 
         Args:
             omega: Frequency vector (rad/s). If None, a default range is used.
+            uncertainty: If True, return standard deviation of magnitude and phase.
 
         Returns:
-            Tuple[np.ndarray, np.ndarray]: Frequency vector and complex response.
+            If uncertainty is False:
+                Tuple[np.ndarray, np.ndarray]: Frequency vector and complex response.
+            If uncertainty is True:
+                Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+                    Frequency vector, complex response, magnitude std, phase std.
         """
         pass

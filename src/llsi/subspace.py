@@ -313,7 +313,7 @@ class N4SID(SubspaceIdent):
             # Original code raised this. Keeping it for safety, though N4SID supports MIMO.
             raise NotImplementedError("n4sid not implemented for multiple inputs or outputs.")
 
-    def ident(self, order: Union[int, Tuple[int, ...]]) -> StateSpaceModel:
+    def _ident(self, order: Union[int, Tuple[int, ...]]) -> StateSpaceModel:
         if isinstance(order, (tuple, list)):
             n = order[0]
         else:
@@ -392,7 +392,7 @@ class PO_MOESP(SubspaceIdent):
         # Then estimate A, B, C, and D in one go.
         # (Tangirala 2014)
 
-    def ident(self, order: Union[int, Tuple[int, ...]]) -> StateSpaceModel:
+    def _ident(self, order: Union[int, Tuple[int, ...]]) -> StateSpaceModel:
         # Tangirala 2014
         # Algorithm 23.3
         if isinstance(order, (tuple, list)):

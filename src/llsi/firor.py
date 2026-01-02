@@ -48,7 +48,7 @@ class FIROR(SysIdAlgBase):
         self.alg_inst = ARX(data, y_name, u_name, settings={"lambda": lmb})
         self.logger = logging.getLogger(__name__)
 
-    def ident(self, order: int) -> StateSpaceModel:
+    def _ident(self, order: int) -> StateSpaceModel:
         """
         Identify the State-Space model.
 

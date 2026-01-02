@@ -130,7 +130,7 @@ class StateSpaceModel(LTIModel):
         if include_init_state:
             self.x_init = theta[na + nb + nc + nd :].reshape(nx, 1)
 
-    def simulate(self, u: np.ndarray) -> np.ndarray:
+    def simulate(self, u: np.ndarray, uncertainty: bool = False) -> Union[np.ndarray, Tuple[np.ndarray, np.ndarray]]:
         """Simulate the model."""
         u = np.atleast_2d(u)
         if u.shape[0] != self.nu:
@@ -184,9 +184,41 @@ class StateSpaceModel(LTIModel):
             x1.astype(np.float64),
         )
         # y is returned as (N, ny) from evaluate_state_space
+
+        if uncertainty:
+            if not hasattr(self, "cov") or self.cov is None:
+                return y, None
+
+            # Ensure u is correct shape for closure
+            # We need to pass the original u (or close to it) to the closure
+            # But we modified u above.
+            # Let's just use the modified u, but we need to be careful about recursion.
+            # Actually, evaluate_state_space is static/external, so we can just wrap that?
+            # No, _propagate_uncertainty perturbs parameters (A, B, C, D) and calls func().
+            # So func() needs to call simulate() or evaluate_state_space() with NEW parameters.
+            # Calling self.simulate(..., uncertainty=False) is the right way.
+            # But we need to pass the original input format if possible, or the processed one?
+            # If we pass processed u (nu, N), simulate might try to process it again.
+            # If we pass (nu, N), simulate checks:
+            # if u.shape[0] == self.nu: pass. So it works.
+
+            u_for_closure = u.copy()
+
+            def func():
+                return self.simulate(u_for_closure, uncertainty=False).ravel()
+
+            y_std = self._propagate_uncertainty(func)
+            y_std = y_std.reshape(y.shape)
+            return y, y_std
+
         return y
 
-    def frequency_response(self, omega: np.ndarray = np.logspace(-3, 2)) -> Tuple[np.ndarray, np.ndarray]:
+    def frequency_response(
+        self, omega: np.ndarray = np.logspace(-3, 2), uncertainty: bool = False
+    ) -> Union[
+        Tuple[np.ndarray, np.ndarray],
+        Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray],
+    ]:
         """Compute frequency response."""
         A = self.A
         B = self.B
@@ -198,6 +230,38 @@ class StateSpaceModel(LTIModel):
 
         # H(z) = C(zI - A)^-1 B + D
         # This loop is slow for many frequencies.
+        # Could use scipy.signal.freqresp if we convert to ss.
+
+        eye = np.eye(A.shape[0])
+        for z_ in z:
+            # Solve (zI - A) X = B -> X = (zI - A)^-1 B
+            # Then H = C X + D
+            try:
+                X = scipy.linalg.solve(z_ * eye - A, B)
+                h = C @ X + D
+            except scipy.linalg.LinAlgError:
+                h = np.full((self.ny, self.nu), np.nan)
+            H.append(h)
+
+        H_arr = np.array(H)
+
+        if uncertainty:
+            if not hasattr(self, "cov") or self.cov is None:
+                return omega, H_arr, None, None
+
+            def func():
+                _, H_ = self.frequency_response(omega, uncertainty=False)
+                H_ = H_.ravel()
+                return np.concatenate([np.abs(H_), np.unwrap(np.angle(H_))])
+
+            std = self._propagate_uncertainty(func)
+            n = H_arr.size
+            mag_std = std[:n].reshape(H_arr.shape)
+            phase_std = std[n:].reshape(H_arr.shape)
+
+            return omega, H_arr, mag_std, phase_std
+
+        return omega, H_arr
         # Could use scipy.signal.freqresp if we convert to ss.
 
         eye = np.eye(A.shape[0])

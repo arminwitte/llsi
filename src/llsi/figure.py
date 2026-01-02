@@ -18,6 +18,7 @@ except ImportError:
 
 from .ltimodel import LTIModel
 from .statespacemodel import StateSpaceModel
+from .sysidalgbase import compute_residuals_analysis
 from .sysiddata import SysIdData
 
 
@@ -165,36 +166,83 @@ class Figure:
     @staticmethod
     def _impulse(fig: MplFigure, ax: Axes, lti_mod: LTIModel, col: str = "#1f77b4"):
         if isinstance(lti_mod, LTIModel):
-            t, y = lti_mod.impulse_response(N=200)
+            res = lti_mod.impulse_response(N=200, uncertainty=True)
+            if len(res) == 3:
+                t, y, y_std = res
+            else:
+                t, y = res
+                y_std = None
+
             markerline, stemlines, baseline = ax.stem(t, y)
             plt.setp(stemlines, "color", col)
             plt.setp(markerline, "color", col)
+
+            if y_std is not None:
+                y = y.ravel()
+                y_std = y_std.ravel()
+                # Plot confidence region around y=0 (significance band)
+                ax.fill_between(t, -2 * y_std, 2 * y_std, color=col, alpha=0.2)
+
             ax.set_title("Impulse response")
             ax.grid(True, alpha=0.3)
 
     @staticmethod
     def _step(fig: MplFigure, ax: Axes, lti_mod: LTIModel, col: str = "#1f77b4"):
         if isinstance(lti_mod, LTIModel):
-            t, y = lti_mod.step_response(N=200)
+            res = lti_mod.step_response(N=200, uncertainty=True)
+            if len(res) == 3:
+                t, y, y_std = res
+            else:
+                t, y = res
+                y_std = None
+
             ax.step(t, y, where="post", color=col)
+
+            if y_std is not None:
+                y = y.ravel()
+                y_std = y_std.ravel()
+                try:
+                    ax.fill_between(t, y - 2 * y_std, y + 2 * y_std, color=col, alpha=0.2, step="post")
+                except (AttributeError, TypeError):
+                    ax.fill_between(t, y - 2 * y_std, y + 2 * y_std, color=col, alpha=0.2)
+
             ax.set_title("Step response")
             ax.grid(True, alpha=0.3)
 
     @staticmethod
     def _frequency(fig: MplFigure, ax: Axes, lti_mod: LTIModel, col: str = "#1f77b4"):
         if isinstance(lti_mod, LTIModel):
-            omega, H = lti_mod.frequency_response()
+            res = lti_mod.frequency_response(uncertainty=True)
+            if len(res) == 4:
+                omega, H, mag_std, phase_std = res
+            else:
+                omega, H = res
+                mag_std = None
+                phase_std = None
+
             H = H.squeeze()
+            mag = np.abs(H.ravel())
+            phase = np.angle(H.ravel())
 
             ax2 = ax.twinx()
 
-            ax.plot(omega.ravel(), np.abs(H.ravel()), color=col, label="Magnitude")
+            ax.plot(omega.ravel(), mag, color=col, label="Magnitude")
+
+            if mag_std is not None:
+                mag_std = mag_std.ravel()
+                ax.fill_between(omega.ravel(), mag - 2 * mag_std, mag + 2 * mag_std, color=col, alpha=0.2)
+
             ax.set_ylabel("Magnitude")
             ax.set_xlabel("Frequency [rad/s]")
             ax.set_title("Frequency response")
             ax.grid(True, alpha=0.3)
 
-            ax2.plot(omega, np.angle(H.ravel()), linestyle="dashed", color=col, alpha=0.6, label="Phase")
+            ax2.plot(omega, phase, linestyle="dashed", color=col, alpha=0.6, label="Phase")
+
+            if phase_std is not None:
+                phase_std = phase_std.ravel()
+                ax2.fill_between(omega.ravel(), phase - 2 * phase_std, phase + 2 * phase_std, color=col, alpha=0.1)
+
             ax2.set_ylabel("Phase [rad]")
             ax2.set_yticks([-np.pi, -np.pi / 2, 0, np.pi / 2, np.pi])
             ax2.set_yticklabels([r"$-\pi$", r"$-\pi/2$", "0", r"$\pi/2$", r"$\pi$"])
@@ -244,9 +292,24 @@ class Figure:
             # Cycle colors for models
             c = plt.rcParams["axes.prop_cycle"].by_key()["color"][(i) % 10]
 
-            y_hat = m.simulate(data[u_name])
+            if isinstance(m, LTIModel):
+                res = m.simulate(data[u_name], uncertainty=True)
+                if len(res) == 2:
+                    y_hat, y_std = res
+                else:
+                    y_hat = res
+                    y_std = None
+            else:
+                y_hat = m.simulate(data[u_name])
+                y_std = None
+
             fit = m.compare(data[y_name], data[u_name])
             ax.plot(t, y_hat, color=c, label=f"Model {i + 1} (Fit={fit * 100:.1f}%)")
+
+            if y_std is not None:
+                y_hat = y_hat.ravel()
+                y_std = y_std.ravel()
+                ax.fill_between(t, y_hat - 2 * y_std, y_hat + 2 * y_std, color=c, alpha=0.2)
 
         ax.set_title("Model Comparison")
         ax.legend()
@@ -269,7 +332,7 @@ class Figure:
             mod = mod[0]
 
         try:
-            res_analysis = mod.compute_residuals_analysis(data)
+            res_analysis = compute_residuals_analysis(mod, data)
         except ValueError:
             return
 
@@ -305,7 +368,7 @@ class Figure:
             mod = mod[0]
 
         try:
-            res_analysis = mod.compute_residuals_analysis(data)
+            res_analysis = compute_residuals_analysis(mod, data)
         except ValueError:
             return
 

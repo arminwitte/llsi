@@ -6,8 +6,10 @@ Created on Sun Apr  4 21:11:47 2021
 """
 
 import matplotlib.pyplot as plt
+import numpy as np
 
 from llsi.figure import Figure
+from llsi.sysiddata import SysIdData
 
 
 def test_ss(ss_mod):
@@ -54,18 +56,11 @@ def test_data(data_siso_deterministic_stochastic):
 
 def test_residuals(poly_mod):
     # Create dummy data
-    import numpy as np
-
     u = np.random.randn(100, 1)
     y = poly_mod.simulate(u)
     y_noisy = y + 0.1 * np.random.randn(100, 1)
 
-    class Data:
-        pass
-
-    data = Data()
-    data.u = u
-    data.y = y_noisy
+    data = SysIdData(Ts=1.0, u=u, y=y_noisy)
 
     with Figure() as fig:
         fig.plot({"mod": poly_mod, "data": data}, "residuals")
