@@ -4,7 +4,7 @@ Data container for system identification.
 
 import copy
 import logging
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, Optional, Tuple
 
 import numpy as np
 import scipy.interpolate
@@ -97,49 +97,6 @@ class SysIdData:
                 return np.array([])
             t_start = self.t_start
             return t_start + np.arange(self.N) * self.Ts
-
-    def to_io_data(
-        self,
-        input_names: Optional[Union[str, List[str]]] = None,
-        output_names: Optional[Union[str, List[str]]] = None,
-    ) -> Tuple[np.ndarray, np.ndarray]:
-        """
-        Extract input and output data matrices.
-
-        Args:
-            input_names: Name(s) of input series. Defaults to ["u"].
-            output_names: Name(s) of output series. Defaults to ["y"].
-
-        Returns:
-            Tuple[np.ndarray, np.ndarray]: Input matrix u and output matrix y.
-        """
-        if input_names is None:
-            input_names = ["u"]
-        elif isinstance(input_names, str):
-            input_names = [input_names]
-        elif len(input_names) == 0:
-            input_names = ["u"]
-
-        if output_names is None:
-            output_names = ["y"]
-        elif isinstance(output_names, str):
-            output_names = [output_names]
-        elif len(output_names) == 0:
-            output_names = ["y"]
-
-        try:
-            u_list = [self.series[name] for name in input_names]
-            y_list = [self.series[name] for name in output_names]
-        except KeyError as e:
-            raise ValueError(
-                f"Could not extract data. Missing series: {e}. "
-                f"Requested inputs {input_names} and outputs {output_names}."
-            ) from e
-
-        u = np.column_stack(u_list)
-        y = np.column_stack(y_list)
-
-        return u, y
 
     def equidistant(self, N: Optional[int] = None) -> None:
         """

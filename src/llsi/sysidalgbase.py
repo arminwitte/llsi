@@ -171,7 +171,10 @@ def compute_residuals_analysis(model: LTIModel, data: SysIdData) -> Dict[str, An
             'lags': Lags for the correlations
             'conf_interval': 99% confidence interval value
     """
-    u, y = data.to_io_data(model.input_names, model.output_names)
+    input_names = model.input_names if model.input_names else ["u"]
+    output_names = model.output_names if model.output_names else ["y"]
+    u = np.column_stack([data[name] for name in input_names])
+    y = np.column_stack([data[name] for name in output_names])
     return _compute_residuals_analysis_arrays(model, u, y)
 
 
@@ -250,13 +253,19 @@ def bic(model: LTIModel, data: SysIdData) -> float:
     Returns:
         float: The BIC value.
     """
-    u, y = data.to_io_data(model.input_names, model.output_names)
+    input_names = model.input_names if model.input_names else ["u"]
+    output_names = model.output_names if model.output_names else ["y"]
+    u = np.column_stack([data[name] for name in input_names])
+    y = np.column_stack([data[name] for name in output_names])
     N = len(y)
     return _information_criterion_arrays(model, u, y, penalty_factor=np.log(N))
 
 
 def _information_criterion(model: LTIModel, data: SysIdData, penalty_factor: float) -> float:
-    u, y = data.to_io_data(model.input_names, model.output_names)
+    input_names = model.input_names if model.input_names else ["u"]
+    output_names = model.output_names if model.output_names else ["y"]
+    u = np.column_stack([data[name] for name in input_names])
+    y = np.column_stack([data[name] for name in output_names])
     return _information_criterion_arrays(model, u, y, penalty_factor)
 
 
