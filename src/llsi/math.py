@@ -63,3 +63,54 @@ def evaluate_state_space(
         x = A @ x + B @ ui
 
     return y
+
+
+# PRBS core implementation moved here so numba-decorated functions live in math.py
+def _prbs_core(N: int, seed: int) -> np.ndarray:
+    state = int(seed) & 0x7FFFFFFF
+    if state == 0:
+        state = 1
+    u = np.empty(N, dtype=np.float64)
+    for i in range(N):
+        # output MSB-like bit to match previous implementation ordering
+        u[i] = float((state >> 0) & 1)
+        # taps for PRBS31: x^31 + x^28 + 1 -> taps at bit positions 30 and 27 (0-based)
+        feedback = ((state >> 30) ^ (state >> 27)) & 1
+        state = ((state << 1) & 0x7FFFFFFF) | feedback
+    return u
+
+# If numba is available, JIT compile the PRBS core
+try:
+    from numba import njit as _njit
+
+    _prbs_core = _njit(_prbs_core)
+except Exception:
+    # numba not available; keep Python implementation
+    pass
+
+# Public alias
+prbs_core = _prbs_core
+
+
+def prbs31(code: int) -> int:
+    """PRBS31 generator step."""
+    for _ in range(32):
+        next_bit = ~((code >> 30) ^ (code >> 27)) & 0x01
+        code = ((code << 1) | next_bit) & 0xFFFFFFFF
+    return code
+
+
+def prbs31_fast(code: int) -> int:
+    """Fast PRBS31 generator step."""
+    next_code = ~((code << 1) ^ (code << 4)) & 0xFFFFFFF0
+    next_code |= ~(((code << 1 & 0x0E) | (next_code >> 31 & 0x01)) ^ (next_code >> 28)) & 0x0000000F
+    return next_code
+
+# Attempt to JIT compile the small helpers too
+try:
+    _prbs31 = _njit(prbs31)
+    _prbs31_fast = _njit(prbs31_fast)
+    prbs31 = _prbs31
+    prbs31_fast = _prbs31_fast
+except Exception:
+    pass

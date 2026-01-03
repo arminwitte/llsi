@@ -262,7 +262,7 @@ class Figure:
 
     @staticmethod
     def _time_series(fig: MplFigure, ax: Axes, data: SysIdData, col: str = "#1f77b4"):
-        t = data.time()
+        t = data.time
 
         for key, val in data.series.items():
             ax.plot(t, val, label=key)  # Use default colors for multiple series
@@ -285,7 +285,7 @@ class Figure:
         if data is None or y_name is None or u_name is None:
             return
 
-        t = data.time()
+        t = data.time
         ax.plot(t, data[y_name], "--k", label="Measured", alpha=0.6)
 
         for i, m in enumerate(mods):

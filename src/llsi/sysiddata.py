@@ -11,36 +11,8 @@ import numpy as np
 import scipy.interpolate
 import scipy.signal
 
-
-# Optional: Numba for PRBS performance
-try:
-    from numba import njit
-
-    HAS_NUMBA = True
-except Exception:  # pragma: no cover - environment dependent
-    HAS_NUMBA = False
-    # provide a no-op decorator so code can use @njit without branching later
-    def njit(f):
-        return f
-
-
-# PRBS core implementation. If Numba is available, the function will be JIT compiled.
-def _prbs_core(N: int, seed: int) -> np.ndarray:
-    state = int(seed) & 0x7FFFFFFF
-    if state == 0:
-        state = 1
-    u = np.empty(N, dtype=np.float64)
-    for i in range(N):
-        # output MSB-like bit to match previous implementation ordering
-        u[i] = float((state >> 0) & 1)
-        # taps for PRBS31: x^31 + x^28 + 1 -> taps at bit positions 30 and 27 (0-based)
-        feedback = ((state >> 30) ^ (state >> 27)) & 1
-        state = ((state << 1) & 0x7FFFFFFF) | feedback
-    return u
-
-
-if HAS_NUMBA:  # pragma: no cover - numba not present in CI often
-    _prbs_core = njit(_prbs_core)
+# PRBS helpers live in math.py (numba-decorated functions centralized there)
+from . import math as _math
 
 
 @dataclass
@@ -99,6 +71,12 @@ class SysIdData:
 
     def time(self) -> np.ndarray:
         """Get the time vector. If `t` is None, construct from `t_start` and `Ts`."""
+        # keep method for backwards compatibility
+        return self.time
+
+    @property
+    def time(self) -> np.ndarray:
+        """Time vector property. If `t` is None, construct from `t_start` and `Ts`."""
         if self.t is not None:
             return np.asarray(self.t)
         if self.N == 0:
@@ -148,7 +126,7 @@ class SysIdData:
         if N < target.N:
             target.logger.warning("Downsampling without filter! Aliasing may occur.")
 
-        t_current = np.asarray(target.time())
+        t_current = np.asarray(target.time)
         if t_current.size == 0:
             return target
 
@@ -287,7 +265,7 @@ class SysIdData:
                 "matplotlib is required for plotting. Install it with 'pip install llsi[plot]'."
             ) from None
 
-        t = self.time()
+        t = self.time
         n_series = len(self.series)
 
         fig, axes = plt.subplots(n_series, 1, sharex=True, figsize=(10, 2 * n_series))
@@ -318,32 +296,28 @@ class SysIdData:
         u = np.zeros((N,), dtype=float)
         t = np.linspace(0, Ts * N, num=N, endpoint=False)
 
-        code = seed
+        code = int(seed)
         i = 0
         while i < N:
-            code = SysIdData.prbs31(code)
+            # Advance the PRBS state using the centralized helper
+            code = _math.prbs31(code)
             bits = f"{code:b}"
             for s in bits:
                 if i >= N:
                     break
-                u[i] = float(s)
+                u[i] = float(int(s))
                 i += 1
         return t, u
 
     @staticmethod
     def prbs31(code: int) -> int:
-        """PRBS31 generator step."""
-        for _ in range(32):
-            next_bit = ~((code >> 30) ^ (code >> 27)) & 0x01
-            code = ((code << 1) | next_bit) & 0xFFFFFFFF
-        return code
+        """Delegate PRBS31 step to math.prbs31."""
+        return int(_math.prbs31(int(code)))
 
     @staticmethod
     def prbs31_fast(code: int) -> int:
-        """Fast PRBS31 generator step."""
-        next_code = ~((code << 1) ^ (code << 4)) & 0xFFFFFFF0
-        next_code |= ~(((code << 1 & 0x0E) | (next_code >> 31 & 0x01)) ^ (next_code >> 28)) & 0x0000000F
-        return next_code
+        """Delegate fast PRBS31 step to math.prbs31_fast."""
+        return int(_math.prbs31_fast(int(code)))
 
     def to_pandas(self) -> Any:
         """
@@ -358,7 +332,7 @@ class SysIdData:
             raise ImportError("pandas is required for this method. Install it with 'pip install llsi[data]'.") from None
 
         df = pd.DataFrame(self.series)
-        df.index = self.time()
+        df.index = self.time
         return df
 
     @classmethod

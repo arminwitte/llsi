@@ -21,14 +21,14 @@ def test_init():
     data = SysIdData(y=[1, 2, 3, 4, 5, 6], u=[1, 4, 9, 16, 25, 36], t=[1, 1.5, 2.5, 3.0, 3.3, 4.1])
     np.testing.assert_equal(data["y"], [1, 2, 3, 4, 5, 6])
     np.testing.assert_equal(data["u"], [1, 4, 9, 16, 25, 36])
-    np.testing.assert_equal(data.time(), [1, 1.5, 2.5, 3.0, 3.3, 4.1])
+    np.testing.assert_equal(data.time, [1, 1.5, 2.5, 3.0, 3.3, 4.1])
 
 
 def test_equidistant(data):
     data.equidistant()
     np.testing.assert_allclose(data["y"], [1.0, 2.12, 2.74, 3.72, 5.225, 6.0])
     np.testing.assert_allclose(data["u"], [1.0, 4.6, 7.7, 14.04, 27.475, 36.0])
-    np.testing.assert_allclose(data.time(), [1.0, 1.62, 2.24, 2.86, 3.48, 4.1])
+    np.testing.assert_allclose(data.time, [1.0, 1.62, 2.24, 2.86, 3.48, 4.1])
 
 
 def test_center(data):
@@ -46,7 +46,7 @@ def test_crop(data):
     data.crop(1, -1)
     np.testing.assert_equal(data["y"], [2, 3, 4, 5])
     np.testing.assert_equal(data["u"], [4, 9, 16, 25])
-    np.testing.assert_equal(data.time(), [1.5, 2.5, 3.0, 3.3])
+    np.testing.assert_equal(data.time, [1.5, 2.5, 3.0, 3.3])
 
 
 def test_generate_prbs():
@@ -61,7 +61,7 @@ def test_downsample():
     data.equidistant()
     data.downsample(2)
     assert data.Ts == 2.0
-    np.testing.assert_allclose(data.time()[14:17], [28.0, 30.0, 32.0])
+    np.testing.assert_allclose(data.time[14:17], [28.0, 30.0, 32.0])
     np.testing.assert_allclose(data["u"][14:17], [0.206036, 0.59716, 0.923016], rtol=1e-6)
 
 
@@ -107,7 +107,7 @@ def test_remove():
 def test_time_with_Ts_and_empty_series():
     d = SysIdData(Ts=0.5)
     assert d.N == 0
-    t = d.time()
+    t = d.time
     assert t.size == 0
 
 
@@ -189,7 +189,7 @@ def test_generate_prbs_length_and_time():
 def test_add_remove_and_time_misc():
     data = SysIdData(Ts=1.0, y=np.arange(5.0), u=np.arange(5.0) * 2)
     assert data.N == 5
-    t = data.time()
+    t = data.time
     assert np.allclose(t, np.arange(5.0))
 
     data.add_series(z=np.ones(5))
