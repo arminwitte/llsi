@@ -24,58 +24,17 @@ class AutoIdentResult:
     data: Any                  # The used SysIdData object (after resampling/centering)
     metrics: Dict[str, float]  # e.g. {'fit': 87.5}
     report: List[str] = field(default_factory=list) # Log of decision steps
+    singular_values: Optional[np.ndarray] = None # Hankel singular values from order estimation
 
     def summary(self):
         print(f"=== AutoIdent Result ===")
         print(f"Final Model Type: {type(self.model).__name__}")
         print(f"Metrics: {self.metrics}")
+        if self.singular_values is not None:
+            print(f"Singular Values (top 5): {self.singular_values[:5]}")
         print("Steps taken:")
         for line in self.report:
             print(f" > {line}")
-
-
-def compute_hankel_sv(data: SysIdData, horizon: int = 20) -> np.ndarray:
-    """
-    Compute Hankel singular values for order estimation.
-    Uses the logic from subspace identification (N4SID/PO-MOESP).
-    """
-    keys = list(data.series.keys())
-    y_names = sorted([k for k in keys if k.startswith("y") or k == "Nu"])
-    u_names = sorted([k for k in keys if k.startswith("u") or k == "Re"])
-    
-    if not y_names:
-        y_names = [k for k in keys if k not in u_names]
-    
-    if 'y' in data.series: y_names = ['y']
-    if 'u' in data.series: u_names = ['u']
-
-    y = np.column_stack([data.series[k] for k in y_names])
-    u = np.column_stack([data.series[k] for k in u_names])
-    
-    r = horizon
-    
-    Y = SubspaceIdent.hankel(y, 2 * r)
-    U = SubspaceIdent.hankel(u, 2 * r)
-    
-    Yp = Y[0:r, :]
-    Up = U[0:r, :]
-    
-    Yf = Y[r : 2 * r, :]
-    Uf = U[r : 2 * r, :]
-    
-    Wp = np.vstack((Up, Yp))
-    Psi = np.vstack((np.vstack((Uf, Wp)), Yf))
-    
-    L, _ = SubspaceIdent.lq(Psi)
-    
-    L22 = L[r : 3 * r, r : 3 * r]
-    L32 = L[3 * r : 4 * r, r : 3 * r]
-    
-    Gamma_r = L32 @ np.linalg.pinv(L22) @ Wp
-    
-    s = scipy.linalg.svd(Gamma_r, compute_uv=False)
-    
-    return s
 
 
 def find_gaps_in_sv(sv: np.ndarray, top_k: int = 3) -> List[int]:
@@ -147,7 +106,7 @@ def autoident(
     t: Optional[np.ndarray] = None, 
     Ts: Optional[float] = None, 
     max_freq: Optional[float] = None, 
-    order_hint: Optional[int] = None, 
+    order_hint: Optional[int] = 5, 
     result_type: str = 'state_space',  # 'state_space' or 'polynomial'
     effort: str = 'thorough'           # 'fast' or 'thorough'
 ) -> AutoIdentResult:
@@ -193,18 +152,25 @@ def autoident(
 
     train_data, val_data = data.split(proportion=0.7)
 
+    
+    keys = list(data.series.keys())
+    y_names_list = sorted([k for k in keys if k.startswith("y")])
+    u_names_list = sorted([k for k in keys if k.startswith("u")])
+    init_mod = sysid(train_data, y_names_list, u_names_list, order=order_hint, method='n4sid')
+
 
     # ---------------------------------------------------------
     # 2. ORDER ESTIMATION
     # ---------------------------------------------------------
     candidate_orders = []
+    sv_values = None
 
     if order_hint is not None:
         candidate_orders = sorted(list(set([max(1, order_hint-1), order_hint, order_hint+1])))
         report.append(f"Using order hint provided: checking {candidate_orders}")
     else:
         try:
-            sv_values = compute_hankel_sv(train_data, horizon=20) 
+            sv_values = init_mod.model.info.get("Hankel singular values")
             candidate_orders = find_gaps_in_sv(sv_values, top_k=3)
             report.append(f"SVD Analysis suggested orders: {candidate_orders}")
         except Exception as e:
@@ -219,10 +185,6 @@ def autoident(
     best_model = None
     best_score = -np.inf 
     winning_info = ""
-    
-    keys = list(data.series.keys())
-    y_names_list = sorted([k for k in keys if k.startswith("y")])
-    u_names_list = sorted([k for k in keys if k.startswith("u")])
     
     y_val = get_data_matrix(val_data, y_names_list)
     u_val = get_data_matrix(val_data, u_names_list)
@@ -310,14 +272,16 @@ def autoident(
         
         if result_type == 'polynomial' and is_ss:
             try:
-                final_model = final_model.to_transfer_function() 
+                final_model = final_model.to_tf()
+                final_model = PolynomialModel.from_scipy(final_model)
                 report.append("Converted StateSpace -> Polynomial.")
             except:
                 report.append("Conversion to Polynomial failed.")
                 
         elif result_type == 'state_space' and not is_ss:
             try:
-                final_model = final_model.to_state_space()
+                final_model = final_model.to_ss()
+                final_model = StateSpaceModel.from_scipy(final_model)
                 report.append("Converted Polynomial -> StateSpace.")
             except:
                 report.append("Conversion to StateSpace failed.")
@@ -330,5 +294,6 @@ def autoident(
         model=final_model,
         data=data,
         metrics={'fit': final_score},
-        report=report
+        report=report,
+        singular_values=sv_values
     )

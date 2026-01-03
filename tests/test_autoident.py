@@ -46,3 +46,24 @@ def test_autoident_heated_wire():
     assert res.model is not None
     # assert res.metrics['fit'] > 50.0 # Might vary depending on data quality and settings
 
+def test_autoident_poly(data_siso_deterministic, poly_mod):
+    res = llsi.autoident(data_siso_deterministic["u"], data_siso_deterministic["y"], Ts=1.0, effort='fast', order_hint=1, result_type="polynomial")
+    np.testing.assert_allclose(res.model.a, poly_mod.a, rtol=1e-3, atol=1e-3)
+
+def test_autoident_ss(data_siso_deterministic, ss_mod):
+    res = llsi.autoident(data_siso_deterministic["u"], data_siso_deterministic["y"], Ts=1.0, effort='fast', order_hint=1, result_type="state_space")
+    mod = res.model.to_controllable_form()
+    np.testing.assert_allclose(mod.A, ss_mod.A, rtol=1e-3, atol=1e-3)
+
+
+
+def test_autoident_poly_noise(data_siso_deterministic_stochastic, poly_mod):
+    res = llsi.autoident(data_siso_deterministic_stochastic["u"], data_siso_deterministic_stochastic["y"], Ts=1.0, effort='fast', order_hint=1, result_type="polynomial")
+    np.testing.assert_allclose(res.model.a, poly_mod.a, rtol=0.5, atol=0.5)
+
+
+
+def test_autoident_ss_noise(data_siso_deterministic_stochastic, ss_mod):
+    res = llsi.autoident(data_siso_deterministic_stochastic["u"], data_siso_deterministic_stochastic["y"], Ts=1.0, effort='fast', order_hint=1, result_type="state_space")
+    mod = res.model.to_controllable_form()
+    np.testing.assert_allclose(mod.A, ss_mod.A, rtol=0.5, atol=0.5)

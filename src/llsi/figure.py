@@ -20,6 +20,7 @@ from .ltimodel import LTIModel
 from .statespacemodel import StateSpaceModel
 from .sysidalgbase import compute_residuals_analysis
 from .sysiddata import SysIdData
+from .autoident import AutoIdentResult
 
 
 class Figure:
@@ -91,6 +92,8 @@ class Figure:
                     fun = self.registry["time_series"]
                 elif isinstance(obj, LTIModel):
                     fun = self.registry["impulse"]
+                elif isinstance(obj, AutoIdentResult):
+                    fun = self.registry["impulse"] # Default to impulse for result
                 else:
                     self.logger.warning(
                         f"for an object of type {type(obj)} a plot_type has to be specified explicitly!"
@@ -171,7 +174,10 @@ class Figure:
         self.counter += 1
 
     @staticmethod
-    def _impulse(fig: MplFigure, ax: Axes, lti_mod: LTIModel, col: str = "#1f77b4"):
+    def _impulse(fig: MplFigure, ax: Axes, lti_mod: Union[LTIModel, AutoIdentResult], col: str = "#1f77b4"):
+        if isinstance(lti_mod, AutoIdentResult):
+            lti_mod = lti_mod.model
+            
         if isinstance(lti_mod, LTIModel):
             res = lti_mod.impulse_response(N=200, uncertainty=True)
             if len(res) == 3:
@@ -194,7 +200,10 @@ class Figure:
             ax.grid(True, alpha=0.3)
 
     @staticmethod
-    def _step(fig: MplFigure, ax: Axes, lti_mod: LTIModel, col: str = "#1f77b4"):
+    def _step(fig: MplFigure, ax: Axes, lti_mod: Union[LTIModel, AutoIdentResult], col: str = "#1f77b4"):
+        if isinstance(lti_mod, AutoIdentResult):
+            lti_mod = lti_mod.model
+
         if isinstance(lti_mod, LTIModel):
             res = lti_mod.step_response(N=200, uncertainty=True)
             if len(res) == 3:
@@ -217,7 +226,10 @@ class Figure:
             ax.grid(True, alpha=0.3)
 
     @staticmethod
-    def _frequency(fig: MplFigure, ax: Axes, lti_mod: LTIModel, col: str = "#1f77b4"):
+    def _frequency(fig: MplFigure, ax: Axes, lti_mod: Union[LTIModel, AutoIdentResult], col: str = "#1f77b4"):
+        if isinstance(lti_mod, AutoIdentResult):
+            lti_mod = lti_mod.model
+
         if isinstance(lti_mod, LTIModel):
             res = lti_mod.frequency_response(uncertainty=True)
             if len(res) == 4:
@@ -255,17 +267,24 @@ class Figure:
             ax2.set_yticklabels([r"$-\pi$", r"$-\pi/2$", "0", r"$\pi/2$", r"$\pi$"])
 
     @staticmethod
-    def _hsv(fig: MplFigure, ax: Axes, ss_mod: StateSpaceModel, col: str = "#1f77b4"):
-        if isinstance(ss_mod, StateSpaceModel):
+    def _hsv(fig: MplFigure, ax: Axes, ss_mod: Union[StateSpaceModel, AutoIdentResult], col: str = "#1f77b4"):
+        hsv = None
+        if isinstance(ss_mod, AutoIdentResult):
+            hsv = ss_mod.singular_values
+            # Fallback to model info if not in result
+            if hsv is None and isinstance(ss_mod.model, StateSpaceModel):
+                hsv = ss_mod.model.info.get("Hankel singular values")
+        elif isinstance(ss_mod, StateSpaceModel):
             hsv = ss_mod.info.get("Hankel singular values")
-            if hsv is not None:
-                hsv_scaled = hsv / np.sum(hsv)
-                ax.bar(np.arange(1, len(hsv_scaled) + 1), hsv_scaled, color=col)
-                ax.set_title("Hankel Singular Values")
-                ax.set_xlabel("State")
-                ax.set_ylabel("Normalized HSV")
-            else:
-                ax.text(0.5, 0.5, "No HSV data available", ha="center", va="center")
+            
+        if hsv is not None:
+            hsv_scaled = hsv / np.sum(hsv)
+            ax.bar(np.arange(1, len(hsv_scaled) + 1), hsv_scaled, color=col)
+            ax.set_title("Hankel Singular Values")
+            ax.set_xlabel("State")
+            ax.set_ylabel("Normalized HSV")
+        else:
+            ax.text(0.5, 0.5, "No HSV data available", ha="center", va="center")
 
     @staticmethod
     def _time_series(fig: MplFigure, ax: Axes, data: SysIdData, col: str = "#1f77b4"):
