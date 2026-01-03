@@ -125,7 +125,14 @@ class Figure:
             # call plotting method
             fun(self.fig, ax, obj, col=self.colors[color_index])
 
-        plt.show()
+        # Only show the figure if matplotlib interactive mode is enabled.
+        # In test environments (Agg backend) this avoids a non-interactive warning.
+        try:
+            if plt.isinteractive():
+                plt.show()
+        except Exception:
+            # If anything unexpected occurs, avoid raising during normal program exit.
+            pass
 
     def plot(self, obj: Union[Any, List[Any]], plot_type: Optional[str] = None):
         """
@@ -262,7 +269,7 @@ class Figure:
 
     @staticmethod
     def _time_series(fig: MplFigure, ax: Axes, data: SysIdData, col: str = "#1f77b4"):
-        t = data.time()
+        t = data.time
 
         for key, val in data.series.items():
             ax.plot(t, val, label=key)  # Use default colors for multiple series
@@ -285,7 +292,7 @@ class Figure:
         if data is None or y_name is None or u_name is None:
             return
 
-        t = data.time()
+        t = data.time
         ax.plot(t, data[y_name], "--k", label="Measured", alpha=0.6)
 
         for i, m in enumerate(mods):
