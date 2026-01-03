@@ -104,6 +104,7 @@ def test_remove():
 
 # --- Consolidated tests from other files ---
 
+
 def test_time_with_Ts_and_empty_series():
     d = SysIdData(Ts=0.5)
     assert d.N == 0
@@ -176,7 +177,7 @@ def test_lowpass_inplace_false_and_returns_copy():
     # original unchanged
     assert np.allclose(d.series["u"], np.linspace(0, 1, d.N))
     # returned has altered data
-    assert not np.allclose(d2.series["u"], d.series["u"]) 
+    assert not np.allclose(d2.series["u"], d.series["u"])
 
 
 def test_generate_prbs_length_and_time():
@@ -193,9 +194,9 @@ def test_add_remove_and_time_misc():
     assert np.allclose(t, np.arange(5.0))
 
     data.add_series(z=np.ones(5))
-    assert 'z' in data.series
-    data.remove('z')
-    assert 'z' not in data.series
+    assert "z" in data.series
+    data.remove("z")
+    assert "z" not in data.series
 
 
 def test_equidistant_and_center_copy_misc():
@@ -224,7 +225,7 @@ def test_equidistant_warning_on_downsample(caplog):
     d = SysIdData(t=t, y=np.sin(2 * np.pi * t))
     # request fewer points to trigger the warning
     with caplog.at_level("WARNING"):
-        d2 = d.equidistant(N=10, inplace=False)
+        _ = d.equidistant(N=10, inplace=False)
     assert any("Downsampling without filter" in rec.message for rec in caplog.records)
 
 
@@ -241,7 +242,7 @@ def test_pandas_datetime_roundtrip_if_available():
         pytest.skip("pandas not installed")
 
     # build a datetime index
-    idx = pd.date_range(start="2020-01-01", periods=5, freq="S")
+    idx = pd.date_range(start="2020-01-01", periods=5, freq="s")
     df = pd.DataFrame({"y": np.arange(5.0)}, index=idx)
     d = SysIdData.from_pandas(df)
     df2 = d.to_pandas()
@@ -287,7 +288,7 @@ def test_resample_and_downsample_roundtrip():
 
 def test_to_from_pandas_roundtrip_if_available_ops():
     try:
-        import pandas as pd  # type: ignore
+        pass  # type: ignore
     except Exception:
         pytest.skip("pandas not installed")
 

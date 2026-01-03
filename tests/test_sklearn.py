@@ -80,6 +80,7 @@ def test_sklearn_check_estimator():
 
 # --- Consolidated tests from other files ---
 
+
 @pytest.mark.skipif(not HAS_SKLEARN, reason="scikit-learn not installed")
 def test_predict_before_fit_raises():
     clf = LTIModel()

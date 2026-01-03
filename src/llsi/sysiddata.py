@@ -5,7 +5,7 @@ Data container for system identification.
 import copy
 import logging
 from dataclasses import dataclass, field
-from typing import Any, Dict, Optional, Tuple, Iterable
+from typing import Any, Dict, Optional, Tuple
 
 import numpy as np
 import scipy.interpolate
@@ -32,7 +32,9 @@ class SysIdData:
     Ts: Optional[float] = None
     t_start: float = 0.0
 
-    def __init__(self, t: Optional[np.ndarray] = None, Ts: Optional[float] = None, t_start: Optional[float] = None, **kwargs: Any):
+    def __init__(
+        self, t: Optional[np.ndarray] = None, Ts: Optional[float] = None, t_start: Optional[float] = None, **kwargs: Any
+    ):
         # Compatibility constructor: accept either `series` dict or individual series kwargs
         series_arg = kwargs.pop("series", None)
         if series_arg is not None:
@@ -68,11 +70,6 @@ class SysIdData:
         if not self.series:
             return 0
         return next(iter(self.series.values())).shape[0]
-
-    def time(self) -> np.ndarray:
-        """Get the time vector. If `t` is None, construct from `t_start` and `Ts`."""
-        # keep method for backwards compatibility
-        return self.time
 
     @property
     def time(self) -> np.ndarray:

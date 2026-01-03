@@ -7,7 +7,8 @@ Created on Sun Apr  4 21:11:47 2021
 
 import numpy as np
 
-from llsi.pem import ADAM, PEM, OE
+from llsi.pem import ADAM, OE, PEM
+
 
 def test_pem_ss(data_siso_deterministic, ss_mod):
     identifyer = PEM(

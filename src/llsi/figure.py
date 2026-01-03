@@ -125,7 +125,14 @@ class Figure:
             # call plotting method
             fun(self.fig, ax, obj, col=self.colors[color_index])
 
-        plt.show()
+        # Only show the figure if matplotlib interactive mode is enabled.
+        # In test environments (Agg backend) this avoids a non-interactive warning.
+        try:
+            if plt.isinteractive():
+                plt.show()
+        except Exception:
+            # If anything unexpected occurs, avoid raising during normal program exit.
+            pass
 
     def plot(self, obj: Union[Any, List[Any]], plot_type: Optional[str] = None):
         """

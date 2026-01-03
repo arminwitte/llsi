@@ -79,6 +79,7 @@ def _prbs_core(N: int, seed: int) -> np.ndarray:
         state = ((state << 1) & 0x7FFFFFFF) | feedback
     return u
 
+
 # If numba is available, JIT compile the PRBS core
 try:
     from numba import njit as _njit
@@ -105,6 +106,7 @@ def prbs31_fast(code: int) -> int:
     next_code = ~((code << 1) ^ (code << 4)) & 0xFFFFFFF0
     next_code |= ~(((code << 1 & 0x0E) | (next_code >> 31 & 0x01)) ^ (next_code >> 28)) & 0x0000000F
     return next_code
+
 
 # Attempt to JIT compile the small helpers too
 try:
