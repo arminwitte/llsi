@@ -5,6 +5,7 @@ from .statespacemodel import StateSpaceModel
 from .sysidalg import sysid
 from .sysiddata import SysIdData
 from .utils import cv, load_model, save_model
+from .autoident import autoident, AutoIdentResult
 
 try:
     from .sklearn import LTIModel
@@ -35,4 +36,6 @@ __all__ = [
     "compare",
     "step",
     "impulse",
+    "autoident",
+    "AutoIdentResult",
 ]
