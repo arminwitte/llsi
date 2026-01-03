@@ -105,3 +105,9 @@ quote-style = "double"
 indent-style = "space"
 skip-magic-trailing-comma = false
 line-ending = "auto"
+
+[dependency-groups]
+dev = [
+    "coverage>=7.6.1",
+    "pytest>=8.3.5",
+]

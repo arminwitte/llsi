@@ -1991,6 +1991,16 @@ sklearn = [
     { name = "scikit-learn", version = "1.8.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
 ]
 
+[package.dev-dependencies]
+dev = [
+    { name = "coverage", version = "7.6.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.9'" },
+    { name = "coverage", version = "7.10.7", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.9.*'" },
+    { name = "coverage", version = "7.13.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
+    { name = "pytest", version = "8.3.5", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.9'" },
+    { name = "pytest", version = "8.4.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.9.*'" },
+    { name = "pytest", version = "9.0.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
+]
+
 [package.metadata]
 requires-dist = [
     { name = "build", marker = "extra == 'dev'" },
@@ -2020,6 +2030,12 @@ requires-dist = [
     { name = "twine", marker = "extra == 'dev'" },
 ]
 provides-extras = ["plot", "data", "accel", "progress", "full", "dev", "sklearn", "docs"]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "coverage", specifier = ">=7.6.1" },
+    { name = "pytest", specifier = ">=8.3.5" },
+]
 
 [[package]]
 name = "llvmlite"

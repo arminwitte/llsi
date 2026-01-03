@@ -4,63 +4,111 @@ Data container for system identification.
 
 import copy
 import logging
-from typing import Any, Dict, Optional, Tuple
+from dataclasses import dataclass, field
+from typing import Any, Dict, Optional, Tuple, Iterable
 
 import numpy as np
 import scipy.interpolate
 import scipy.signal
 
 
+# Optional: Numba for PRBS performance
+try:
+    from numba import njit
+
+    HAS_NUMBA = True
+except Exception:  # pragma: no cover - environment dependent
+    HAS_NUMBA = False
+    # provide a no-op decorator so code can use @njit without branching later
+    def njit(f):
+        return f
+
+
+# PRBS core implementation. If Numba is available, the function will be JIT compiled.
+def _prbs_core(N: int, seed: int) -> np.ndarray:
+    state = int(seed) & 0x7FFFFFFF
+    if state == 0:
+        state = 1
+    u = np.empty(N, dtype=np.float64)
+    for i in range(N):
+        # output MSB-like bit to match previous implementation ordering
+        u[i] = float((state >> 0) & 1)
+        # taps for PRBS31: x^31 + x^28 + 1 -> taps at bit positions 30 and 27 (0-based)
+        feedback = ((state >> 30) ^ (state >> 27)) & 1
+        state = ((state << 1) & 0x7FFFFFFF) | feedback
+    return u
+
+
+if HAS_NUMBA:  # pragma: no cover - numba not present in CI often
+    _prbs_core = njit(_prbs_core)
+
+
+@dataclass
 class SysIdData:
+    """Container for time-series data used in system identification.
+
+    Features:
+    - Uses dataclasses for concise initialization
+    - `series` stores named 1-D numpy arrays
+    - `t` holds a non-equidistant time vector or None for equidistant data
+    - `Ts` is the sampling time for equidistant data
+    Methods that mutate return `self` to allow method chaining.
     """
-    Container for time-series data used in system identification.
 
-    Stores multiple time series (input/output channels) sharing a common time axis.
-    Supports both equidistant and non-equidistant time sampling.
-    """
+    series: Dict[str, np.ndarray] = field(default_factory=dict)
+    t: Optional[np.ndarray] = None
+    Ts: Optional[float] = None
+    t_start: float = 0.0
 
-    def __init__(
-        self,
-        t: Optional[np.ndarray] = None,
-        Ts: Optional[float] = None,
-        t_start: Optional[float] = None,
-        **kwargs: Any,
-    ):
-        """
-        Initialize SysIdData.
-
-        Args:
-            t: Time vector (for non-equidistant data).
-            Ts: Sampling time (for equidistant data).
-            t_start: Start time (for equidistant data). Default is 0.0.
-            **kwargs: Time series data as keyword arguments (name=data).
-        """
-        self.N: Optional[int] = None
-        self.series: Dict[str, np.ndarray] = {}
-        self.add_series(**kwargs)
-        self.t = t
-        self.Ts = Ts
-
-        if self.Ts is None and self.t is None:
-            raise ValueError(
-                "No time specified. Use either keyword 't' to give a time vector or 'Ts' to "
-                "give a scalar for equidistant time series."
-            )
-
-        if self.t is not None:
-            self.t_start = t[0]
+    def __init__(self, t: Optional[np.ndarray] = None, Ts: Optional[float] = None, t_start: Optional[float] = None, **kwargs: Any):
+        # Compatibility constructor: accept either `series` dict or individual series kwargs
+        series_arg = kwargs.pop("series", None)
+        if series_arg is not None:
+            if not isinstance(series_arg, dict):
+                raise TypeError("series must be a dict of name: array")
+            self.series = {k: np.asarray(v).ravel() for k, v in series_arg.items()}
         else:
-            if t_start is None:
-                self.t_start = 0.0
-            else:
-                self.t_start = t_start
+            # remaining kwargs are interpreted as series
+            self.series = {k: np.asarray(v).ravel() for k, v in kwargs.items()}
 
+        # coerce time to numpy array if provided
+        self.t = np.asarray(t) if t is not None else None
+        self.Ts = Ts
+        if t_start is not None:
+            self.t_start = t_start
+        else:
+            if self.t is not None and self.t.size > 0:
+                self.t_start = float(self.t[0])
+        # Call post-init validations and conversions
+        self.__post_init__()
+
+    def __post_init__(self) -> None:
         self.logger = logging.getLogger(__name__)
+        # Ensure series arrays are numpy arrays and set N
+        for k, v in list(self.series.items()):
+            self.series[k] = np.asarray(v).ravel()
+        if self.Ts is None and self.t is None:
+            raise ValueError("Either 't' (time vector) or 'Ts' (sampling time) must be provided.")
+
+    @property
+    def N(self) -> int:
+        """Number of samples inferred from stored series. Returns 0 if no series."""
+        if not self.series:
+            return 0
+        return next(iter(self.series.values())).shape[0]
+
+    def time(self) -> np.ndarray:
+        """Get the time vector. If `t` is None, construct from `t_start` and `Ts`."""
+        if self.t is not None:
+            return np.asarray(self.t)
+        if self.N == 0:
+            return np.array([])
+        return self.t_start + np.arange(self.N) * self.Ts
 
     def __getitem__(self, key: str) -> np.ndarray:
         return self.series[key]
 
-    def add_series(self, **kwargs: Any) -> None:
+    def add_series(self, **kwargs: Any) -> "SysIdData":
         """
         Add time series to the dataset.
 
@@ -68,37 +116,22 @@ class SysIdData:
             **kwargs: Time series data as keyword arguments (name=data).
         """
         for key, val in kwargs.items():
-            s = np.array(val).ravel()
-            self.series[key] = s
+            s = np.atleast_1d(val).ravel()
+            if self.series and s.shape[0] != self.N:
+                raise ValueError(
+                    f"Length of vector to add ({s.shape[0]}) does not match existing series length ({self.N})"
+                )
+            self.series[key] = np.asarray(s)
+        return self
 
-            if self.N is None:
-                self.N = s.shape[0]
-            else:
-                if self.N != s.shape[0]:
-                    raise ValueError(
-                        f"Length of vector to add ({s.shape[0]}) does not match length of time series ({self.N})"
-                    )
-
-    def remove(self, key: str) -> None:
-        """Remove a time series."""
+    def remove(self, key: str) -> "SysIdData":
+        """Remove a time series and return self for chaining."""
         del self.series[key]
+        return self
 
-    def time(self) -> np.ndarray:
-        """
-        Get the time vector.
+    # `time` property implemented above
 
-        Returns:
-            The time vector.
-        """
-        if self.t is not None:
-            return self.t
-        else:
-            if self.N is None:
-                return np.array([])
-            t_start = self.t_start
-            return t_start + np.arange(self.N) * self.Ts
-
-    def equidistant(self, N: Optional[int] = None) -> None:
+    def equidistant(self, N: Optional[int] = None, inplace: bool = True) -> "SysIdData":
         """
         Resample data to be equidistant.
 
@@ -107,40 +140,42 @@ class SysIdData:
         Args:
             N: Number of points for the new grid. If None, keeps current N.
         """
-        if self.t is None:
-            # Already equidistant
-            if N is not None and N != self.N:
-                # Resample equidistant data
-                pass
-            else:
-                return
+        target = self if inplace else copy.deepcopy(self)
 
         if N is None:
-            N = self.N
+            N = target.N
 
-        if N < self.N:
-            self.logger.warning("Downsampling without filter! Aliasing may occur.")
+        if N < target.N:
+            target.logger.warning("Downsampling without filter! Aliasing may occur.")
 
-        t_current = self.time()
+        t_current = np.asarray(target.time())
+        if t_current.size == 0:
+            return target
+
         t_start = t_current[0]
         t_end = t_current[-1]
-
         t_new = np.linspace(t_start, t_end, N)
 
-        for key, val in self.series.items():
-            f = scipy.interpolate.interp1d(t_current, val, kind="linear", fill_value="extrapolate")
-            self.series[key] = f(t_new)
+        if target.series:
+            keys = list(target.series.keys())
+            data_matrix = np.stack([target.series[k] for k in keys], axis=0)
+            f = scipy.interpolate.interp1d(t_current, data_matrix, kind="linear", axis=1, fill_value="extrapolate")
+            new_matrix = f(t_new)
+            for i, k in enumerate(keys):
+                target.series[k] = new_matrix[i, :]
 
-        self.N = N
-        self.Ts = (t_end - t_start) / (self.N - 1) if self.N > 1 else 0.0
-        self.t = None  # Now it is equidistant
+        target.Ts = (t_end - t_start) / (N - 1) if N > 1 else 0.0
+        target.t = None
+        return target
 
-    def center(self) -> None:
-        """Remove the mean from all series."""
-        for key, val in self.series.items():
-            self.series[key] -= np.mean(val)
+    def center(self, inplace: bool = True) -> "SysIdData":
+        """Remove the mean from all series. Returns self (or a copy if inplace=False)."""
+        target = self if inplace else copy.deepcopy(self)
+        for k, v in list(target.series.items()):
+            target.series[k] = v - np.mean(v)
+        return target
 
-    def crop(self, start: Optional[int] = None, end: Optional[int] = None) -> None:
+    def crop(self, start: Optional[int] = None, end: Optional[int] = None, inplace: bool = True) -> "SysIdData":
         """
         Crop the data.
 
@@ -148,19 +183,17 @@ class SysIdData:
             start: Start index.
             end: End index.
         """
-        if self.t is not None:
-            self.t = self.t[start:end]
+        target = self if inplace else copy.deepcopy(self)
+        if target.t is not None:
+            target.t = target.t[start:end]
         else:
             if start:
-                self.t_start += self.Ts * start
+                target.t_start += target.Ts * start
 
-        for key, val in self.series.items():
-            self.series[key] = val[start:end]
+        for k, v in list(target.series.items()):
+            target.series[k] = v[start:end]
 
-        if self.series:
-            self.N = next(iter(self.series.values())).shape[0]
-        else:
-            self.N = 0
+        return target
 
     def split(
         self, proportion: Optional[float] = None, sample: Optional[int] = None
@@ -184,50 +217,50 @@ class SysIdData:
         # print(f"Splitting at {sample}")
 
         d1 = copy.deepcopy(self)
-        d1.crop(end=sample)
+        d1.crop(end=sample, inplace=True)
         d2 = copy.deepcopy(self)
-        d2.crop(start=sample)
+        d2.crop(start=sample, inplace=True)
 
         return d1, d2
 
-    def resample(self, factor: float) -> None:
+    def resample(self, factor: float, inplace: bool = True) -> "SysIdData":
         """
         Resample the data.
 
         Args:
             factor: Resampling factor. >1 upsamples, <1 downsamples.
         """
-        N_new = int(self.N * factor)
+        target = self if inplace else copy.deepcopy(self)
+        N_new = int(target.N * factor)
+        for k, v in list(target.series.items()):
+            target.series[k] = scipy.signal.resample(v, N_new)
 
-        for key, val in self.series.items():
-            self.series[key] = scipy.signal.resample(val, N_new)
-
-        if self.t is not None:
-            self.t = scipy.signal.resample(self.t, N_new)
+        if target.t is not None:
+            target.t = scipy.signal.resample(target.t, N_new)
         else:
-            self.Ts = self.Ts / factor
+            target.Ts = target.Ts / factor
 
-        self.N = N_new
+        return target
 
-    def downsample(self, q: int) -> None:
+    def downsample(self, q: int, inplace: bool = True) -> "SysIdData":
         """
         Downsample the data by an integer factor.
 
         Args:
             q: Downsampling factor.
         """
-        for key, val in self.series.items():
-            self.series[key] = scipy.signal.decimate(val, q)
+        target = self if inplace else copy.deepcopy(self)
+        for k, v in list(target.series.items()):
+            target.series[k] = scipy.signal.decimate(v, q)
 
-        if self.series:
-            self.N = next(iter(self.series.values())).shape[0]
+        if target.Ts is not None:
+            target.Ts *= q
+        if target.t is not None:
+            target.t = target.t[::q]
 
-        if self.Ts is not None:
-            self.Ts *= q
-        if self.t is not None:
-            self.t = self.t[::q]
+        return target
 
-    def lowpass(self, order: int, corner_frequency: float) -> None:
+    def lowpass(self, order: int, corner_frequency: float, inplace: bool = True) -> "SysIdData":
         """
         Apply a Butterworth lowpass filter to all data series.
 
@@ -237,10 +270,13 @@ class SysIdData:
             order: The order of the filter.
             corner_frequency: The corner frequency in Hz.
         """
-        sos = scipy.signal.butter(order, corner_frequency, "low", analog=False, fs=1.0 / self.Ts, output="sos")
-
-        for key in self.series.keys():
-            self.series[key] = scipy.signal.sosfilt(sos, self.series[key])
+        target = self if inplace else copy.deepcopy(self)
+        if target.Ts is None:
+            raise ValueError("Sampling time 'Ts' is required for filtering.")
+        sos = scipy.signal.butter(order, corner_frequency, "low", analog=False, fs=1.0 / target.Ts, output="sos")
+        for k in list(target.series.keys()):
+            target.series[k] = scipy.signal.sosfilt(sos, target.series[k])
+        return target
 
     def plot(self) -> None:
         """Plot the data."""
@@ -285,9 +321,9 @@ class SysIdData:
         code = seed
         i = 0
         while i < N:
-            # generate integer
             code = SysIdData.prbs31(code)
-            for s in f"{code:b}":
+            bits = f"{code:b}"
+            for s in bits:
                 if i >= N:
                     break
                 u[i] = float(s)
