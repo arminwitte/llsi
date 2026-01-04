@@ -398,3 +398,64 @@ class SysIdData:
                 t_start = 0.0
 
         return cls(t=t_vec, Ts=Ts, t_start=t_start, **series_data)
+
+    @classmethod
+    def from_logfile(cls, path, resample_rule="1H", time_col="datetime", value_col="temperature", pivot_col="property_name", datetime_format=None, interpolate_method="linear"):
+        """
+        Read a temperature logfile CSV, pivot to a time-indexed DataFrame,
+        resample to an equidistant grid and return a SysIdData instance.
+
+        Parameters
+        ----------
+        path : str
+            Path to the CSV logfile.
+        resample_rule : str
+            Pandas resample rule (e.g., '1H', '15T').
+        time_col : str
+            Column name containing datetime information.
+        value_col : str
+            Column name containing the measured value.
+        pivot_col : str
+            Column name that defines different signals (becomes columns).
+        datetime_format : str or None
+            Optional datetime format for faster parsing.
+        interpolate_method : str
+            Interpolation method passed to pandas.DataFrame.interpolate.
+        """
+        try:
+            import pandas as pd
+        except ImportError:
+            raise ImportError("pandas is required for this method. Install it with 'pip install llsi[data]'.") from None
+
+        df = pd.read_csv(path)
+
+        # Ensure datetime column exists and convert
+        if time_col not in df.columns:
+            raise KeyError(f"time column '{time_col}' not found in logfile")
+
+        df[time_col] = pd.to_datetime(df[time_col], format=datetime_format)
+
+        # Create pivot table: index=time, columns=pivot_col, values=value_col
+        if pivot_col not in df.columns:
+            raise KeyError(f"pivot column '{pivot_col}' not found in logfile")
+        if value_col not in df.columns:
+            raise KeyError(f"value column '{value_col}' not found in logfile")
+
+        df_pivot = df.pivot(index=time_col, columns=pivot_col, values=value_col)
+
+        # Resample to equidistant time grid and interpolate small gaps
+        df_resampled = df_pivot.resample(resample_rule).mean()
+        df_interp = df_resampled.interpolate(method=interpolate_method)
+        # Drop rows that are still NaN (e.g., large gaps)
+        df_clean = df_interp.dropna(how="any")
+
+        if df_clean.shape[0] == 0:
+            raise ValueError("No data left after resampling and interpolation. Check the resample_rule or input data.")
+
+        # Build time vector in seconds relative to start
+        index = df_clean.index
+        t_seconds = (index - index[0]) / np.timedelta64(1, "s")
+
+        series_data = {col: df_clean[col].values for col in df_clean.columns}
+
+        return cls(t=t_seconds.values, Ts=None, t_start=0.0, **series_data)
