@@ -177,6 +177,103 @@ def test_crop_and_chain_behavior():
     assert d3.N == 10
 
 
+def test_crop_equidistant_t_start_update():
+    """Test that crop properly updates t_start for equidistant data."""
+    # Create equidistant data starting at t=1.0
+    d = SysIdData(Ts=0.1, t_start=1.0, y=np.arange(10))
+    original_t = d.time.copy()
+
+    # Crop from index 3 to 7
+    d_cropped = d.crop(start=3, end=7, inplace=False)
+
+    # Check that t_start is updated correctly
+    expected_t_start = 1.0 + 0.1 * 3  # 1.3
+    assert np.isclose(d_cropped.t_start, expected_t_start)
+
+    # Check time vector
+    expected_time = original_t[3:7]
+    np.testing.assert_allclose(d_cropped.time, expected_time)
+
+    # Original should be unchanged
+    assert np.isclose(d.t_start, 1.0)
+    assert d.N == 10
+
+
+def test_crop_non_equidistant_t_start_update():
+    """Test that crop properly updates t_start for non-equidistant data."""
+    # Create non-equidistant data
+    t_orig = np.array([0.0, 0.1, 0.3, 0.7, 1.1, 1.8, 2.5, 3.0])
+    y = np.array([1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0])
+
+    d = SysIdData(t=t_orig.copy(), y=y)
+
+    # Crop from index 2 to 6
+    d_cropped = d.crop(start=2, end=6, inplace=False)
+
+    # Check that t_start is updated to the first time value of the cropped data
+    expected_t_start = t_orig[2]  # 0.3
+    assert np.isclose(d_cropped.t_start, expected_t_start)
+
+    # Check time vector
+    expected_time = t_orig[2:6]
+    np.testing.assert_allclose(d_cropped.time, expected_time)
+
+    # Check series
+    np.testing.assert_array_equal(d_cropped.series["y"], y[2:6])
+
+    # Original should be unchanged
+    assert np.isclose(d.t_start, 0.0)
+    assert d.N == 8
+
+
+def test_crop_non_equidistant_inplace():
+    """Test that crop modifies in-place for non-equidistant data."""
+    t_orig = np.array([1.0, 1.5, 2.2, 3.0, 4.1])
+    y = np.array([10.0, 20.0, 30.0, 40.0, 50.0])
+
+    d = SysIdData(t=t_orig.copy(), y=y.copy())
+
+    # Crop in-place
+    result = d.crop(start=1, end=4, inplace=True)
+
+    # Check that it returns self
+    assert result is d
+
+    # Check t_start updated
+    assert np.isclose(d.t_start, t_orig[1])
+
+    # Check time vector updated
+    np.testing.assert_allclose(d.time, t_orig[1:4])
+
+    # Check series updated
+    np.testing.assert_array_equal(d.series["y"], y[1:4])
+
+    assert d.N == 3
+
+
+def test_crop_default_indices():
+    """Test that crop handles None start/end indices correctly."""
+    t = np.array([0.0, 1.0, 2.0, 3.0, 4.0])
+    y = np.array([1.0, 2.0, 3.0, 4.0, 5.0])
+
+    d = SysIdData(t=t.copy(), y=y.copy())
+
+    # Crop with default start (0)
+    d1 = d.crop(end=3, inplace=False)
+    assert d1.N == 3
+    np.testing.assert_array_equal(d1.series["y"], y[0:3])
+
+    # Crop with default end (N)
+    d2 = d.crop(start=2, inplace=False)
+    assert d2.N == 3
+    np.testing.assert_array_equal(d2.series["y"], y[2:5])
+
+    # Crop with both defaults (full copy)
+    d3 = d.crop(inplace=False)
+    assert d3.N == 5
+    np.testing.assert_array_equal(d3.series["y"], y)
+
+
 def test_lowpass_inplace_false_and_returns_copy():
     d = make_sample_data(N=200, Ts=0.01)
     d2 = d.lowpass(order=2, corner_frequency=2.0, inplace=False)
@@ -277,6 +374,60 @@ def test_lowpass_requires_Ts():
     assert d.Ts is None
     with pytest.raises(ValueError):
         d.lowpass(order=2, corner_frequency=0.1)
+
+
+def test_lowpass_validates_nyquist_frequency():
+    """Test that lowpass raises error when corner_frequency >= Nyquist."""
+    # Ts=0.1s means sampling frequency = 10 Hz, Nyquist = 5 Hz
+    d = SysIdData(Ts=0.1, y=np.sin(np.linspace(0, 10 * np.pi, 100)))
+
+    # Valid: corner_frequency < Nyquist
+    d_valid = d.copy() if hasattr(d, "copy") else SysIdData(Ts=0.1, y=d.series["y"].copy())
+    d_valid.lowpass(order=2, corner_frequency=4.0, inplace=True)  # Should work
+
+    # Invalid: corner_frequency == Nyquist (5 Hz)
+    d_nyquist = SysIdData(Ts=0.1, y=d.series["y"].copy())
+    with pytest.raises(ValueError, match="must be less than Nyquist"):
+        d_nyquist.lowpass(order=2, corner_frequency=5.0)
+
+    # Invalid: corner_frequency > Nyquist
+    d_above = SysIdData(Ts=0.1, y=d.series["y"].copy())
+    with pytest.raises(ValueError, match="must be less than Nyquist"):
+        d_above.lowpass(order=2, corner_frequency=6.0)
+
+
+def test_lowpass_nyquist_with_different_Ts():
+    """Test Nyquist validation with different sampling times."""
+    # Ts=1.0s: Nyquist = 0.5 Hz
+    d1 = SysIdData(Ts=1.0, y=np.ones(10))
+    with pytest.raises(ValueError, match="Nyquist"):
+        d1.lowpass(order=2, corner_frequency=0.5)
+
+    # Valid just below Nyquist
+    d1.lowpass(order=2, corner_frequency=0.49, inplace=True)  # Should work
+
+    # Ts=0.01s: Nyquist = 50 Hz
+    d2 = SysIdData(Ts=0.01, y=np.ones(100))
+    with pytest.raises(ValueError, match="Nyquist"):
+        d2.lowpass(order=2, corner_frequency=50.0)
+
+    # Valid
+    d2.lowpass(order=2, corner_frequency=45.0, inplace=True)  # Should work
+
+
+def test_lowpass_error_message_helpful():
+    """Test that error message is helpful and includes frequency values."""
+    d = SysIdData(Ts=0.1, y=np.ones(50))
+
+    try:
+        d.lowpass(order=2, corner_frequency=6.0)
+        raise AssertionError("Should have raised ValueError")
+    except ValueError as e:
+        error_msg = str(e)
+        # Check that error message contains useful info
+        assert "6.00" in error_msg or "6.0" in error_msg  # corner_frequency
+        assert "5.00" in error_msg or "5.0" in error_msg  # Nyquist frequency
+        assert "Nyquist" in error_msg
 
 
 def test_resample_and_downsample_roundtrip():

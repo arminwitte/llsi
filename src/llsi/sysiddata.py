@@ -193,19 +193,32 @@ class SysIdData:
 
     def crop(self, start: Optional[int] = None, end: Optional[int] = None, inplace: bool = True) -> "SysIdData":
         """
-        Crop the data.
+        Crop the data to a subset of samples.
 
         Args:
-            start: Start index.
-            end: End index.
-        """
-        target = self if inplace else copy.deepcopy(self)
-        if target.t is not None:
-            target.t = target.t[start:end]
-        else:
-            if start:
-                target.t_start += target.Ts * start
+            start: Start index (default: 0).
+            end: End index (default: N, exclusive).
+            inplace: If True, modify in-place. If False, return a copy.
 
+        Returns:
+            SysIdData: The cropped object (self if inplace=True, copy if inplace=False).
+        """
+        start = start or 0
+        end = end or self.N
+
+        target = self if inplace else copy.deepcopy(self)
+
+        # Update time vector
+        if target.t is not None:
+            # Non-equidistant: crop time vector and update t_start
+            target.t = target.t[start:end]
+            if len(target.t) > 0:
+                target.t_start = float(target.t[0])
+        else:
+            # Equidistant: update t_start based on the number of skipped samples
+            target.t_start += target.Ts * start
+
+        # Crop all series
         for k, v in list(target.series.items()):
             target.series[k] = v[start:end]
 
@@ -280,15 +293,29 @@ class SysIdData:
         """
         Apply a Butterworth lowpass filter to all data series.
 
-        This method modifies the data in-place.
-
         Args:
             order: The order of the filter.
-            corner_frequency: The corner frequency in Hz.
+            corner_frequency: The corner frequency in Hz. Must be less than the Nyquist frequency.
+            inplace: If True, modify in-place. If False, return a copy.
+
+        Returns:
+            SysIdData: The filtered object (self if inplace=True, copy if inplace=False).
+
+        Raises:
+            ValueError: If Ts is not defined or corner_frequency >= Nyquist frequency.
         """
         target = self if inplace else copy.deepcopy(self)
         if target.Ts is None:
             raise ValueError("Sampling time 'Ts' is required for filtering.")
+
+        # Calculate Nyquist frequency and validate corner_frequency
+        nyquist = 1.0 / (2 * target.Ts)
+        if corner_frequency >= nyquist:
+            raise ValueError(
+                f"Corner frequency ({corner_frequency:.2f} Hz) must be less than Nyquist frequency "
+                f"({nyquist:.2f} Hz). Increase sampling rate (decrease Ts={target.Ts}) or use a lower corner frequency."
+            )
+
         sos = scipy.signal.butter(order, corner_frequency, "low", analog=False, fs=1.0 / target.Ts, output="sos")
         for k in list(target.series.keys()):
             target.series[k] = scipy.signal.sosfilt(sos, target.series[k])
