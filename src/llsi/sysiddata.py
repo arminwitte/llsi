@@ -400,7 +400,7 @@ class SysIdData:
         return cls(t=t_vec, Ts=Ts, t_start=t_start, **series_data)
 
     @classmethod
-    def from_logfile(cls, path, resample_rule="1H", time_col="datetime", value_col="temperature", pivot_col="property_name", datetime_format=None, interpolate_method="linear"):
+    def from_logfile(cls, path, resample_rule=None, time_col="datetime", value_col="temperature", pivot_col="property_name", datetime_format=None, interpolate_method="linear", N: Optional[int] = None):
         """
         Read a temperature logfile CSV, pivot to a time-indexed DataFrame,
         resample to an equidistant grid and return a SysIdData instance.
@@ -444,11 +444,13 @@ class SysIdData:
         df_pivot = df.pivot(index=time_col, columns=pivot_col, values=value_col)
 
         # Resample to equidistant time grid and interpolate small gaps
-        df_resampled = df_pivot.resample(resample_rule).mean()
-        df_interp = df_resampled.interpolate(method=interpolate_method)
-        # Drop rows that are still NaN (e.g., large gaps)
-        df_clean = df_interp.dropna(how="any")
-
+        if resample_rule is not None:
+            df_resampled = df_pivot.resample(resample_rule).mean()
+            df_interp = df_resampled.interpolate(method=interpolate_method)
+            # Drop rows that are still NaN (e.g., large gaps)
+            df_clean = df_interp.dropna(how="any")
+        else:
+            df_clean = df_pivot
         if df_clean.shape[0] == 0:
             raise ValueError("No data left after resampling and interpolation. Check the resample_rule or input data.")
 
@@ -458,4 +460,11 @@ class SysIdData:
 
         series_data = {col: df_clean[col].values for col in df_clean.columns}
 
-        return cls(t=t_seconds.values, Ts=None, t_start=0.0, **series_data)
+        obj = cls(t=t_seconds.values, Ts=None, t_start=0.0, **series_data)
+
+        # If N is provided, return an equidistant copy with N points.
+        if N is not None:
+            return obj.equidistant(N=N, inplace=False)
+
+        # Default: return equidistant data matching current sample count
+        return obj.equidistant(N=obj.N, inplace=False)
