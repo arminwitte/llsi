@@ -290,31 +290,9 @@ class SysIdData:
         Returns:
             Tuple of (time vector, PRBS signal).
         """
-        u = np.zeros((N,), dtype=float)
         t = np.linspace(0, Ts * N, num=N, endpoint=False)
-
-        code = int(seed)
-        i = 0
-        while i < N:
-            # Advance the PRBS state using the centralized helper
-            code = _math.prbs31(code)
-            bits = f"{code:b}"
-            for s in bits:
-                if i >= N:
-                    break
-                u[i] = float(int(s))
-                i += 1
+        u = _math.generate_prbs_sequence(N, seed)
         return t, u
-
-    @staticmethod
-    def prbs31(code: int) -> int:
-        """Delegate PRBS31 step to math.prbs31."""
-        return int(_math.prbs31(int(code)))
-
-    @staticmethod
-    def prbs31_fast(code: int) -> int:
-        """Delegate fast PRBS31 step to math.prbs31_fast."""
-        return int(_math.prbs31_fast(int(code)))
 
     def to_pandas(self) -> Any:
         """
