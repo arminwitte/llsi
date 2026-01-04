@@ -392,3 +392,116 @@ def test_repr_empty():
     assert "N=0" in repr_str
     assert "Time: empty" in repr_str
     assert "Series: (none)" in repr_str
+
+
+def test_differentiate_sine_equidistant():
+    """Test differentiation of a sine wave (exact derivative available)."""
+    # d/dt[sin(x)] = cos(x), so we can check accuracy
+    N = 1001
+    t = np.linspace(0, 2 * np.pi, N)
+    Ts = t[1] - t[0]
+    y = np.sin(t)
+    y_expected = np.cos(t)  # Exact derivative
+
+    d = SysIdData(Ts=Ts, y=y)
+    d.differentiate("y", inplace=True)
+
+    # Check that derivative series exists
+    assert "dy" in d.series
+    assert d.series["dy"].shape == d.series["y"].shape
+
+    # Check accuracy: central difference should be quite accurate for smooth functions
+    # Allow larger tolerance at boundaries (edge_order=2 is less accurate there)
+    np.testing.assert_allclose(d.series["dy"][10:-10], y_expected[10:-10], atol=1e-2)
+
+
+def test_differentiate_polynomial_equidistant():
+    """Test differentiation of a polynomial (exact derivative available)."""
+    # y = x^2, dy/dx = 2x
+    N = 101
+    x = np.linspace(0, 10, N)
+    Ts = x[1] - x[0]
+    y = x**2
+    y_expected = 2 * x
+
+    d = SysIdData(Ts=Ts, y=y)
+    d.differentiate("y", new_key="dy", inplace=True)
+
+    assert "dy" in d.series
+    # Polynomial differentiation should be very accurate with central differences
+    np.testing.assert_allclose(d.series["dy"][5:-5], y_expected[5:-5], atol=1e-10)
+
+
+def test_differentiate_custom_key():
+    """Test differentiation with custom output key name."""
+    t = np.linspace(0, 1, 51)
+    Ts = t[1] - t[0]
+    position = np.sin(2 * np.pi * t)
+
+    d = SysIdData(Ts=Ts, position=position)
+    d.differentiate("position", new_key="velocity", inplace=True)
+
+    assert "velocity" in d.series
+    assert "position" in d.series
+    assert "dposition" not in d.series  # Should use custom key, not default
+
+
+def test_differentiate_not_inplace():
+    """Test differentiation with inplace=False returns a copy."""
+    t = np.linspace(0, 1, 51)
+    Ts = t[1] - t[0]
+    y = t**2
+
+    d = SysIdData(Ts=Ts, y=y)
+    d_copy = d.differentiate("y", inplace=False)
+
+    # Original should not have derivative
+    assert "dy" not in d.series
+    # Copy should have derivative
+    assert "dy" in d_copy.series
+    # Original y should be unchanged
+    np.testing.assert_array_equal(d.series["y"], y)
+
+
+def test_differentiate_non_equidistant():
+    """Test differentiation on non-equidistant data."""
+    # Non-equidistant time points
+    t = np.array([0.0, 0.1, 0.3, 0.6, 1.0, 1.5, 2.0])
+    # Simple linear function: y = 2*t + 1, dy/dt = 2
+    y = 2 * t + 1
+
+    d = SysIdData(t=t, y=y)
+    d.differentiate("y", inplace=True)
+
+    assert "dy" in d.series
+    assert d.series["dy"].shape == d.series["y"].shape
+    # Derivative of linear function should be approximately constant
+    np.testing.assert_allclose(d.series["dy"], 2.0, atol=1e-10)
+
+
+def test_differentiate_nonexistent_key():
+    """Test that differentiation of nonexistent key raises error."""
+    d = SysIdData(Ts=0.1, y=np.array([1.0, 2.0, 3.0]))
+
+    with pytest.raises(ValueError, match="Series 'z' not found"):
+        d.differentiate("z")
+
+
+def test_differentiate_multiple_series():
+    """Test differentiating different series independently."""
+    t = np.linspace(0, 1, 51)
+    Ts = t[1] - t[0]
+    u = np.sin(2 * np.pi * t)  # Control input
+    y = 0.8 * np.sin(2 * np.pi * t - 0.5)  # Measurement
+
+    d = SysIdData(Ts=Ts, u=u, y=y)
+    d.differentiate("u", new_key="u_dot", inplace=True)
+    d.differentiate("y", new_key="y_dot", inplace=True)
+
+    assert "u_dot" in d.series
+    assert "y_dot" in d.series
+    assert len(d.series) == 4  # u, y, u_dot, y_dot
+
+    # Check that derivatives have correct shapes
+    assert d.series["u_dot"].shape == d.series["u"].shape
+    assert d.series["y_dot"].shape == d.series["y"].shape

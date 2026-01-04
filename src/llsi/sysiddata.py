@@ -294,6 +294,49 @@ class SysIdData:
             target.series[k] = scipy.signal.sosfilt(sos, target.series[k])
         return target
 
+    def differentiate(self, key: str, new_key: Optional[str] = None, inplace: bool = True) -> "SysIdData":
+        """
+        Compute time derivative of a series using central differences.
+
+        Uses numpy.gradient with central differences (edge_order=2) which:
+        - Preserves array length (unlike np.diff which shortens by 1)
+        - Uses second-order accurate central differences for interior points
+        - Uses second-order forward/backward differences at boundaries
+
+        Args:
+            key: Name of the series to differentiate (e.g., "y" for position).
+            new_key: Name for the derivative series. Defaults to "d{key}" (e.g., "dy" for "y").
+            inplace: If True, modify in-place. If False, return a copy.
+
+        Returns:
+            SysIdData: The object with the derivative added (self if inplace=True, copy if inplace=False).
+
+        Example:
+            >>> data = SysIdData(Ts=0.01, position=np.array([0, 1, 2, 3, 4]))
+            >>> data.differentiate("position", "velocity", inplace=True)
+            >>> # Now data has "position" and "velocity" series
+        """
+        target = self if inplace else copy.deepcopy(self)
+
+        if key not in target.series:
+            raise ValueError(f"Series '{key}' not found in dataset.")
+
+        # Determine the spacing for gradient calculation
+        # For equidistant data, use Ts; for non-equidistant, use the time vector
+        if target.Ts is not None:
+            dt_arg = target.Ts
+        else:
+            dt_arg = target.time
+
+        # Compute derivative using central differences
+        y_dot = np.gradient(target.series[key], dt_arg, edge_order=2)
+
+        # Determine output key name
+        dest_key = new_key if new_key else f"d{key}"
+        target.series[dest_key] = y_dot
+
+        return target
+
     def plot(self) -> None:
         """Plot the data."""
         try:
