@@ -5,7 +5,7 @@ Data container for system identification.
 import copy
 import logging
 from dataclasses import dataclass, field
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple, Union
 
 import numpy as np
 import scipy.interpolate
@@ -106,14 +106,23 @@ class SysIdData:
 
     # `time` property implemented above
 
-    def equidistant(self, N: Optional[int] = None, inplace: bool = True) -> "SysIdData":
+    def equidistant(self, N: Optional[int] = None, inplace: bool = True, method: Union[str, Dict[str, str]] = "linear") -> "SysIdData":
         """
         Resample data to be equidistant.
 
-        Modifies the object in-place.
+        Modifies the object in-place by default.
 
         Args:
             N: Number of points for the new grid. If None, keeps current N.
+            inplace: If True, modify in-place. If False, return a copy.
+            method: Interpolation method. Can be:
+                - str: Single method applied to all series (e.g., "linear", "previous", "cubic").
+                  "previous" is equivalent to Zero-Order Hold (ZOH), suitable for step inputs.
+                - dict: Mapping series name to method, e.g., {"u": "previous", "y": "linear"}.
+                  Uses default "linear" for unmapped series.
+        
+        Returns:
+            SysIdData: The resampled object (self if inplace=True, copy if inplace=False).
         """
         target = self if inplace else copy.deepcopy(self)
 
@@ -133,9 +142,24 @@ class SysIdData:
 
         if target.series:
             keys = list(target.series.keys())
-            data_matrix = np.stack([target.series[k] for k in keys], axis=0)
-            f = scipy.interpolate.interp1d(t_current, data_matrix, kind="linear", axis=1, fill_value="extrapolate")
-            new_matrix = f(t_new)
+            # Determine per-series interpolation method
+            if isinstance(method, str):
+                method_dict = {k: method for k in keys}
+            else:
+                method_dict = {k: method.get(k, "linear") for k in keys}
+            
+            # Resample each series with its specified method
+            new_matrix = np.empty((len(keys), N))
+            for i, k in enumerate(keys):
+                f = scipy.interpolate.interp1d(
+                    t_current, 
+                    target.series[k], 
+                    kind=method_dict[k], 
+                    axis=0, 
+                    fill_value="extrapolate"
+                )
+                new_matrix[i, :] = f(t_new)
+            
             for i, k in enumerate(keys):
                 target.series[k] = new_matrix[i, :]
 

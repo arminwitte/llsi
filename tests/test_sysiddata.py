@@ -301,3 +301,59 @@ def test_to_from_pandas_roundtrip_if_available_ops():
     assert hasattr(df, "index")
     d2 = SysIdData.from_pandas(df)
     assert d2.N == d.N
+
+
+def test_equidistant_interpolation_method_string():
+    """Test equidistant with single interpolation method applied to all series."""
+    # Create non-equidistant data with a step function
+    t = np.array([0.0, 0.5, 1.0, 2.0, 3.0])
+    u = np.array([0.0, 1.0, 1.0, 0.5, 0.5])  # Step-like input
+    y = np.array([0.0, 0.2, 0.5, 0.7, 0.9])  # Smooth output
+    
+    # Test linear interpolation
+    d_linear = SysIdData(t=t.copy(), u=u.copy(), y=y.copy())
+    d_linear.equidistant(N=20, method="linear", inplace=True)
+    assert d_linear.t is None  # Equidistant has no time vector
+    assert d_linear.N == 20
+    
+    # Test previous (ZOH) interpolation
+    d_prev = SysIdData(t=t.copy(), u=u.copy(), y=y.copy())
+    d_prev.equidistant(N=20, method="previous", inplace=True)
+    assert d_prev.t is None  # Equidistant has no time vector
+    assert d_prev.N == 20
+    
+    # With ZOH, values should be closer to original (no smoothing)
+    # Linear should have some intermediate values
+    assert np.any(d_linear.series["u"] != d_prev.series["u"])
+
+
+def test_equidistant_interpolation_method_dict():
+    """Test equidistant with per-series interpolation methods."""
+    # Create non-equidistant data
+    t = np.array([0.0, 0.5, 1.0, 2.0, 3.0])
+    u = np.array([0.0, 1.0, 1.0, 0.5, 0.5])  # Step-like input (use "previous")
+    y = np.array([0.0, 0.2, 0.5, 0.7, 0.9])  # Smooth output (use "linear")
+    
+    # Apply different methods to different series
+    d_mixed = SysIdData(t=t.copy(), u=u.copy(), y=y.copy())
+    d_mixed.equidistant(
+        N=20, 
+        method={"u": "previous", "y": "linear"},
+        inplace=True
+    )
+    
+    assert d_mixed.t is None  # Equidistant has no time vector
+    assert d_mixed.N == 20
+    
+    # Compare with applying each method separately
+    d_u_prev = SysIdData(t=t.copy(), u=u.copy(), y=y.copy())
+    d_u_prev.equidistant(N=20, method="previous", inplace=True)
+    
+    d_y_linear = SysIdData(t=t.copy(), u=u.copy(), y=y.copy())
+    d_y_linear.equidistant(N=20, method="linear", inplace=True)
+    
+    # u series should match the "previous" version
+    np.testing.assert_allclose(d_mixed.series["u"], d_u_prev.series["u"], rtol=1e-10)
+    
+    # y series should match the "linear" version
+    np.testing.assert_allclose(d_mixed.series["y"], d_y_linear.series["y"], rtol=1e-10)
