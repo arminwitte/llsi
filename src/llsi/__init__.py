@@ -1,3 +1,4 @@
+from .autoident import AutoIdentResult, autoident
 from .figure import Figure
 from .matlab import arx, compare, iddata, impulse, n4sid, oe, pem, step
 from .polynomialmodel import PolynomialModel
@@ -5,7 +6,6 @@ from .statespacemodel import StateSpaceModel
 from .sysidalg import sysid
 from .sysiddata import SysIdData
 from .utils import cv, load_model, save_model
-from .autoident import autoident, AutoIdentResult
 
 try:
     from .sklearn import LTIModel

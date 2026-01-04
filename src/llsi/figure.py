@@ -16,11 +16,11 @@ except ImportError:
     Axes = Any
     MplFigure = Any
 
+from .autoident import AutoIdentResult
 from .ltimodel import LTIModel
 from .statespacemodel import StateSpaceModel
 from .sysidalgbase import compute_residuals_analysis
 from .sysiddata import SysIdData
-from .autoident import AutoIdentResult
 
 
 class Figure:
@@ -93,7 +93,7 @@ class Figure:
                 elif isinstance(obj, LTIModel):
                     fun = self.registry["impulse"]
                 elif isinstance(obj, AutoIdentResult):
-                    fun = self.registry["impulse"] # Default to impulse for result
+                    fun = self.registry["impulse"]  # Default to impulse for result
                 else:
                     self.logger.warning(
                         f"for an object of type {type(obj)} a plot_type has to be specified explicitly!"
@@ -177,7 +177,7 @@ class Figure:
     def _impulse(fig: MplFigure, ax: Axes, lti_mod: Union[LTIModel, AutoIdentResult], col: str = "#1f77b4"):
         if isinstance(lti_mod, AutoIdentResult):
             lti_mod = lti_mod.model
-            
+
         if isinstance(lti_mod, LTIModel):
             res = lti_mod.impulse_response(N=200, uncertainty=True)
             if len(res) == 3:
@@ -276,7 +276,7 @@ class Figure:
                 hsv = ss_mod.model.info.get("Hankel singular values")
         elif isinstance(ss_mod, StateSpaceModel):
             hsv = ss_mod.info.get("Hankel singular values")
-            
+
         if hsv is not None:
             hsv_scaled = hsv / np.sum(hsv)
             ax.bar(np.arange(1, len(hsv_scaled) + 1), hsv_scaled, color=col)
