@@ -83,6 +83,25 @@ class SysIdData:
     def __getitem__(self, key: str) -> np.ndarray:
         return self.series[key]
 
+    def __repr__(self) -> str:
+        """String representation for Jupyter notebooks and REPL."""
+        series_names = list(self.series.keys())
+        time_info = ""
+        if self.N > 0:
+            time_end = self.time[-1]
+            time_info = f"  Time: {self.t_start:.2f} to {time_end:.2f}s"
+        else:
+            time_info = "  Time: empty"
+
+        if self.Ts is not None:
+            header = f"SysIdData(N={self.N}, Ts={self.Ts:.4f}s)"
+        else:
+            header = f"SysIdData(N={self.N}, Non-equidistant)"
+
+        series_info = f"  Series: {', '.join(series_names)}" if series_names else "  Series: (none)"
+
+        return "\n".join([header, time_info, series_info])
+
     def add_series(self, **kwargs: Any) -> "SysIdData":
         """
         Add time series to the dataset.
@@ -106,7 +125,9 @@ class SysIdData:
 
     # `time` property implemented above
 
-    def equidistant(self, N: Optional[int] = None, inplace: bool = True, method: Union[str, Dict[str, str]] = "linear") -> "SysIdData":
+    def equidistant(
+        self, N: Optional[int] = None, inplace: bool = True, method: Union[str, Dict[str, str]] = "linear"
+    ) -> "SysIdData":
         """
         Resample data to be equidistant.
 
@@ -120,7 +141,7 @@ class SysIdData:
                   "previous" is equivalent to Zero-Order Hold (ZOH), suitable for step inputs.
                 - dict: Mapping series name to method, e.g., {"u": "previous", "y": "linear"}.
                   Uses default "linear" for unmapped series.
-        
+
         Returns:
             SysIdData: The resampled object (self if inplace=True, copy if inplace=False).
         """
@@ -147,19 +168,15 @@ class SysIdData:
                 method_dict = {k: method for k in keys}
             else:
                 method_dict = {k: method.get(k, "linear") for k in keys}
-            
+
             # Resample each series with its specified method
             new_matrix = np.empty((len(keys), N))
             for i, k in enumerate(keys):
                 f = scipy.interpolate.interp1d(
-                    t_current, 
-                    target.series[k], 
-                    kind=method_dict[k], 
-                    axis=0, 
-                    fill_value="extrapolate"
+                    t_current, target.series[k], kind=method_dict[k], axis=0, fill_value="extrapolate"
                 )
                 new_matrix[i, :] = f(t_new)
-            
+
             for i, k in enumerate(keys):
                 target.series[k] = new_matrix[i, :]
 
