@@ -400,7 +400,17 @@ class SysIdData:
         return cls(t=t_vec, Ts=Ts, t_start=t_start, **series_data)
 
     @classmethod
-    def from_logfile(cls, path, resample_rule=None, time_col="datetime", value_col="temperature", pivot_col="property_name", datetime_format=None, interpolate_method="linear", N: Optional[int] = None):
+    def from_logfile(
+        cls,
+        path,
+        resample_rule=None,
+        time_col="datetime",
+        value_col="temperature",
+        pivot_col="property_name",
+        datetime_format=None,
+        interpolate_method="linear",
+        N: Optional[int] = None,
+    ):
         """
         Read a temperature logfile CSV, pivot to a time-indexed DataFrame,
         resample to an equidistant grid and return a SysIdData instance.
