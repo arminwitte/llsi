@@ -28,8 +28,8 @@ def test_from_logfile_basic(tmp_path):
     p = tmp_path / "log.csv"
     df.to_csv(p, index=False)
 
-    # Call from_logfile with 1 hour resample rule
-    sid = SysIdData.from_logfile(str(p), resample_rule="1H")
+    # Call from_logfile (internal resampling is automatic)
+    sid = SysIdData.from_logfile(str(p))
 
     # Should be equidistant and contain both series
     assert sid.t is None
@@ -57,10 +57,12 @@ def test_from_logfile_with_N(tmp_path):
     p = tmp_path / "log2.csv"
     df.to_csv(p, index=False)
 
-    sid = SysIdData.from_logfile(str(p), resample_rule="1H", N=8)
-    # Expect equidistant with 8 samples
+    sid = SysIdData.from_logfile(str(p))
+    # Expect equidistant with inferred sample count (4 points hourly -> N==4)
     assert sid.t is None
-    assert sid.N == 8
+    assert sid.N == 4
+    # Ts should match one hour in seconds
+    assert np.isclose(sid.Ts, 3600.0)
 
 
 def test_from_logfile_custom_columns(tmp_path):
@@ -77,6 +79,6 @@ def test_from_logfile_custom_columns(tmp_path):
     p = tmp_path / "log3.csv"
     df.to_csv(p, index=False)
 
-    sid = SysIdData.from_logfile(str(p), resample_rule="1H", time_col="ts", value_col="val", pivot_col="sensor")
+    sid = SysIdData.from_logfile(str(p), time_col="ts", value_col="val", pivot_col="sensor")
     assert "A" in sid.series and "B" in sid.series
     assert sid.N >= 3

@@ -403,78 +403,92 @@ class SysIdData:
     def from_logfile(
         cls,
         path,
-        resample_rule=None,
         time_col="datetime",
         value_col="temperature",
         pivot_col="property_name",
         datetime_format=None,
-        interpolate_method="linear",
-        N: Optional[int] = None,
+        sep=",",
+        **kwargs,
     ):
         """
-        Read a temperature logfile CSV, pivot to a time-indexed DataFrame,
-        resample to an equidistant grid and return a SysIdData instance.
+        Loads a logfile, pivots it, and automatically regularizes the time grid using the
+        internal equidistant() method.
 
         Parameters
         ----------
         path : str
             Path to the CSV logfile.
-        resample_rule : str
-            Pandas resample rule (e.g., '1H', '15T').
         time_col : str
             Column name containing datetime information.
         value_col : str
             Column name containing the measured value.
         pivot_col : str
-            Column name that defines different signals (becomes columns).
-        datetime_format : str or None
-            Optional datetime format for faster parsing.
-        interpolate_method : str
-            Interpolation method passed to pandas.DataFrame.interpolate.
+            Column name that defines different signals.
+        datetime_format : str
+            Format string for faster datetime parsing.
+        sep : str
+            CSV separator.
+        **kwargs
+            Additional arguments passed to pd.read_csv.
         """
         try:
             import pandas as pd
         except ImportError:
-            raise ImportError("pandas is required for this method. Install it with 'pip install llsi[data]'.") from None
+            raise ImportError("pandas is required for this method.") from None
 
-        df = pd.read_csv(path)
+        # 1. Load Raw Data
+        df = pd.read_csv(path, sep=sep, **kwargs)
 
-        # Ensure datetime column exists and convert
         if time_col not in df.columns:
-            raise KeyError(f"time column '{time_col}' not found in logfile")
+            raise KeyError(f"Time column '{time_col}' not found.")
 
+        # Convert to datetime
         df[time_col] = pd.to_datetime(df[time_col], format=datetime_format)
 
-        # Create pivot table: index=time, columns=pivot_col, values=value_col
-        if pivot_col not in df.columns:
-            raise KeyError(f"pivot column '{pivot_col}' not found in logfile")
-        if value_col not in df.columns:
-            raise KeyError(f"value column '{value_col}' not found in logfile")
-
-        df_pivot = df.pivot(index=time_col, columns=pivot_col, values=value_col)
-
-        # Resample to equidistant time grid and interpolate small gaps
-        if resample_rule is not None:
-            df_resampled = df_pivot.resample(resample_rule).mean()
-            df_interp = df_resampled.interpolate(method=interpolate_method)
-            # Drop rows that are still NaN (e.g., large gaps)
-            df_clean = df_interp.dropna(how="any")
+        # 2. Pivot (Make wide)
+        # We use pivot_table with 'first' to handle duplicates strictly,
+        # or just pivot if we are sure data is unique per timestamp.
+        # pivot_table is safer for dirty logs.
+        if pivot_col:
+            df_wide = df.pivot_table(index=time_col, columns=pivot_col, values=value_col, aggfunc="first")
         else:
-            df_clean = df_pivot
-        if df_clean.shape[0] == 0:
-            raise ValueError("No data left after resampling and interpolation. Check the resample_rule or input data.")
+            # Assume it is already wide, just set index
+            df_wide = df.set_index(time_col)
 
-        # Build time vector in seconds relative to start
-        index = df_clean.index
-        t_seconds = (index - index[0]) / np.timedelta64(1, "s")
+        # Handle NaNs from pivoting (async sensors):
+        # We fill forward/backward just to get continuous arrays for the raw object.
+        # Real resampling happens in equidistant() later.
+        df_wide = df_wide.ffill().bfill()
 
-        series_data = {col: df_clean[col].values for col in df_clean.columns}
+        if df_wide.empty:
+            raise ValueError("Dataframe is empty after loading and pivoting.")
 
-        obj = cls(t=t_seconds.values, Ts=None, t_start=0.0, **series_data)
+        # 3. Calculate Relative Time Vector
+        t_abs = df_wide.index
+        # Convert to seconds starting at 0
+        t_sec = (t_abs - t_abs[0]).total_seconds().values
 
-        # If N is provided, return an equidistant copy with N points.
-        if N is not None:
-            return obj.equidistant(N=N, inplace=False)
+        # 4. Infer Sampling Time (Ts) and N from the raw data
+        # Using median is robust against missing samples or small jitter
+        dt_raw = np.diff(t_sec)
+        if len(dt_raw) > 0:
+            Ts_est = float(np.median(dt_raw))
+        else:
+            Ts_est = 1.0  # Fallback for single point
 
-        # Default: return equidistant data matching current sample count
-        return obj.equidistant(N=obj.N, inplace=False)
+        # Calculate logical N based on duration and estimated Ts
+        duration = t_sec[-1]
+        if Ts_est > 0:
+            N_est = int(np.round(duration / Ts_est)) + 1
+        else:
+            N_est = len(t_sec)
+
+        # 5. Create Raw SysIdData Object
+        series_data = {col: df_wide[col].values for col in df_wide.columns}
+
+        # Initialize with the uneven raw time vector
+        raw_obj = cls(t=t_sec, Ts=None, **series_data)
+
+        # 6. Apply internal resampling to force equidistant grid
+        # This uses the class's own interpolation logic
+        return raw_obj.equidistant(N=N_est)
