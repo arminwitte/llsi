@@ -193,7 +193,7 @@ class SysIdData:
             **kwargs: Time series data as keyword arguments (name=data).
         """
         for key, val in kwargs.items():
-            s = np.atleast_1d(val).ravel()
+            s = np.asarray(val).ravel()
             if self.series and s.shape[0] != self.N:
                 raise ValueError(
                     f"Length of vector to add ({s.shape[0]}) does not match existing series length ({self.N})"

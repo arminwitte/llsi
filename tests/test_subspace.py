@@ -20,6 +20,14 @@ def test_n4sid(data_siso_deterministic, ss_mod):
     assert hsv[1] > 500
     assert hsv[2] < 1
     assert np.all(hsv[3:] < 1e-8)
+
+    # Additional validation: HSV should be monotonically decreasing
+    assert np.all(hsv[:-1] >= hsv[1:]), "Hankel singular values should be monotonically decreasing"
+
+    # For a 2nd order system, the decay should be significant
+    decay_ratio = hsv[2] / hsv[0]
+    assert decay_ratio < 0.001, f"Decay ratio {decay_ratio} too high for 2nd order system"
+
     np.testing.assert_allclose(mod.to_controllable_form().A, ss_mod.A, rtol=1e-1, atol=1e-1)
 
 
@@ -32,6 +40,14 @@ def test_po_moesp(data_siso_deterministic, ss_mod):
     assert hsv[1] > 500
     assert hsv[2] < 1
     assert np.all(hsv[3:] < 1e-8)
+
+    # Additional validation: HSV should be monotonically decreasing
+    assert np.all(hsv[:-1] >= hsv[1:]), "Hankel singular values should be monotonically decreasing"
+
+    # For a 2nd order system, the decay should be significant
+    decay_ratio = hsv[2] / hsv[0]
+    assert decay_ratio < 0.001, f"Decay ratio {decay_ratio} too high for 2nd order system"
+
     np.testing.assert_allclose(mod.to_controllable_form().A, ss_mod.A, rtol=1e-3, atol=1e-3)
 
 

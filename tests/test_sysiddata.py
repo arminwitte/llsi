@@ -7,6 +7,7 @@ Created on Sun Apr  4 20:25:46 2021
 
 import numpy as np
 import pytest
+import scipy.signal
 
 from llsi import math as llsi_math
 from llsi.sysiddata import SysIdData
@@ -79,6 +80,33 @@ def test_lowpass():
     assert np.std(data["u"]) < np.std(u)
 
 
+def test_lowpass_frequency_attenuation():
+    """Test that lowpass filter attenuates high frequencies."""
+    # Create a signal with multiple frequency components
+    t = np.linspace(0, 10, 1000)
+    # Low frequency component (should pass through)
+    low_freq = np.sin(2 * np.pi * 0.1 * t)  # 0.1 Hz
+    # High frequency component (should be attenuated)
+    high_freq = 0.5 * np.sin(2 * np.pi * 2.0 * t)  # 2.0 Hz
+    signal = low_freq + high_freq
+
+    data = SysIdData(t=t, u=signal)
+    data.equidistant()  # Make equidistant to set Ts
+    data.lowpass(order=4, corner_frequency=0.5)  # Cutoff at 0.5 Hz
+
+    filtered = data["u"]
+
+    # High frequency component should be significantly attenuated
+    # while low frequency component should be mostly preserved
+    high_freq_power_before = np.var(high_freq)
+    # Extract high frequency from filtered signal (approximate)
+    high_freq_after = filtered - scipy.signal.savgol_filter(filtered, 51, 3)
+    high_freq_power_after = np.var(high_freq_after)
+
+    # High frequency should be attenuated by at least 10x
+    assert high_freq_power_after < high_freq_power_before / 10
+
+
 def test_split():
     t, u = SysIdData.generate_prbs(1000, 1.0)
     data = SysIdData(t=t, u=u)
@@ -89,6 +117,23 @@ def test_split():
     # Verify split maintains data integrity
     assert data1["u"][0] in [0.0, 1.0]
     assert data2["u"][0] in [0.0, 1.0]
+
+    # Verify boundary correctness: data2 should start where data1 ends
+    assert np.isclose(data1.time[-1] + data1.Ts, data2.time[0])
+
+
+def test_split_custom_ratio():
+    """Test split with custom ratio."""
+    t, u = SysIdData.generate_prbs(1000, 1.0)
+    data = SysIdData(t=t, u=u)
+    data.equidistant()
+    data1, data2 = data.split(0.7)  # 70% training, 30% validation
+    assert data1.N == 700
+    assert data2.N == 300
+
+    # Verify boundary correctness
+    assert np.isclose(data1.time[-1] + data1.Ts, data2.time[0])
+    assert np.allclose(data1["u"][-1], data2["u"][0])
 
 
 def test_add_series():
@@ -355,11 +400,19 @@ def test_pandas_datetime_roundtrip_if_available():
 
 
 def test_prbs_generation_length_and_values_ops():
-    t, u = SysIdData.generate_prbs(16, Ts=0.1, seed=7)
-    assert t.shape == (16,)
-    assert u.shape == (16,)
+    t, u = SysIdData.generate_prbs(64, Ts=0.1, seed=7)
+    assert t.shape == (64,)
+    assert u.shape == (64,)
     # values should be 0.0 or 1.0
     assert set(np.unique(u)).issubset({0.0, 1.0})
+
+    # Additional PRBS properties for better test coverage
+    # Check that we have transitions (not all 0s or all 1s)
+    transitions = np.sum(np.abs(np.diff(u)) > 0)
+    assert transitions > 5  # Should have several transitions for good excitation
+
+    # Check that it's not constant
+    assert not np.all(u == 0.0) and not np.all(u == 1.0)
 
 
 def test_prbs_helpers_return_ints():
