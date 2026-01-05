@@ -656,3 +656,84 @@ def test_differentiate_multiple_series():
     # Check that derivatives have correct shapes
     assert d.series["u_dot"].shape == d.series["u"].shape
     assert d.series["y_dot"].shape == d.series["y"].shape
+
+
+def test_dunder_len():
+    """Test __len__ method returns number of samples."""
+    d = SysIdData(Ts=0.1, u=np.ones(10), y=np.zeros(10))
+    assert len(d) == 10
+
+    d_empty = SysIdData(Ts=0.1)
+    assert len(d_empty) == 0
+
+
+def test_dunder_contains():
+    """Test __contains__ method checks for series existence."""
+    d = SysIdData(Ts=0.1, u=np.ones(10), y=np.zeros(10))
+
+    assert "u" in d
+    assert "y" in d
+    assert "z" not in d
+
+
+def test_dunder_iter():
+    """Test __iter__ method iterates over series."""
+    d = SysIdData(Ts=0.1, u=np.ones(10), y=np.zeros(10))
+
+    series_items = list(d)
+    assert len(series_items) == 2
+
+    # Check that we get (key, array) tuples
+    keys = [item[0] for item in series_items]
+    arrays = [item[1] for item in series_items]
+
+    assert "u" in keys
+    assert "y" in keys
+    assert all(isinstance(arr, np.ndarray) for arr in arrays)
+
+
+def test_getitem_slicing():
+    """Test enhanced __getitem__ with slicing support."""
+    # Create test data
+    d = SysIdData(Ts=0.1, u=np.arange(10), y=np.arange(10, 20))
+
+    # Test string access (existing functionality)
+    assert np.array_equal(d["u"], np.arange(10))
+    assert np.array_equal(d["y"], np.arange(10, 20))
+
+    # Test slice access - should return new SysIdData objects
+    d_slice = d[0:5]
+    assert isinstance(d_slice, SysIdData)
+    assert d_slice.N == 5
+    assert np.array_equal(d_slice["u"], np.arange(5))
+    assert np.array_equal(d_slice["y"], np.arange(10, 15))
+
+    # Test partial slice
+    d_partial = d[:3]
+    assert d_partial.N == 3
+    assert np.array_equal(d_partial["u"], np.arange(3))
+
+    # Test that original is unchanged
+    assert d.N == 10
+
+
+def test_getitem_slicing_non_equidistant():
+    """Test slicing with non-equidistant data."""
+    t = np.array([0.0, 0.1, 0.3, 0.6, 1.0])
+    u = np.array([1, 2, 3, 4, 5])
+    d = SysIdData(t=t, u=u)
+
+    # Slice first 3 samples
+    d_slice = d[0:3]
+    assert isinstance(d_slice, SysIdData)
+    assert d_slice.N == 3
+    assert np.array_equal(d_slice.t, t[0:3])
+    assert d_slice.t_start == 0.0  # Should be updated to first element
+
+
+def test_getitem_invalid_key():
+    """Test __getitem__ with invalid key types."""
+    d = SysIdData(Ts=0.1, u=np.ones(10))
+
+    with pytest.raises(TypeError, match="Invalid index type"):
+        d[1.5]  # float is not supported

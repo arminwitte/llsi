@@ -80,8 +80,54 @@ class SysIdData:
             return np.array([])
         return self.t_start + np.arange(self.N) * self.Ts
 
-    def __getitem__(self, key: str) -> np.ndarray:
-        return self.series[key]
+    def __getitem__(self, key: Union[str, slice, int]) -> Union[np.ndarray, "SysIdData"]:
+        """
+        Get a series by name OR slice the dataset by index.
+
+        Examples:
+            data["u"]      -> Returns numpy array of series 'u'
+            data[0:100]    -> Returns a NEW SysIdData object cropped to first 100 samples
+            data[:50]      -> First 50 samples
+        """
+        if isinstance(key, str):
+            return self.series[key]
+        elif isinstance(key, (slice, int)):
+            # Handle slicing logic. If int, we treat it as a single-point slice or fail?
+            # Usually for time series objects, int access isn't well defined (row vs col).
+            # We treat int as a slice of length 1 for consistency, or let crop handle it.
+            start = key.start if isinstance(key, slice) else key
+            stop = key.stop if isinstance(key, slice) else key + 1
+            step = key.step if isinstance(key, slice) else 1
+
+            if step is not None and step != 1:
+                # Use downsample logic if step > 1? For now, standard slicing.
+                # Standard array slicing supports steps, so we can support it manually
+                # but crop() is range based. Let's use crop for contiguous slices.
+                pass
+
+            # If it's a simple contiguous slice, use crop (safer for metadata)
+            if step is None or step == 1:
+                return self.crop(start=start, end=stop, inplace=False)
+            else:
+                # Complex slicing (e.g. ::2)
+                # We can implement this via direct array slicing
+                target = copy.deepcopy(self)
+                if target.t is not None:
+                    target.t = target.t[key]
+                    if len(target.t) > 0:
+                        target.t_start = float(target.t[0])
+                else:
+                    # Update Ts and start if stepping
+                    if start:
+                        target.t_start += target.Ts * start
+                    target.Ts *= step
+
+                for k, v in list(target.series.items()):
+                    target.series[k] = v[key]
+                return target
+
+        else:
+            raise TypeError(f"Invalid index type: {type(key)}")
 
     def __repr__(self) -> str:
         """String representation for Jupyter notebooks and REPL."""
@@ -101,6 +147,18 @@ class SysIdData:
         series_info = f"  Series: {', '.join(series_names)}" if series_names else "  Series: (none)"
 
         return "\n".join([header, time_info, series_info])
+
+    def __len__(self) -> int:
+        """Return number of samples."""
+        return self.N
+
+    def __contains__(self, key: str) -> bool:
+        """Check if a series exists in the dataset."""
+        return key in self.series
+
+    def __iter__(self):
+        """Iterate over (key, array) tuples of the series."""
+        return iter(self.series.items())
 
     def add_series(self, **kwargs: Any) -> "SysIdData":
         """
