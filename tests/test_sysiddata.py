@@ -737,3 +737,127 @@ def test_getitem_invalid_key():
 
     with pytest.raises(TypeError, match="Invalid index type"):
         d[1.5]  # float is not supported
+
+
+def test_center_stores_means():
+    """Test center() method stores means for later unscaling."""
+    u = np.array([1.0, 2.0, 3.0, 4.0, 5.0])
+    y = np.array([10.0, 20.0, 30.0, 40.0, 50.0])
+    d = SysIdData(Ts=0.1, u=u, y=y)
+
+    # Center the data
+    d.center(inplace=True)
+
+    # Check that means are stored
+    assert d.means["u"] == 3.0  # mean of [1,2,3,4,5]
+    assert d.means["y"] == 30.0  # mean of [10,20,30,40,50]
+
+    # Check that data is centered
+    assert np.allclose(d["u"], u - 3.0)
+    assert np.allclose(d["y"], y - 30.0)
+
+
+def test_standardize():
+    """Test standardize() method performs Z-score normalization."""
+    u = np.array([1.0, 2.0, 3.0, 4.0, 5.0])
+    d = SysIdData(Ts=0.1, u=u)
+
+    d.standardize(inplace=True)
+
+    # Check that mean is 0 and std is 1
+    assert np.allclose(np.mean(d["u"]), 0.0, atol=1e-10)
+    assert np.allclose(np.std(d["u"]), 1.0, atol=1e-10)
+
+    # Check that scaling factors are stored
+    assert "u" in d.means
+    assert "u" in d.stds
+    assert d.stds["u"] == np.std(u)  # original std
+
+
+def test_standardize_constant_signal():
+    """Test standardize() handles constant signals gracefully."""
+    u = np.array([5.0, 5.0, 5.0, 5.0, 5.0])
+    d = SysIdData(Ts=0.1, u=u)
+
+    # Should not raise error, but warn
+    with pytest.warns(UserWarning, match="is constant"):
+        d.standardize(inplace=True)
+
+    # Constant signal should remain unchanged after centering
+    assert np.all(d["u"] == 0.0)
+
+
+def test_unscale():
+    """Test unscale() reverses centering and standardization."""
+    u = np.array([1.0, 2.0, 3.0, 4.0, 5.0])
+    y = np.array([10.0, 20.0, 30.0, 40.0, 50.0])
+    d = SysIdData(Ts=0.1, u=u, y=y)
+
+    original_u = u.copy()
+    original_y = y.copy()
+
+    # Standardize then unscale
+    d.standardize(inplace=True)
+    d.unscale(inplace=True)
+
+    # Should be back to original
+    assert np.allclose(d["u"], original_u)
+    assert np.allclose(d["y"], original_y)
+
+    # Scaling info should be cleared
+    assert len(d.means) == 0
+    assert len(d.stds) == 0
+
+
+def test_apply_scaling_from():
+    """Test apply_scaling_from() uses another dataset's scaling."""
+    # Training data
+    train_u = np.array([1.0, 2.0, 3.0, 4.0, 5.0])
+    train_data = SysIdData(Ts=0.1, u=train_u)
+    train_data.standardize(inplace=True)
+
+    # Test data (different values)
+    test_u = np.array([2.0, 4.0, 6.0, 8.0, 10.0])
+    test_data = SysIdData(Ts=0.1, u=test_u)
+
+    # Apply training scaling to test data
+    test_data.apply_scaling_from(train_data, inplace=True)
+
+    # Test data should be scaled using training statistics
+    # Training mean was 3.0, std was ~1.414 (for [1,2,3,4,5])
+    expected_scaled = (test_u - 3.0) / np.std(train_u)
+    assert np.allclose(test_data["u"], expected_scaled)
+
+    # Test data should have the same scaling factors as training
+    assert test_data.means["u"] == train_data.means["u"]
+    assert test_data.stds["u"] == train_data.stds["u"]
+
+
+def test_scaling_method_chaining():
+    """Test that scaling methods support method chaining."""
+    u = np.array([1.0, 2.0, 3.0, 4.0, 5.0])
+    d = SysIdData(Ts=0.1, u=u)
+
+    # Method chaining should work
+    result = d.copy().center().standardize()
+
+    assert isinstance(result, SysIdData)
+    assert np.allclose(np.mean(result["u"]), 0.0, atol=1e-10)
+    assert np.allclose(np.std(result["u"]), 1.0, atol=1e-10)
+
+
+def test_scaling_with_copy():
+    """Test that scaling with inplace=False doesn't modify original."""
+    u = np.array([1.0, 2.0, 3.0, 4.0, 5.0])
+    d = SysIdData(Ts=0.1, u=u)
+
+    # Scale a copy
+    d_scaled = d.center(inplace=False)
+
+    # Original should be unchanged
+    assert np.allclose(d["u"], u)
+    assert len(d.means) == 0
+
+    # Copy should be scaled
+    assert np.allclose(d_scaled["u"], u - np.mean(u))
+    assert d_scaled.means["u"] == np.mean(u)

@@ -4,6 +4,7 @@ Data container for system identification.
 
 import copy
 import logging
+import warnings
 from dataclasses import dataclass, field
 from typing import Any, Dict, Optional, Tuple, Union
 
@@ -21,16 +22,26 @@ class SysIdData:
 
     Features:
     - Uses dataclasses for concise initialization
-    - `series` stores named 1-D numpy arrays
-    - `t` holds a non-equidistant time vector or None for equidistant data
-    - `Ts` is the sampling time for equidistant data
-    Methods that mutate return `self` to allow method chaining.
+    - Supports equidistant and non-equidistant time sampling
+    - Method chaining for fluent API design
+    - Flexible data manipulation (crop, resample, filter, differentiate)
+    - Pythonic interface (slicing, iteration, len)
+
+    Examples:
+        >>> # Create equidistant data
+        >>> data = SysIdData(Ts=0.01, u=u_array, y=y_array)
+        >>> # Slicing works like a list/array
+        >>> train_data = data[:1000]
+        >>> # Method chaining
+        >>> data.equidistant(N=500).lowpass(order=4, corner_frequency=10).plot()
     """
 
     series: Dict[str, np.ndarray] = field(default_factory=dict)
     t: Optional[np.ndarray] = None
     Ts: Optional[float] = None
     t_start: float = 0.0
+    means: Dict[str, float] = field(default_factory=dict)
+    stds: Dict[str, float] = field(default_factory=dict)
 
     def __init__(
         self, t: Optional[np.ndarray] = None, Ts: Optional[float] = None, t_start: Optional[float] = None, **kwargs: Any
@@ -53,11 +64,21 @@ class SysIdData:
         else:
             if self.t is not None and self.t.size > 0:
                 self.t_start = float(self.t[0])
+
+        # Initialize scaling state fields
+        self.means = {}
+        self.stds = {}
+
         # Call post-init validations and conversions
         self.__post_init__()
 
     def __post_init__(self) -> None:
         self.logger = logging.getLogger(__name__)
+
+        # Validate Ts
+        if self.Ts is not None and self.Ts <= 0:
+            raise ValueError(f"Sampling time Ts must be positive, got {self.Ts}")
+
         # Ensure series arrays are numpy arrays and set N
         for k, v in list(self.series.items()):
             self.series[k] = np.asarray(v).ravel()
@@ -148,6 +169,10 @@ class SysIdData:
 
         return "\n".join([header, time_info, series_info])
 
+    def copy(self) -> "SysIdData":
+        """Return a deep copy of this SysIdData object."""
+        return copy.deepcopy(self)
+
     def __len__(self) -> int:
         """Return number of samples."""
         return self.N
@@ -173,6 +198,15 @@ class SysIdData:
                 raise ValueError(
                     f"Length of vector to add ({s.shape[0]}) does not match existing series length ({self.N})"
                 )
+
+            # Warn on duplicate keys
+            if key in self.series:
+                self.logger.warning(f"Series '{key}' already exists. Overwriting.")
+
+            # Check for NaN (Warning only, do not block)
+            if len(s) > 0 and np.isnan(s).any():
+                self.logger.warning(f"Series '{key}' contains NaN values.")
+
             self.series[key] = np.asarray(s)
         return self
 
@@ -205,6 +239,20 @@ class SysIdData:
         """
         target = self if inplace else copy.deepcopy(self)
 
+        # Validate interpolation methods
+        valid_methods = {"linear", "nearest", "zero", "slinear", "quadratic", "cubic", "previous", "next"}
+        if isinstance(method, str):
+            if method not in valid_methods:
+                raise ValueError(f"Invalid interpolation method '{method}'. Must be one of {valid_methods}")
+            method_dict = {k: method for k in target.series.keys()}
+        else:
+            method_dict = {}
+            for k in target.series.keys():
+                m = method.get(k, "linear")
+                if m not in valid_methods:
+                    raise ValueError(f"Invalid interpolation method '{m}' for series '{k}'")
+                method_dict[k] = m
+
         if N is None:
             N = target.N
 
@@ -221,11 +269,6 @@ class SysIdData:
 
         if target.series:
             keys = list(target.series.keys())
-            # Determine per-series interpolation method
-            if isinstance(method, str):
-                method_dict = {k: method for k in keys}
-            else:
-                method_dict = {k: method.get(k, "linear") for k in keys}
 
             # Resample each series with its specified method
             new_matrix = np.empty((len(keys), N))
@@ -243,10 +286,87 @@ class SysIdData:
         return target
 
     def center(self, inplace: bool = True) -> "SysIdData":
-        """Remove the mean from all series. Returns self (or a copy if inplace=False)."""
+        """
+        Remove the mean from all series and store the means for later unscaling.
+        """
         target = self if inplace else copy.deepcopy(self)
-        for k, v in list(target.series.items()):
-            target.series[k] = v - np.mean(v)
+
+        for k, v in target.series.items():
+            mu = np.mean(v)
+            target.series[k] = v - mu
+            # Store the mean (additively: if already centered, add to existing)
+            target.means[k] = target.means.get(k, 0.0) + mu
+
+        return target
+
+    def standardize(self, inplace: bool = True) -> "SysIdData":
+        """
+        Remove mean and scale to unit variance (Z-score normalization).
+
+        Stores both means and standard deviations for later unscaling.
+        """
+        target = self if inplace else copy.deepcopy(self)
+
+        # First center (this fills target.means)
+        target.center(inplace=True)
+
+        # Then scale to unit variance
+        for k, v in target.series.items():
+            sigma = np.std(v)
+            if sigma < 1e-12:  # Protect against division by zero for constant signals
+                sigma = 1.0
+                warnings.warn(f"Series '{k}' is constant. Skipping scaling.", stacklevel=2)
+
+            target.series[k] = v / sigma
+            # Store the scaling factor (multiplicatively)
+            target.stds[k] = target.stds.get(k, 1.0) * sigma
+
+        return target
+
+    def unscale(self, inplace: bool = True) -> "SysIdData":
+        """
+        Reverse center() and standardize() transformations (back to physical units).
+        """
+        target = self if inplace else copy.deepcopy(self)
+
+        # 1. Reverse scaling (multiply by stored stds)
+        if target.stds:
+            for k, v in target.series.items():
+                if k in target.stds:
+                    target.series[k] = v * target.stds[k]
+            target.stds.clear()  # Reset
+
+        # 2. Reverse centering (add back stored means)
+        if target.means:
+            for k, v in target.series.items():
+                if k in target.means:
+                    target.series[k] = v + target.means[k]
+            target.means.clear()  # Reset
+
+        return target
+
+    def apply_scaling_from(self, source: "SysIdData", inplace: bool = True) -> "SysIdData":
+        """
+        Apply the scaling (means/stds) from another dataset to this one.
+
+        Important for train/test splits: test data should be scaled using training statistics.
+        """
+        target = self if inplace else copy.deepcopy(self)
+
+        # Apply means from source
+        for k, v in target.series.items():
+            if k in source.means:
+                mu = source.means[k]
+                target.series[k] = v - mu
+                target.means[k] = target.means.get(k, 0.0) + mu
+
+        # Apply stds from source
+        for k, _ in target.series.items():
+            if k in source.stds:
+                sigma = source.stds[k]
+                target.series[k] = target.series[k] / sigma
+                target.stds[k] = target.stds.get(k, 1.0) * sigma
+
         return target
 
     def crop(self, start: Optional[int] = None, end: Optional[int] = None, inplace: bool = True) -> "SysIdData":
@@ -312,7 +432,7 @@ class SysIdData:
 
     def resample(self, factor: float, inplace: bool = True) -> "SysIdData":
         """
-        Resample the data.
+        Resample the data using Fourier method (preserves frequency content).
 
         Args:
             factor: Resampling factor. >1 upsamples, <1 downsamples.
@@ -333,10 +453,15 @@ class SysIdData:
         """
         Downsample the data by an integer factor.
 
+        Applies an anti-aliasing filter (Chebyshev type I) before downsampling.
+
         Args:
             q: Downsampling factor.
         """
         target = self if inplace else copy.deepcopy(self)
+        if q < 1:
+            raise ValueError(f"Downsampling factor must be >= 1, got {q}")
+
         for k, v in list(target.series.items()):
             target.series[k] = scipy.signal.decimate(v, q)
 
