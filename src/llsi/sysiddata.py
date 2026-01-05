@@ -244,7 +244,7 @@ class SysIdData:
         if isinstance(method, str):
             if method not in valid_methods:
                 raise ValueError(f"Invalid interpolation method '{method}'. Must be one of {valid_methods}")
-            method_dict = {k: method for k in target.series.keys()}
+            method_dict = dict.fromkeys(target.series.keys(), method)
         else:
             method_dict = {}
             for k in target.series.keys():
