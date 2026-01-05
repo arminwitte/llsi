@@ -94,8 +94,8 @@ def test_matlab_mimo(monkeypatch):
     # Create a MIMO model using sysid directly (po-moesp is default)
     from llsi import sysid
 
-    y_names = [k for k in data.series.keys() if k.startswith("y")]
-    u_names = [k for k in data.series.keys() if k.startswith("u")]
+    y_names = [k for k, _ in data if k.startswith("y")]
+    u_names = [k for k, _ in data if k.startswith("u")]
     sys = sysid(data, y_names, u_names, 2, method="po-moesp")
 
     with pytest.MonkeyPatch.context() as m:

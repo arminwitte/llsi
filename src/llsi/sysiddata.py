@@ -80,7 +80,7 @@ class SysIdData:
             raise ValueError(f"Sampling time Ts must be positive, got {self.Ts}")
 
         # Ensure series arrays are numpy arrays and set N
-        for k, v in list(self.series.items()):
+        for k, v in self:
             self.series[k] = np.asarray(v).ravel()
         if self.Ts is None and self.t is None:
             raise ValueError("Either 't' (time vector) or 'Ts' (sampling time) must be provided.")
@@ -143,7 +143,7 @@ class SysIdData:
                         target.t_start += target.Ts * start
                     target.Ts *= step
 
-                for k, v in list(target.series.items()):
+                for k, v in target:
                     target.series[k] = v[key]
                 return target
 
@@ -291,7 +291,7 @@ class SysIdData:
         """
         target = self if inplace else copy.deepcopy(self)
 
-        for k, v in target.series.items():
+        for k, v in target:
             mu = np.mean(v)
             target.series[k] = v - mu
             # Store the mean (additively: if already centered, add to existing)
@@ -311,7 +311,7 @@ class SysIdData:
         target.center(inplace=True)
 
         # Then scale to unit variance
-        for k, v in target.series.items():
+        for k, v in target:
             sigma = np.std(v)
             if sigma < 1e-12:  # Protect against division by zero for constant signals
                 sigma = 1.0
@@ -331,14 +331,14 @@ class SysIdData:
 
         # 1. Reverse scaling (multiply by stored stds)
         if target.stds:
-            for k, v in target.series.items():
+            for k, v in target:
                 if k in target.stds:
                     target.series[k] = v * target.stds[k]
             target.stds.clear()  # Reset
 
         # 2. Reverse centering (add back stored means)
         if target.means:
-            for k, v in target.series.items():
+            for k, v in target:
                 if k in target.means:
                     target.series[k] = v + target.means[k]
             target.means.clear()  # Reset
@@ -354,14 +354,14 @@ class SysIdData:
         target = self if inplace else copy.deepcopy(self)
 
         # Apply means from source
-        for k, v in target.series.items():
+        for k, v in target:
             if k in source.means:
                 mu = source.means[k]
                 target.series[k] = v - mu
                 target.means[k] = target.means.get(k, 0.0) + mu
 
         # Apply stds from source
-        for k, _ in target.series.items():
+        for k, _ in target:
             if k in source.stds:
                 sigma = source.stds[k]
                 target.series[k] = target.series[k] / sigma
@@ -397,7 +397,7 @@ class SysIdData:
             target.t_start += target.Ts * start
 
         # Crop all series
-        for k, v in list(target.series.items()):
+        for k, v in target:
             target.series[k] = v[start:end]
 
         return target
@@ -439,7 +439,7 @@ class SysIdData:
         """
         target = self if inplace else copy.deepcopy(self)
         N_new = int(target.N * factor)
-        for k, v in list(target.series.items()):
+        for k, v in target:
             target.series[k] = scipy.signal.resample(v, N_new)
 
         if target.t is not None:
@@ -462,7 +462,7 @@ class SysIdData:
         if q < 1:
             raise ValueError(f"Downsampling factor must be >= 1, got {q}")
 
-        for k, v in list(target.series.items()):
+        for k, v in target:
             target.series[k] = scipy.signal.decimate(v, q)
 
         if target.Ts is not None:
@@ -500,7 +500,7 @@ class SysIdData:
             )
 
         sos = scipy.signal.butter(order, corner_frequency, "low", analog=False, fs=1.0 / target.Ts, output="sos")
-        for k in list(target.series.keys()):
+        for k, _ in target:
             target.series[k] = scipy.signal.sosfilt(sos, target.series[k])
         return target
 
@@ -563,7 +563,7 @@ class SysIdData:
         if n_series == 1:
             axes = [axes]
 
-        for ax, (key, val) in zip(axes, self.series.items()):
+        for ax, (key, val) in zip(axes, self):
             ax.plot(t, val, label=key)
             ax.legend()
             ax.grid(True)
