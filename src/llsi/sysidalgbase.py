@@ -36,11 +36,17 @@ class SysIdAlgBase(ABC):
 
         # Extract output data
         y_names_list = [y_name] if isinstance(y_name, str) else y_name
+        missing_outputs = [name for name in y_names_list if name not in data]
+        if missing_outputs:
+            raise ValueError(f"Output series not found in data: {missing_outputs}")
         y_data = [data[name] for name in y_names_list]
         self.y = np.column_stack(y_data)
 
         # Extract input data
         u_names_list = [u_name] if isinstance(u_name, str) else u_name
+        missing_inputs = [name for name in u_names_list if name not in data]
+        if missing_inputs:
+            raise ValueError(f"Input series not found in data: {missing_inputs}")
         u_data = [data[name] for name in u_names_list]
         self.u = np.column_stack(u_data)
 
@@ -173,6 +179,15 @@ def compute_residuals_analysis(model: LTIModel, data: SysIdData) -> Dict[str, An
     """
     input_names = model.input_names if model.input_names else ["u"]
     output_names = model.output_names if model.output_names else ["y"]
+
+    # Check that required series exist in data
+    missing_inputs = [name for name in input_names if name not in data]
+    missing_outputs = [name for name in output_names if name not in data]
+    if missing_inputs:
+        raise ValueError(f"Input series not found in validation data: {missing_inputs}")
+    if missing_outputs:
+        raise ValueError(f"Output series not found in validation data: {missing_outputs}")
+
     u = np.column_stack([data[name] for name in input_names])
     y = np.column_stack([data[name] for name in output_names])
     return _compute_residuals_analysis_arrays(model, u, y)
@@ -264,6 +279,15 @@ def bic(model: LTIModel, data: SysIdData) -> float:
 def _information_criterion(model: LTIModel, data: SysIdData, penalty_factor: float) -> float:
     input_names = model.input_names if model.input_names else ["u"]
     output_names = model.output_names if model.output_names else ["y"]
+
+    # Check that required series exist in data
+    missing_inputs = [name for name in input_names if name not in data]
+    missing_outputs = [name for name in output_names if name not in data]
+    if missing_inputs:
+        raise ValueError(f"Input series not found in validation data: {missing_inputs}")
+    if missing_outputs:
+        raise ValueError(f"Output series not found in validation data: {missing_outputs}")
+
     u = np.column_stack([data[name] for name in input_names])
     y = np.column_stack([data[name] for name in output_names])
     return _information_criterion_arrays(model, u, y, penalty_factor)
