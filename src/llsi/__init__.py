@@ -1,3 +1,4 @@
+from .autoident import AutoIdentResult, autoident
 from .figure import Figure
 from .matlab import arx, compare, iddata, impulse, n4sid, oe, pem, step
 from .polynomialmodel import PolynomialModel
@@ -35,4 +36,6 @@ __all__ = [
     "compare",
     "step",
     "impulse",
+    "autoident",
+    "AutoIdentResult",
 ]
