@@ -496,7 +496,8 @@ class SysIdData:
         if corner_frequency >= nyquist:
             raise ValueError(
                 f"Corner frequency ({corner_frequency:.2f} Hz) must be less than Nyquist frequency "
-                f"({nyquist:.2f} Hz). Increase sampling rate (decrease Ts={target.Ts}) or use a lower corner frequency."
+                f"({nyquist:.2f} Hz). Increase sampling rate (decrease Ts={target.Ts}) or use a lower corner frequency. "
+                f"Required Ts < {1.0 / (2 * corner_frequency):.4f}s"
             )
 
         sos = scipy.signal.butter(order, corner_frequency, "low", analog=False, fs=1.0 / target.Ts, output="sos")
