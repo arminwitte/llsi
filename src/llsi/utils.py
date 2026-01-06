@@ -52,6 +52,17 @@ def cv(
         s = settings.copy()
         s["lambda"] = 10**lmb_exp
         mod = sysid(training_data, y_name, u_name, order, method=method, settings=s)
+
+        # Check that required series exist in validation data
+        y_names_list = [y_name] if isinstance(y_name, str) else y_name
+        u_names_list = [u_name] if isinstance(u_name, str) else u_name
+        missing_outputs = [name for name in y_names_list if name not in validation_data]
+        missing_inputs = [name for name in u_names_list if name not in validation_data]
+        if missing_outputs:
+            raise ValueError(f"Output series not found in validation data: {missing_outputs}")
+        if missing_inputs:
+            raise ValueError(f"Input series not found in validation data: {missing_inputs}")
+
         y = validation_data[y_name]
         u = validation_data[u_name]
         fit = mod.compare(y, u)

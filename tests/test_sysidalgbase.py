@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 from llsi.ltimodel import LTIModel
 from llsi.sysidalgbase import SysIdAlgBase
@@ -21,6 +22,9 @@ class MockData:
     def __getitem__(self, key):
         return self.data[key]
 
+    def __contains__(self, key):
+        return key in self.data
+
 
 def test_sysidalgbase_init():
     data_dict = {"y1": np.array([1, 2, 3]), "u1": np.array([4, 5, 6]), "u2": np.array([7, 8, 9])}
@@ -37,6 +41,24 @@ def test_sysidalgbase_init():
     assert alg.u.shape == (3, 2)
     assert np.allclose(alg.u[:, 0], data_dict["u1"])
     assert np.allclose(alg.u[:, 1], data_dict["u2"])
+
+
+def test_sysidalgbase_init_missing_series():
+    """Test that SysIdAlgBase raises helpful errors for missing series."""
+    data_dict = {"y1": np.array([1, 2, 3]), "u1": np.array([4, 5, 6])}
+    data = MockData(data_dict)
+
+    # Test missing output series
+    with pytest.raises(ValueError, match="Output series not found in data: \\['y2'\\]"):
+        ConcreteSysIdAlg(data, "y2", "u1", settings={})
+
+    # Test missing input series
+    with pytest.raises(ValueError, match="Input series not found in data: \\['u2'\\]"):
+        ConcreteSysIdAlg(data, "y1", "u2", settings={})
+
+    # Test multiple missing series
+    with pytest.raises(ValueError, match="Input series not found in data: \\['u2', 'u3'\\]"):
+        ConcreteSysIdAlg(data, "y1", ["u1", "u2", "u3"], settings={})
 
 
 def test_sse():

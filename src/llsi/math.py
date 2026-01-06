@@ -63,3 +63,31 @@ def evaluate_state_space(
         x = A @ x + B @ ui
 
     return y
+
+
+@njit
+def prbs31(code: int) -> int:
+    """
+    Single step of PRBS31 generator.
+    Polynomial: x^31 + x^28 + 1
+    """
+    feedback = ((code >> 30) ^ (code >> 27)) & 1
+    return ((code << 1) | feedback) & 0x7FFFFFFF
+
+
+@njit
+def generate_prbs_sequence(N: int, seed: int) -> np.ndarray:
+    """
+    Generate PRBS31 sequence of length N.
+    Returns array with values 0.0 and 1.0.
+    """
+    u = np.empty(N, dtype=np.float64)
+    state = int(seed) & 0x7FFFFFFF
+    if state == 0:
+        state = 1
+
+    for i in range(N):
+        u[i] = float(state & 1)
+        state = prbs31(state)
+
+    return u
