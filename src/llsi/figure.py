@@ -28,12 +28,13 @@ class Figure:
     Context manager for creating subplots of system identification results.
     """
 
-    def __init__(self, figsize: Tuple[int, int] = (16, 9)):
+    def __init__(self, figsize: Tuple[int, int] = (16, 9), auto_show: bool = True):
         """
         Initialize the Figure context manager.
 
         Args:
             figsize: Tuple of (width, height) for the figure.
+            auto_show: If True, automatically call plt.show() when exiting the context.
         """
         if plt is None:
             raise ImportError("matplotlib is required for plotting. Install it with 'pip install llsi[plot]'.")
@@ -55,6 +56,7 @@ class Figure:
         }
 
         self.figsize = figsize
+        self.auto_show = auto_show
         self.counter = 0
         self.colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
         self.logger = logging.getLogger(__name__)
@@ -68,14 +70,14 @@ class Figure:
         if exc_type is not None:
             return False  # Propagate exception
 
-        rows = int(np.floor((self.counter + 1) / 2))
-        cols = 1 if self.counter < 2 else 2
-
-        # Handle case where no plots were added
-        if rows == 0:
-            return
-
-        self.fig, self.ax = plt.subplots(rows, cols, figsize=self.figsize, constrained_layout=True)
+        # If no plots were added, create a single empty figure
+        if self.counter == 0:
+            self.fig, self.ax = plt.subplots(1, 1, figsize=self.figsize, constrained_layout=True)
+        # If figure was already created in plot(), skip recreation
+        elif self.fig is None:
+            rows = int(np.floor((self.counter + 1) / 2))
+            cols = 1 if self.counter < 2 else 2
+            self.fig, self.ax = plt.subplots(rows, cols, figsize=self.figsize, constrained_layout=True)
 
         # Ensure self.ax is always indexable for consistency if possible,
         # but matplotlib returns Axes or array of Axes.
@@ -128,14 +130,34 @@ class Figure:
             # call plotting method
             fun(self.fig, ax, obj, col=self.colors[color_index])
 
-        # Only show the figure if matplotlib interactive mode is enabled.
+        # Only show the figure if auto_show is True and matplotlib interactive mode is enabled.
         # In test environments (Agg backend) this avoids a non-interactive warning.
-        try:
-            if plt.isinteractive():
-                plt.show()
-        except Exception:
-            # If anything unexpected occurs, avoid raising during normal program exit.
-            pass
+        if self.auto_show:
+            try:
+                if plt.isinteractive():
+                    plt.show()
+            except Exception:
+                # If anything unexpected occurs, avoid raising during normal program exit.
+                pass
+
+    def show(self):
+        """Manually trigger plt.show() to display the figure."""
+        if plt is not None:
+            plt.show()
+
+    def savefig(self, path: str, **kwargs):
+        """Save the figure to a file (e.g., 'plot.png')."""
+        if self.fig is not None:
+            self.fig.savefig(path, **kwargs)
+
+    def suptitle(self, title: str, **kwargs):
+        """Set a title for the entire figure."""
+        if self.fig is None:
+            # Create figure if it doesn't exist yet
+            rows = int(np.floor((self.counter + 1) / 2)) if self.counter > 0 else 1
+            cols = 1 if self.counter < 2 else 2
+            self.fig, self.ax = plt.subplots(rows, cols, figsize=self.figsize, constrained_layout=True)
+        self.fig.suptitle(title, **kwargs)
 
     def plot(self, obj: Union[Any, List[Any]], plot_type: Optional[str] = None):
         """
@@ -164,6 +186,11 @@ class Figure:
                 self.plot_types.append("residuals_ccf")
                 self.place.append(self.counter)
                 self.counter += 1
+            # Create figure if not already created
+            if self.fig is None:
+                rows = int(np.floor((self.counter + 1) / 2))
+                cols = 1 if self.counter < 2 else 2
+                self.fig, self.ax = plt.subplots(rows, cols, figsize=self.figsize, constrained_layout=True)
             return
 
         for o in obj_list:
@@ -172,6 +199,11 @@ class Figure:
             self.place.append(self.counter)
 
         self.counter += 1
+        # Create figure if not already created
+        if self.fig is None:
+            rows = int(np.floor((self.counter + 1) / 2))
+            cols = 1 if self.counter < 2 else 2
+            self.fig, self.ax = plt.subplots(rows, cols, figsize=self.figsize, constrained_layout=True)
 
     @staticmethod
     def _impulse(fig: MplFigure, ax: Axes, lti_mod: Union[LTIModel, AutoIdentResult], col: str = "#1f77b4"):
