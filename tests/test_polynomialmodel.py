@@ -223,3 +223,34 @@ def test_frequency(model):
             9.93180262e-01 - 0.08229963j,
         ],
     )
+
+
+def test_steady_state_gain_simple():
+    """Test DC gain for a simple ARX model."""
+    # System: y[k] = 0.5 * y[k-1] + u[k]
+    # A(q) = 1 - 0.5 * q^(-1), B(q) = 1
+    # DC gain = B(1)/A(1) = 1 / (1 - 0.5) = 2.0
+    mod = PolynomialModel(a=[1, -0.5], b=[1], Ts=1.0)
+    steady_state_gain = mod.steady_state_gain()
+    np.testing.assert_allclose(steady_state_gain, [[2.0]])
+
+
+def test_steady_state_gain_with_delay():
+    """Test DC gain for a model with delay."""
+    # System: y[k] = 0.5 * y[k-1] + u[k-1]
+    # A(q) = 1 - 0.5 * q^(-1), B(q) = 1, nk = 1
+    # DC gain = B(1)/A(1) = 1 / (1 - 0.5) = 2.0 (delay doesn't affect DC gain)
+    mod = PolynomialModel(a=[1, -0.5], b=[1], nk=1, Ts=1.0)
+    steady_state_gain = mod.steady_state_gain()
+    np.testing.assert_allclose(steady_state_gain, [[2.0]])
+
+
+def test_steady_state_gain_arx():
+    """Test DC gain for an ARX model with multiple coefficients."""
+    # System: y[k] = 0.8 * y[k-1] - 0.2 * y[k-2] + 0.5 * u[k] + 0.3 * u[k-1]
+    # A(q) = 1 - 0.8 * q^(-1) + 0.2 * q^(-2)
+    # B(q) = 0.5 + 0.3 * q^(-1)
+    # DC gain = B(1)/A(1) = (0.5 + 0.3) / (1 - 0.8 + 0.2) = 0.8 / 0.4 = 2.0
+    mod = PolynomialModel(a=[1, -0.8, 0.2], b=[0.5, 0.3], Ts=1.0)
+    steady_state_gain = mod.steady_state_gain()
+    np.testing.assert_allclose(steady_state_gain, [[2.0]])
