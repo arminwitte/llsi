@@ -262,20 +262,43 @@ class StateSpaceModel(LTIModel):
             return omega, H_arr, mag_std, phase_std
 
         return omega, H_arr
-        # Could use scipy.signal.freqresp if we convert to ss.
 
-        eye = np.eye(A.shape[0])
-        for z_ in z:
-            # Solve (zI - A) X = B -> X = (zI - A)^-1 B
-            # Then H = C X + D
-            try:
-                X = scipy.linalg.solve(z_ * eye - A, B)
-                h = C @ X + D
-            except scipy.linalg.LinAlgError:
-                h = np.full((self.ny, self.nu), np.nan)
-            H.append(h)
+    def steady_state_gain(self, uncertainty: bool = False) -> Union[np.ndarray, Tuple[np.ndarray, np.ndarray]]:
+        """
+        Compute the steady-state gain of the system.
 
-        return omega, np.array(H)
+        For a discrete-time state-space model:
+        H(0) = C * (I - A)^(-1) * B + D
+
+        Args:
+            uncertainty: If True, return standard deviation of the steady-state gain.
+
+        Returns:
+            If uncertainty is False:
+                np.ndarray: Steady-state gain matrix of shape (ny, nu).
+            If uncertainty is True:
+                Tuple[np.ndarray, np.ndarray]: Steady-state gain matrix and standard deviation.
+        """
+        eye = np.eye(self.nx)
+        try:
+            # H(0) = C * (I - A)^(-1) * B + D
+            steady_state_gain = self.C @ scipy.linalg.solve(eye - self.A, self.B) + self.D
+        except scipy.linalg.LinAlgError:
+            # If (I - A) is singular, the steady-state gain is undefined (infinite)
+            steady_state_gain = np.full((self.ny, self.nu), np.nan)
+
+        if uncertainty:
+            if not hasattr(self, "cov") or self.cov is None:
+                return steady_state_gain, None
+
+            def func():
+                return self.steady_state_gain(uncertainty=False).ravel()
+
+            std = self._propagate_uncertainty(func)
+            std = std.reshape(steady_state_gain.shape)
+            return steady_state_gain, std
+
+        return steady_state_gain
 
     @classmethod
     def from_PT1(cls, K: float, tauC: float, Ts: float = 1.0) -> "StateSpaceModel":

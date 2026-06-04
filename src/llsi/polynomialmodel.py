@@ -217,6 +217,45 @@ class PolynomialModel(LTIModel):
 
         return omega, H
 
+    def steady_state_gain(self, uncertainty: bool = False) -> Union[np.ndarray, Tuple[np.ndarray, np.ndarray]]:
+        """
+        Compute the steady-state gain of the system.
+
+        For a discrete-time transfer function H(z) = B(z)/A(z) * z^(-nk):
+        Steady-state gain = H(1) = B(1)/A(1)
+
+        Args:
+            uncertainty: If True, return standard deviation of the steady-state gain.
+
+        Returns:
+            If uncertainty is False:
+                np.ndarray: Steady-state gain as a scalar (SISO system).
+            If uncertainty is True:
+                Tuple[np.ndarray, np.ndarray]: Steady-state gain and standard deviation.
+        """
+        # Evaluate polynomials at z=1 (steady-state)
+        # H(1) = B(1) / A(1) * 1^(-nk) = B(1) / A(1)
+        b_sum = np.sum(self.b)
+        a_sum = np.sum(self.a)
+
+        if a_sum == 0:
+            steady_state_gain = np.full((self.ny, self.nu), np.nan)
+        else:
+            steady_state_gain = np.array([[b_sum / a_sum]])
+
+        if uncertainty:
+            if not hasattr(self, "cov") or self.cov is None:
+                return steady_state_gain, None
+
+            def func():
+                return self.steady_state_gain(uncertainty=False).ravel()
+
+            std = self._propagate_uncertainty(func)
+            std = std.reshape(steady_state_gain.shape)
+            return steady_state_gain, std
+
+        return steady_state_gain
+
     def vectorize(self) -> np.ndarray:
         """Return model parameters as a vector."""
         # Usually [b0, b1, ..., a1, a2, ...] (a0 is fixed to 1)
