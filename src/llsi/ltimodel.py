@@ -284,3 +284,22 @@ class LTIModel(ABC):
                     Frequency vector, complex response, magnitude std, phase std.
         """
         pass
+
+    @abstractmethod
+    def steady_state_gain(self, uncertainty: bool = False) -> Union[np.ndarray, Tuple[np.ndarray, np.ndarray]]:
+        """
+        Compute the steady-state gain of the system.
+
+        The steady-state gain is the value of the frequency response at omega = 0,
+        representing the steady-state gain of the system.
+
+        Args:
+            uncertainty: If True, return standard deviation of the steady-state gain.
+
+        Returns:
+            If uncertainty is False:
+                np.ndarray: steady-state gain matrix of shape (ny, nu).
+            If uncertainty is True:
+                Tuple[np.ndarray, np.ndarray]: steady-state gain matrix and standard deviation.
+        """
+        pass

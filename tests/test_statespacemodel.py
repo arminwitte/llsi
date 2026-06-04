@@ -274,3 +274,35 @@ def test_reduce_order(ss_mod):
     np.testing.assert_allclose(red_mod.A, [[0.84831905]])
     print(s)
     np.testing.assert_allclose(s, [33.17635127, 21.41164539])
+
+
+def test_steady_state_gain_siso():
+    """Test DC gain for a simple SISO state-space model."""
+    # System: x[k+1] = 0.5 * x[k] + u[k], y[k] = x[k]
+    # DC gain = C * (I - A)^(-1) * B + D = 1 * (1 - 0.5)^(-1) * 1 + 0 = 2.0
+    mod = StateSpaceModel(A=[[0.5]], B=[[1.0]], C=[[1.0]], D=[[0.0]], Ts=1.0)
+    steady_state_gain = mod.steady_state_gain()
+    np.testing.assert_allclose(steady_state_gain, [[2.0]])
+
+
+def test_steady_state_gain_mimo():
+    """Test DC gain for a MIMO state-space model."""
+    # Simple 2x2 MIMO system
+    A = np.array([[0.5, 0.0], [0.0, 0.5]])
+    B = np.array([[1.0, 0.0], [0.0, 1.0]])
+    C = np.array([[1.0, 0.0], [0.0, 1.0]])
+    D = np.array([[0.0, 0.0], [0.0, 0.0]])
+    mod = StateSpaceModel(A=A, B=B, C=C, D=D, Ts=1.0)
+    steady_state_gain = mod.steady_state_gain()
+    # Each channel has DC gain of 2.0
+    expected = np.array([[2.0, 0.0], [0.0, 2.0]])
+    np.testing.assert_allclose(steady_state_gain, expected)
+
+
+def test_steady_state_gain_with_d():
+    """Test DC gain with non-zero D matrix."""
+    # System: x[k+1] = 0.5 * x[k] + u[k], y[k] = x[k] + 0.5 * u[k]
+    # DC gain = C * (I - A)^(-1) * B + D = 2.0 + 0.5 = 2.5
+    mod = StateSpaceModel(A=[[0.5]], B=[[1.0]], C=[[1.0]], D=[[0.5]], Ts=1.0)
+    steady_state_gain = mod.steady_state_gain()
+    np.testing.assert_allclose(steady_state_gain, [[2.5]])
