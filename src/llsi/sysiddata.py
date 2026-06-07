@@ -263,6 +263,10 @@ class SysIdData:
         if t_current.size == 0:
             return target
 
+        # Validate that time vector is strictly increasing
+        if not np.all(np.diff(t_current) > 0):
+            raise ValueError("Time vector must be strictly increasing for interpolation")
+
         t_start = t_current[0]
         t_end = t_current[-1]
         t_new = np.linspace(t_start, t_end, N)
@@ -271,17 +275,13 @@ class SysIdData:
             keys = list(target.series.keys())
 
             # Resample each series with its specified method
-            new_matrix = np.empty((len(keys), N))
-            for i, k in enumerate(keys):
+            for k in keys:
                 f = scipy.interpolate.interp1d(
-                    t_current, target.series[k], kind=method_dict[k], axis=0, fill_value="extrapolate"
+                    t_current, target.series[k], kind=method_dict[k], fill_value="extrapolate"
                 )
-                new_matrix[i, :] = f(t_new)
+                target.series[k] = f(t_new)
 
-            for i, k in enumerate(keys):
-                target.series[k] = new_matrix[i, :]
-
-        target.Ts = (t_end - t_start) / (N - 1) if N > 1 else 0.0
+        target.Ts = (t_end - t_start) / (N - 1) if N > 1 else None
         target.t = None
         return target
 
