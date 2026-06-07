@@ -922,7 +922,7 @@ def test_equidistant_non_monotonic_time_raises_error():
     t = np.array([1.0, 3.0, 2.0, 4.0])  # Not strictly increasing
     y = np.array([0.0, 1.0, 0.5, 2.0])
     d = SysIdData(t=t, y=y)
-    
+
     with pytest.raises(ValueError, match="Time vector must be strictly increasing"):
         d.equidistant()
 
@@ -933,7 +933,7 @@ def test_equidistant_non_strictly_increasing_raises_error():
     t = np.array([1.0, 2.0, 2.0, 3.0])  # Duplicate at index 1 and 2
     y = np.array([0.0, 1.0, 1.5, 2.0])
     d = SysIdData(t=t, y=y)
-    
+
     with pytest.raises(ValueError, match="Time vector must be strictly increasing"):
         d.equidistant()
 
@@ -943,9 +943,9 @@ def test_equidistant_N1_sets_Ts_to_None():
     t = np.array([0.0, 1.0, 2.0])
     y = np.array([0.0, 1.0, 2.0])
     d = SysIdData(t=t, y=y)
-    
+
     d.equidistant(N=1, inplace=True)
-    
+
     assert d.N == 1
     assert d.Ts is None
     assert d.t is None
