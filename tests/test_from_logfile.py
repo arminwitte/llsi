@@ -1,5 +1,12 @@
 import numpy as np
-import pandas as pd
+import pytest
+
+try:
+    import pandas as pd
+
+    HAS_PANDAS = True
+except ImportError:
+    HAS_PANDAS = False
 
 from llsi.sysiddata import SysIdData
 
@@ -14,6 +21,7 @@ def make_irregular_times(start, periods, freq_seconds, jitter_seconds):
     return np.array(times, dtype="datetime64[s]")
 
 
+@pytest.mark.skipif(not HAS_PANDAS, reason="pandas not installed")
 def test_from_logfile_basic(tmp_path):
     # Create a small logfile with two sensors and slightly irregular timestamps
     start = np.datetime64("2020-01-01T00:00:00")
@@ -38,6 +46,7 @@ def test_from_logfile_basic(tmp_path):
     assert sid.N >= 2
 
 
+@pytest.mark.skipif(not HAS_PANDAS, reason="pandas not installed")
 def test_from_logfile_with_N(tmp_path):
     # Create deterministic data for testing N resizing
     start = np.datetime64("2020-01-01T00:00:00")
@@ -65,6 +74,7 @@ def test_from_logfile_with_N(tmp_path):
     assert np.isclose(sid.Ts, 3600.0)
 
 
+@pytest.mark.skipif(not HAS_PANDAS, reason="pandas not installed")
 def test_from_logfile_custom_columns(tmp_path):
     # Test custom column names for time/value/pivot
     start = np.datetime64("2020-01-01T00:00:00")
