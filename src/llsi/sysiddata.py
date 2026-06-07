@@ -597,13 +597,11 @@ class SysIdData:
             pandas.DataFrame: The data as a DataFrame.
         """
         try:
-            import pandas as pd
+            from .pandas_utils import to_pandas as _to_pandas
         except ImportError:
             raise ImportError("pandas is required for this method. Install it with 'pip install llsi[data]'.") from None
 
-        df = pd.DataFrame(self.series)
-        df.index = self.time
-        return df
+        return _to_pandas(self)
 
     @classmethod
     def from_pandas(cls, df, time_col=None, Ts=None):
@@ -620,57 +618,11 @@ class SysIdData:
             Sampling time. If None, it is inferred from the time index if possible.
         """
         try:
-            import pandas as pd
+            from .pandas_utils import from_pandas as _from_pandas
         except ImportError:
             raise ImportError("pandas is required for this method. Install it with 'pip install llsi[data]'.") from None
 
-        if time_col:
-            t_values = df[time_col].values
-            data_df = df.drop(columns=[time_col])
-        else:
-            t_values = df.index.values
-            data_df = df
-
-        series_data = {col: data_df[col].values for col in data_df.columns}
-
-        # Infer Ts if not provided
-        t_start = None
-        t_vec = None
-
-        if Ts is None:
-            # Check if t_values are numeric or datetime
-            if pd.api.types.is_numeric_dtype(t_values):
-                diffs = np.diff(t_values)
-                if len(diffs) > 0 and np.allclose(diffs, diffs[0]):
-                    Ts = float(diffs[0])
-                    t_start = float(t_values[0])
-                else:
-                    t_vec = t_values
-            elif pd.api.types.is_datetime64_any_dtype(t_values):
-                # Convert to seconds relative to start
-                t_start_timestamp = t_values[0]
-                t_seconds = (t_values - t_start_timestamp) / np.timedelta64(1, "s")
-
-                diffs = np.diff(t_seconds)
-                if len(diffs) > 0 and np.allclose(diffs, diffs[0]):
-                    Ts = float(diffs[0])
-                    t_start = 0.0  # Relative time
-                else:
-                    t_vec = t_seconds
-                    t_start = 0.0
-            else:
-                # Fallback, maybe just index
-                t_vec = np.arange(len(t_values))
-                Ts = 1.0
-                t_start = 0.0
-        else:
-            # Ts provided
-            if pd.api.types.is_numeric_dtype(t_values):
-                t_start = float(t_values[0])
-            else:
-                t_start = 0.0
-
-        return cls(t=t_vec, Ts=Ts, t_start=t_start, **series_data)
+        return _from_pandas(df, time_col=time_col, Ts=Ts)
 
     @classmethod
     def from_logfile(
@@ -705,63 +657,16 @@ class SysIdData:
             Additional arguments passed to pd.read_csv.
         """
         try:
-            import pandas as pd
+            from .pandas_utils import from_logfile as _from_logfile
         except ImportError:
-            raise ImportError("pandas is required for this method.") from None
+            raise ImportError("pandas is required for this method. Install it with 'pip install llsi[data]'.") from None
 
-        # 1. Load Raw Data
-        df = pd.read_csv(path, sep=sep, **kwargs)
-
-        if time_col not in df.columns:
-            raise KeyError(f"Time column '{time_col}' not found.")
-
-        # Convert to datetime
-        df[time_col] = pd.to_datetime(df[time_col], format=datetime_format)
-
-        # 2. Pivot (Make wide)
-        # We use pivot_table with 'first' to handle duplicates strictly,
-        # or just pivot if we are sure data is unique per timestamp.
-        # pivot_table is safer for dirty logs.
-        if pivot_col:
-            df_wide = df.pivot_table(index=time_col, columns=pivot_col, values=value_col, aggfunc="first")
-        else:
-            # Assume it is already wide, just set index
-            df_wide = df.set_index(time_col)
-
-        # Handle NaNs from pivoting (async sensors):
-        # We fill forward/backward just to get continuous arrays for the raw object.
-        # Real resampling happens in equidistant() later.
-        df_wide = df_wide.ffill().bfill()
-
-        if df_wide.empty:
-            raise ValueError("Dataframe is empty after loading and pivoting.")
-
-        # 3. Calculate Relative Time Vector
-        t_abs = df_wide.index
-        # Convert to seconds starting at 0
-        t_sec = (t_abs - t_abs[0]).total_seconds().values
-
-        # 4. Infer Sampling Time (Ts) and N from the raw data
-        # Using median is robust against missing samples or small jitter
-        dt_raw = np.diff(t_sec)
-        if len(dt_raw) > 0:
-            Ts_est = float(np.median(dt_raw))
-        else:
-            Ts_est = 1.0  # Fallback for single point
-
-        # Calculate logical N based on duration and estimated Ts
-        duration = t_sec[-1]
-        if Ts_est > 0:
-            N_est = int(np.round(duration / Ts_est)) + 1
-        else:
-            N_est = len(t_sec)
-
-        # 5. Create Raw SysIdData Object
-        series_data = {col: df_wide[col].values for col in df_wide.columns}
-
-        # Initialize with the uneven raw time vector
-        raw_obj = cls(t=t_sec, Ts=None, **series_data)
-
-        # 6. Apply internal resampling to force equidistant grid
-        # This uses the class's own interpolation logic
-        return raw_obj.equidistant(N=N_est)
+        return _from_logfile(
+            path,
+            time_col=time_col,
+            value_col=value_col,
+            pivot_col=pivot_col,
+            datetime_format=datetime_format,
+            sep=sep,
+            **kwargs,
+        )
