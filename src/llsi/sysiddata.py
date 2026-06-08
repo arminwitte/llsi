@@ -323,6 +323,41 @@ class SysIdData:
 
         return target
 
+    def detrend(self, method: str = "linear", inplace: bool = True) -> "SysIdData":
+        """
+        Remove trends from all series.
+
+        Args:
+            method: The detrending method to use:
+                - 'linear': Remove linear trend using least-squares fit (default)
+                - 'constant': Remove constant trend (mean subtraction). Equivalent to center().
+                - 'standardized': Z-standardization (mean=0, std=1). Equivalent to standardize().
+            inplace: If True, modify in-place. If False, return a copy.
+
+        Returns:
+            SysIdData: The detrended object (self if inplace=True, copy if inplace=False).
+
+        Note:
+            For 'constant' and 'standardized' methods, the scaling state (means/stds) is stored
+            and can be reversed with unscale(). For 'linear' method, no state is stored.
+        """
+        target = self if inplace else copy.deepcopy(self)
+
+        if method == "constant":
+            return target.center(inplace=True)
+        elif method == "standardized":
+            return target.standardize(inplace=True)
+        elif method == "linear":
+            # Use scipy.signal.detrend for linear trend removal
+            for k, v in target:
+                target.series[k] = scipy.signal.detrend(v, type="linear")
+            return target
+        else:
+            raise ValueError(
+                f"Invalid detrend method '{method}'. "
+                "Must be one of: 'linear', 'constant', 'standardized'."
+            )
+
     def unscale(self, inplace: bool = True) -> "SysIdData":
         """
         Reverse center() and standardize() transformations (back to physical units).
