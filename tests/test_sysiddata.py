@@ -949,3 +949,114 @@ def test_equidistant_N1_sets_Ts_to_None():
     assert d.N == 1
     assert d.Ts is None
     assert d.t is None
+
+
+# --- Tests for anti-aliasing in crop and slicing ---
+
+
+def test_crop_with_step_and_anti_alias():
+    """Test that crop with step > 1 applies anti-aliasing by default."""
+    # Create a signal with high frequency content
+    N = 1000
+    Ts = 0.001
+    t = np.arange(N) * Ts
+    # High frequency signal (100 Hz) that would alias if not filtered
+    high_freq = np.sin(2 * np.pi * 100 * t)
+    data = SysIdData(Ts=Ts, y=high_freq)
+
+    # Crop with step=2 and anti_alias=True (default)
+    cropped = data.crop(start=0, end=N, step=2, inplace=False)
+
+    # Check that the output has the correct number of samples
+    assert cropped.N == N // 2
+    # Check that Ts is updated correctly
+    assert np.isclose(cropped.Ts, Ts * 2)
+
+
+def test_crop_with_step_no_anti_alias():
+    """Test that crop with step > 1 and anti_alias=False does not apply filtering."""
+    N = 100
+    Ts = 0.01
+    t = np.arange(N) * Ts
+    # Simple signal
+    signal = np.arange(N, dtype=float)
+    data = SysIdData(Ts=Ts, y=signal)
+
+    # Crop with step=2 and anti_alias=False
+    cropped = data.crop(start=0, end=N, step=2, anti_alias=False, inplace=False)
+
+    # Check that the output has the correct number of samples
+    assert cropped.N == N // 2
+    # Check that Ts is updated correctly
+    assert np.isclose(cropped.Ts, Ts * 2)
+    # Check that the values are simply every other sample (no filtering)
+    np.testing.assert_array_equal(cropped["y"], signal[::2])
+
+
+def test_crop_with_step_non_equidistant_warns():
+    """Test that crop with step > 1 on non-equidistant data issues a warning."""
+    t = np.array([0.0, 0.1, 0.3, 0.7, 1.1, 1.8, 2.5, 3.0])
+    y = np.array([1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0])
+    data = SysIdData(t=t, y=y)
+
+    # This should issue a warning about anti-aliasing not being applicable
+    with pytest.warns(UserWarning, match="Anti-aliasing filter cannot be applied"):
+        cropped = data.crop(start=0, end=8, step=2, anti_alias=True, inplace=False)
+
+    # Check that it still downsamples
+    assert cropped.N == 4
+
+
+def test_slicing_with_step_warns():
+    """Test that slicing with step > 1 issues a warning about aliasing."""
+    N = 100
+    Ts = 0.01
+    t = np.arange(N) * Ts
+    signal = np.arange(N, dtype=float)
+    data = SysIdData(Ts=Ts, y=signal)
+
+    # This should issue a warning about aliasing
+    with pytest.warns(UserWarning, match="Slicing with step=.*performs downsampling without anti-aliasing"):
+        sliced = data[::2]
+
+    # Check that it still downsamples
+    assert sliced.N == N // 2
+    assert np.isclose(sliced.Ts, Ts * 2)
+
+
+def test_crop_step_1_no_anti_alias_needed():
+    """Test that crop with step=1 (default) works normally without anti-aliasing."""
+    N = 100
+    Ts = 0.01
+    t = np.arange(N) * Ts
+    signal = np.arange(N, dtype=float)
+    data = SysIdData(Ts=Ts, y=signal)
+
+    # Crop with step=1 (default)
+    cropped = data.crop(start=10, end=50, inplace=False)
+
+    # Check that it crops correctly
+    assert cropped.N == 40
+    np.testing.assert_array_equal(cropped["y"], signal[10:50])
+
+
+def test_crop_with_step_and_anti_alias_preserves_metadata():
+    """Test that crop with step > 1 preserves metadata correctly."""
+    N = 100
+    Ts = 0.01
+    t_start = 1.0
+    signal = np.arange(N, dtype=float)
+    data = SysIdData(Ts=Ts, t_start=t_start, y=signal)
+
+    # Crop with step=2
+    cropped = data.crop(start=0, end=N, step=2, inplace=False)
+
+    # Check that t_start is preserved (not changed by step since we start at 0)
+    assert np.isclose(cropped.t_start, t_start)
+    assert np.isclose(cropped.Ts, Ts * 2)
+
+
+def test_downsample_docstring_updated():
+    """Test that downsample method has updated docstring mentioning anti-aliasing."""
+    assert "anti-aliasing" in SysIdData.downsample.__doc__
+    assert "prevent" in SysIdData.downsample.__doc__
