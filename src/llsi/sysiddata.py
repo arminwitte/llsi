@@ -367,8 +367,7 @@ class SysIdData:
             return target
         else:
             raise ValueError(
-                f"Invalid detrend method '{method}'. "
-                "Must be one of: 'linear', 'constant', 'standardized'."
+                f"Invalid detrend method '{method}'. Must be one of: 'linear', 'constant', 'standardized'."
             )
 
     def unscale(self, inplace: bool = True) -> "SysIdData":
