@@ -143,7 +143,7 @@ class SysIdData:
                 warnings.warn(
                     f"Slicing with step={step} performs downsampling without anti-aliasing filtering, "
                     f"which may cause aliasing. Use downsample({step}) or crop(step={step}, anti_alias=True) for safe downsampling.",
-                    stacklevel=2
+                    stacklevel=2,
                 )
 
             # If it's a simple contiguous slice, use crop (safer for metadata)
@@ -470,7 +470,14 @@ class SysIdData:
 
         return target
 
-    def crop(self, start: Optional[int] = None, end: Optional[int] = None, step: Optional[int] = None, inplace: bool = True, anti_alias: bool = True) -> "SysIdData":
+    def crop(
+        self,
+        start: Optional[int] = None,
+        end: Optional[int] = None,
+        step: Optional[int] = None,
+        inplace: bool = True,
+        anti_alias: bool = True,
+    ) -> "SysIdData":
         """
         Crop the data to a subset of samples.
 
@@ -532,7 +539,7 @@ class SysIdData:
                     warnings.warn(
                         "Anti-aliasing filter cannot be applied to non-equidistant data. "
                         "Downsampling without filtering may cause aliasing.",
-                        stacklevel=2
+                        stacklevel=2,
                     )
                 # Just downsample without filtering
                 for k, v in target:
