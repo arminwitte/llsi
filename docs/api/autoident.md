@@ -1,0 +1,3 @@
+# AutoIdent
+
+::: llsi.autoident.AutoIdentResult
