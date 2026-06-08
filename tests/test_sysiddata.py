@@ -977,7 +977,6 @@ def test_crop_with_step_no_anti_alias():
     """Test that crop with step > 1 and anti_alias=False does not apply filtering."""
     N = 100
     Ts = 0.01
-    t = np.arange(N) * Ts
     # Simple signal
     signal = np.arange(N, dtype=float)
     data = SysIdData(Ts=Ts, y=signal)
@@ -1011,7 +1010,6 @@ def test_slicing_with_step_warns():
     """Test that slicing with step > 1 issues a warning about aliasing."""
     N = 100
     Ts = 0.01
-    t = np.arange(N) * Ts
     signal = np.arange(N, dtype=float)
     data = SysIdData(Ts=Ts, y=signal)
 
@@ -1028,7 +1026,6 @@ def test_crop_step_1_no_anti_alias_needed():
     """Test that crop with step=1 (default) works normally without anti-aliasing."""
     N = 100
     Ts = 0.01
-    t = np.arange(N) * Ts
     signal = np.arange(N, dtype=float)
     data = SysIdData(Ts=Ts, y=signal)
 
