@@ -42,6 +42,8 @@ class SysIdData:
     t_start: float = 0.0
     means: dict[str, float] = field(default_factory=dict)
     stds: dict[str, float] = field(default_factory=dict)
+    trend_slopes: dict[str, float] = field(default_factory=dict)
+    trend_intercepts: dict[str, float] = field(default_factory=dict)
 
     def __init__(
         self, t: Optional[np.ndarray] = None, Ts: Optional[float] = None, t_start: Optional[float] = None, **kwargs: Any
@@ -68,6 +70,8 @@ class SysIdData:
         # Initialize scaling state fields
         self.means = {}
         self.stds = {}
+        self.trend_slopes = {}
+        self.trend_intercepts = {}
 
         # Call post-init validations and conversions
         self.__post_init__()
@@ -323,20 +327,78 @@ class SysIdData:
 
         return target
 
-    def unscale(self, inplace: bool = True) -> "SysIdData":
+    def detrend(self, method: str = "linear", inplace: bool = True) -> "SysIdData":
         """
-        Reverse center() and standardize() transformations (back to physical units).
+        Remove trends from all series.
+
+        Args:
+            method: The detrending method to use:
+                - 'linear': Remove linear trend using least-squares fit (default)
+                - 'constant': Remove constant trend (mean subtraction). Equivalent to center().
+                - 'standardized': Z-standardization (mean=0, std=1). Equivalent to standardize().
+            inplace: If True, modify in-place. If False, return a copy.
+
+        Returns:
+            SysIdData: The detrended object (self if inplace=True, copy if inplace=False).
+
+        Note:
+            For 'constant' and 'standardized' methods, the scaling state (means/stds) is stored
+            and can be reversed with unscale(). For 'linear' method, trend parameters (slope, intercept)
+            are stored in trend_slopes and trend_intercepts and can also be reversed with unscale().
         """
         target = self if inplace else copy.deepcopy(self)
 
-        # 1. Reverse scaling (multiply by stored stds)
+        if method == "constant":
+            return target.center(inplace=True)
+        elif method == "standardized":
+            return target.standardize(inplace=True)
+        elif method == "linear":
+            # Use least-squares to fit and store trend parameters
+            for k, v in target:
+                t = target.time  # Use time vector for x-axis
+                # Fit line: v = slope * t + intercept
+                A = np.vstack([t, np.ones(len(t))]).T
+                slope, intercept = np.linalg.lstsq(A, v, rcond=None)[0]
+                # Store parameters for later reversal
+                target.trend_slopes[k] = float(slope)
+                target.trend_intercepts[k] = float(intercept)
+                # Remove trend
+                target.series[k] = v - (slope * t + intercept)
+            return target
+        else:
+            raise ValueError(
+                f"Invalid detrend method '{method}'. Must be one of: 'linear', 'constant', 'standardized'."
+            )
+
+    def unscale(self, inplace: bool = True) -> "SysIdData":
+        """
+        Reverse center(), standardize(), and detrend() transformations (back to physical units).
+
+        The reverse operations are applied in the opposite order they were applied:
+        1. Reverse detrending (add back linear trends)
+        2. Reverse scaling (multiply by stored stds)
+        3. Reverse centering (add back stored means)
+        """
+        target = self if inplace else copy.deepcopy(self)
+
+        # 1. Reverse detrending (add back linear trends)
+        if target.trend_slopes or target.trend_intercepts:
+            for k, v in target:
+                if k in target.trend_slopes and k in target.trend_intercepts:
+                    t = target.time
+                    trend = target.trend_slopes[k] * t + target.trend_intercepts[k]
+                    target.series[k] = v + trend
+            target.trend_slopes.clear()  # Reset
+            target.trend_intercepts.clear()  # Reset
+
+        # 2. Reverse scaling (multiply by stored stds)
         if target.stds:
             for k, v in target:
                 if k in target.stds:
                     target.series[k] = v * target.stds[k]
             target.stds.clear()  # Reset
 
-        # 2. Reverse centering (add back stored means)
+        # 3. Reverse centering (add back stored means)
         if target.means:
             for k, v in target:
                 if k in target.means:
@@ -366,6 +428,29 @@ class SysIdData:
                 sigma = source.stds[k]
                 target.series[k] = target.series[k] / sigma
                 target.stds[k] = target.stds.get(k, 1.0) * sigma
+
+        return target
+
+    def apply_detrend_from(self, source: "SysIdData", inplace: bool = True) -> "SysIdData":
+        """
+        Apply the detrending from another dataset to this one.
+
+        Important for train/test splits: test data should be detrended using training trend parameters.
+        Only applies linear detrending (trend_slopes and trend_intercepts).
+        """
+        target = self if inplace else copy.deepcopy(self)
+
+        # Apply linear trend parameters from source
+        for k, v in target:
+            if k in source.trend_slopes and k in source.trend_intercepts:
+                t = target.time
+                slope = source.trend_slopes[k]
+                intercept = source.trend_intercepts[k]
+                trend = slope * t + intercept
+                target.series[k] = v - trend
+                # Store the applied parameters
+                target.trend_slopes[k] = slope
+                target.trend_intercepts[k] = intercept
 
         return target
 
@@ -583,7 +668,7 @@ class SysIdData:
             seed: Random seed.
 
         Returns:
-            Tuple of (time vector, PRBS signal).
+            tuple of (time vector, PRBS signal).
         """
         t = np.linspace(0, Ts * N, num=N, endpoint=False)
         u = _math.generate_prbs_sequence(N, seed)
