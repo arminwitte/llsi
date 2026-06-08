@@ -29,6 +29,8 @@ theme:
 
 plugins:
   - search
+  - mkdocs-jupyter:
+      execute: false
   - mkdocstrings:
       handlers:
         python:
@@ -40,8 +42,13 @@ plugins:
 nav:
   - Home: index.md
   - Tutorials:
-      - Getting Started: tutorials/getting_started.md
+      - Getting Started: tutorials/getting_started.ipynb
       - Advanced Usage: tutorials/advanced.md
+      - Differentiation Demo: tutorials/differentiation_demo.ipynb
+      - Example DISS: tutorials/example_diss.ipynb
+      - Example DISS Sarimax: tutorials/example_diss_sarimax.ipynb
+      - Example: tutorials/example.ipynb
+      - Sysiddata Repr Demo: tutorials/sysiddata_repr_demo.ipynb
   - API Reference:
       - LTI Model: api/ltimodel.md
       - State Space: api/statespacemodel.md
