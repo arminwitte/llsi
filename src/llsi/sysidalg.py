@@ -2,7 +2,7 @@
 Factory for system identification algorithms and convenience function.
 """
 
-from typing import Any, Dict, List, Optional, Type, Union
+from typing import Any, Optional, Union
 
 from .arx import ARX, FIR
 from .firor import FIROR
@@ -17,10 +17,10 @@ class SysIdAlgFactory:
     """Factory for registering and retrieving system identification algorithms."""
 
     def __init__(self) -> None:
-        self.creators: Dict[str, Type[SysIdAlgBase]] = {}
+        self.creators: dict[str, type[SysIdAlgBase]] = {}
         self.default_creator_name: Optional[str] = None
 
-    def register_creator(self, creator: Type[SysIdAlgBase], default: bool = False) -> None:
+    def register_creator(self, creator: type[SysIdAlgBase], default: bool = False) -> None:
         """
         Register a system identification algorithm class.
 
@@ -33,7 +33,7 @@ class SysIdAlgFactory:
             self.default_creator_name = name
         self.creators[name] = creator
 
-    def get_creator(self, name: Optional[str] = None) -> Type[SysIdAlgBase]:
+    def get_creator(self, name: Optional[str] = None) -> type[SysIdAlgBase]:
         """
         Get a system identification algorithm class by name.
 
@@ -71,11 +71,11 @@ sysidalg.register_creator(FIR)
 
 def sysid(
     data: SysIdData,
-    y_name: Union[str, List[str]],
-    u_name: Union[str, List[str]],
+    y_name: Union[str, list[str]],
+    u_name: Union[str, list[str]],
     order: Any,
     method: Optional[str] = None,
-    settings: Optional[Dict[str, Any]] = None,
+    settings: Optional[dict[str, Any]] = None,
 ) -> LTIModel:
     """
     Convenience function to perform system identification.

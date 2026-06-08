@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Optional, Union
 
 import numpy as np
 
@@ -20,8 +20,8 @@ class AutoIdentResult:
 
     model: Any  # The winning model (StateSpace or Polynomial)
     data: Any  # The used SysIdData object (after resampling/centering)
-    metrics: Dict[str, float]  # e.g. {'fit': 87.5}
-    report: List[str] = field(default_factory=list)  # Log of decision steps
+    metrics: dict[str, float]  # e.g. {'fit': 87.5}
+    report: list[str] = field(default_factory=list)  # Log of decision steps
     singular_values: Optional[np.ndarray] = None  # Hankel singular values from order estimation
 
     def summary(self):
@@ -35,7 +35,7 @@ class AutoIdentResult:
             print(f" > {line}")
 
 
-def find_gaps_in_sv(sv: np.ndarray, top_k: int = 3) -> List[int]:
+def find_gaps_in_sv(sv: np.ndarray, top_k: int = 3) -> list[int]:
     """
     Find the most likely model orders based on gaps in singular values.
     """
@@ -51,7 +51,7 @@ def find_gaps_in_sv(sv: np.ndarray, top_k: int = 3) -> List[int]:
     return orders
 
 
-def get_data_matrix(data: SysIdData, names: Union[str, List[str]]) -> np.ndarray:
+def get_data_matrix(data: SysIdData, names: Union[str, list[str]]) -> np.ndarray:
     if isinstance(names, str):
         return data[names].reshape(-1, 1)
     else:

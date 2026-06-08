@@ -2,7 +2,7 @@
 Polynomial model representation (e.g., ARX, OE).
 """
 
-from typing import Any, List, Optional, Tuple, Union
+from typing import Any, Optional, Union
 
 import numpy as np
 import scipy.signal
@@ -20,8 +20,8 @@ class PolynomialModel(LTIModel):
 
     def __init__(
         self,
-        a: Optional[Union[np.ndarray, List[float]]] = None,
-        b: Optional[Union[np.ndarray, List[float]]] = None,
+        a: Optional[Union[np.ndarray, list[float]]] = None,
+        b: Optional[Union[np.ndarray, list[float]]] = None,
         na: int = 1,
         nb: int = 1,
         nu: int = 1,
@@ -29,8 +29,8 @@ class PolynomialModel(LTIModel):
         nk: int = 0,
         cov: Optional[np.ndarray] = None,
         Ts: float = 1.0,
-        input_names: Optional[List[str]] = None,
-        output_names: Optional[List[str]] = None,
+        input_names: Optional[list[str]] = None,
+        output_names: Optional[list[str]] = None,
     ):
         """
         Initialize the polynomial model.
@@ -97,8 +97,8 @@ class PolynomialModel(LTIModel):
         self.cov = cov
 
     def simulate(
-        self, u: Union[np.ndarray, List[float]], uncertainty: bool = False
-    ) -> Union[np.ndarray, Tuple[np.ndarray, np.ndarray]]:
+        self, u: Union[np.ndarray, list[float]], uncertainty: bool = False
+    ) -> Union[np.ndarray, tuple[np.ndarray, np.ndarray]]:
         """
         Simulate the model response.
 
@@ -149,8 +149,8 @@ class PolynomialModel(LTIModel):
     def frequency_response(
         self, omega: np.ndarray = np.logspace(-3, 2), uncertainty: bool = False
     ) -> Union[
-        Tuple[np.ndarray, np.ndarray],
-        Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray],
+        tuple[np.ndarray, np.ndarray],
+        tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray],
     ]:
         """
         Compute frequency response.
@@ -217,7 +217,7 @@ class PolynomialModel(LTIModel):
 
         return omega, H
 
-    def steady_state_gain(self, uncertainty: bool = False) -> Union[np.ndarray, Tuple[np.ndarray, np.ndarray]]:
+    def steady_state_gain(self, uncertainty: bool = False) -> Union[np.ndarray, tuple[np.ndarray, np.ndarray]]:
         """
         Compute the steady-state gain of the system.
 

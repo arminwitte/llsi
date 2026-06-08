@@ -5,7 +5,7 @@ This module provides functions that mimic the syntax of the MATLAB System Identi
 making it easier for users familiar with MATLAB to use this package.
 """
 
-from typing import List, Optional, Tuple, Union
+from typing import Optional, Union
 
 import numpy as np
 
@@ -19,7 +19,7 @@ from .sysidalg import sysid
 from .sysiddata import SysIdData
 
 
-def iddata(y: Union[np.ndarray, List[float]], u: Union[np.ndarray, List[float]], Ts: float = 1.0) -> SysIdData:
+def iddata(y: Union[np.ndarray, list[float]], u: Union[np.ndarray, list[float]], Ts: float = 1.0) -> SysIdData:
     """
     Create a SysIdData object from output y and input u with sampling time Ts.
     Mimics MATLAB's iddata.
@@ -56,7 +56,7 @@ def iddata(y: Union[np.ndarray, List[float]], u: Union[np.ndarray, List[float]],
     return data
 
 
-def _get_names(data: SysIdData) -> Tuple[List[str], List[str]]:
+def _get_names(data: SysIdData) -> tuple[list[str], list[str]]:
     """Helper to extract sorted input and output names."""
     keys = list(data.series.keys())
     y_names = sorted([k for k in keys if k.startswith("y")])
@@ -64,7 +64,7 @@ def _get_names(data: SysIdData) -> Tuple[List[str], List[str]]:
     return y_names, u_names
 
 
-def arx(data: SysIdData, order: Union[List[int], Tuple[int, int, int]]) -> LTIModel:
+def arx(data: SysIdData, order: Union[list[int], tuple[int, int, int]]) -> LTIModel:
     """
     Estimate ARX model.
 
@@ -94,7 +94,7 @@ def n4sid(data: SysIdData, order: int) -> LTIModel:
     return sysid(data, y_names, u_names, order, method="n4sid")
 
 
-def oe(data: SysIdData, order: Union[List[int], Tuple[int, int, int]]) -> LTIModel:
+def oe(data: SysIdData, order: Union[list[int], tuple[int, int, int]]) -> LTIModel:
     """
     Estimate Output-Error model.
 
@@ -113,7 +113,7 @@ def oe(data: SysIdData, order: Union[List[int], Tuple[int, int, int]]) -> LTIMod
     return sysid(data, y_names, u_names, (nf, nb, nk), method="oe")
 
 
-def pem(data: SysIdData, order: Union[int, List[int], Tuple[int, ...], None] = None) -> LTIModel:
+def pem(data: SysIdData, order: Union[int, list[int], tuple[int, ...], None] = None) -> LTIModel:
     """
     Estimate model using Prediction Error Method.
 
@@ -184,7 +184,7 @@ def compare(data: SysIdData, model: LTIModel) -> float:
     return fit_ratio
 
 
-def step(model: LTIModel, Tfinal: Optional[float] = None) -> Tuple[np.ndarray, np.ndarray]:
+def step(model: LTIModel, Tfinal: Optional[float] = None) -> tuple[np.ndarray, np.ndarray]:
     """
     Plot step response.
 
@@ -213,7 +213,7 @@ def step(model: LTIModel, Tfinal: Optional[float] = None) -> Tuple[np.ndarray, n
     return y, t
 
 
-def impulse(model: LTIModel, Tfinal: Optional[float] = None) -> Tuple[np.ndarray, np.ndarray]:
+def impulse(model: LTIModel, Tfinal: Optional[float] = None) -> tuple[np.ndarray, np.ndarray]:
     """
     Plot impulse response.
 

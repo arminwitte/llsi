@@ -3,7 +3,7 @@ Base class for system identification algorithms.
 """
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Optional, Union
 
 import numpy as np
 import scipy.signal
@@ -18,9 +18,9 @@ class SysIdAlgBase(ABC):
     def __init__(
         self,
         data: SysIdData,
-        y_name: Union[str, List[str]],
-        u_name: Union[str, List[str]],
-        settings: Optional[Dict[str, Any]] = None,
+        y_name: Union[str, list[str]],
+        u_name: Union[str, list[str]],
+        settings: Optional[dict[str, Any]] = None,
     ):
         """
         Initialize the system identification algorithm.
@@ -86,7 +86,7 @@ class SysIdAlgBase(ABC):
         """
         pass
 
-    def compute_residuals_analysis(self, model: LTIModel, data: Optional[SysIdData] = None) -> Dict[str, Any]:
+    def compute_residuals_analysis(self, model: LTIModel, data: Optional[SysIdData] = None) -> dict[str, Any]:
         """
         Compute residual analysis metrics (ACF, CCF) on validation data.
 
@@ -161,7 +161,7 @@ class SysIdAlgBase(ABC):
         return bic(model, data)
 
 
-def compute_residuals_analysis(model: LTIModel, data: SysIdData) -> Dict[str, Any]:
+def compute_residuals_analysis(model: LTIModel, data: SysIdData) -> dict[str, Any]:
     """
     Compute residual analysis metrics (ACF, CCF) on validation data.
 
@@ -193,7 +193,7 @@ def compute_residuals_analysis(model: LTIModel, data: SysIdData) -> Dict[str, An
     return _compute_residuals_analysis_arrays(model, u, y)
 
 
-def _compute_residuals_analysis_arrays(model: LTIModel, u: np.ndarray, y: np.ndarray) -> Dict[str, Any]:
+def _compute_residuals_analysis_arrays(model: LTIModel, u: np.ndarray, y: np.ndarray) -> dict[str, Any]:
     y_pred = model.simulate(u)
     residuals = y - y_pred
 

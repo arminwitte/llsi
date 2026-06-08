@@ -3,7 +3,7 @@ Plotting utilities for system identification.
 """
 
 import logging
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Optional, Union
 
 import numpy as np
 
@@ -28,7 +28,7 @@ class Figure:
     Context manager for creating subplots of system identification results.
     """
 
-    def __init__(self, figsize: Tuple[int, int] = (16, 9), auto_show: bool = True):
+    def __init__(self, figsize: tuple[int, int] = (16, 9), auto_show: bool = True):
         """
         Initialize the Figure context manager.
 
@@ -39,9 +39,9 @@ class Figure:
         if plt is None:
             raise ImportError("matplotlib is required for plotting. Install it with 'pip install llsi[plot]'.")
 
-        self.objects: List[Any] = []
-        self.plot_types: List[Optional[str]] = []
-        self.place: List[int] = []
+        self.objects: list[Any] = []
+        self.plot_types: list[Optional[str]] = []
+        self.place: list[int] = []
 
         self.registry = {
             "impulse": self._impulse,
@@ -159,7 +159,7 @@ class Figure:
             self.fig, self.ax = plt.subplots(rows, cols, figsize=self.figsize, constrained_layout=True)
         self.fig.suptitle(title, **kwargs)
 
-    def plot(self, obj: Union[Any, List[Any]], plot_type: Optional[str] = None):
+    def plot(self, obj: Union[Any, list[Any]], plot_type: Optional[str] = None):
         """
         Add an object to be plotted.
 
@@ -331,7 +331,7 @@ class Figure:
         ax.grid(True, alpha=0.3)
 
     @staticmethod
-    def _compare(fig: MplFigure, ax: Axes, obj: Dict[str, Any], col: str = "#1f77b4"):
+    def _compare(fig: MplFigure, ax: Axes, obj: dict[str, Any], col: str = "#1f77b4"):
         mods = obj.get("mod", [])
         if not isinstance(mods, list):
             mods = [mods]
@@ -376,7 +376,7 @@ class Figure:
         ax.grid(True, alpha=0.3)
 
     @staticmethod
-    def _residuals_acf(fig: MplFigure, ax: Axes, obj: Dict[str, Any], col: str = "#1f77b4"):
+    def _residuals_acf(fig: MplFigure, ax: Axes, obj: dict[str, Any], col: str = "#1f77b4"):
         mod = obj.get("mod")
         data = obj.get("data")
 
@@ -412,7 +412,7 @@ class Figure:
         ax.grid(True, alpha=0.3)
 
     @staticmethod
-    def _residuals_ccf(fig: MplFigure, ax: Axes, obj: Dict[str, Any], col: str = "#1f77b4"):
+    def _residuals_ccf(fig: MplFigure, ax: Axes, obj: dict[str, Any], col: str = "#1f77b4"):
         mod = obj.get("mod")
         data = obj.get("data")
 

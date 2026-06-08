@@ -3,7 +3,7 @@ ARX and FIR model identification methods.
 """
 
 import logging
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Optional, Union
 
 import numpy as np
 import scipy.linalg
@@ -26,9 +26,9 @@ class ARX(SysIdAlgBase):
     def __init__(
         self,
         data: SysIdData,
-        y_name: Union[str, List[str]],
-        u_name: Union[str, List[str]],
-        settings: Optional[Dict[str, Any]] = None,
+        y_name: Union[str, list[str]],
+        u_name: Union[str, list[str]],
+        settings: Optional[dict[str, Any]] = None,
     ):
         """
         Initialize the ARX identification.
@@ -56,7 +56,7 @@ class ARX(SysIdAlgBase):
         self.y = self.y.ravel()
         self.logger = logging.getLogger(__name__)
 
-    def _ident(self, order: Tuple[int, int, int]) -> PolynomialModel:
+    def _ident(self, order: tuple[int, int, int]) -> PolynomialModel:
         """
         Identify the ARX model.
 
@@ -104,7 +104,7 @@ class ARX(SysIdAlgBase):
 
         return mod
 
-    def _observations(self, na: int, nb: int, nk: int) -> Tuple[np.ndarray, np.ndarray]:
+    def _observations(self, na: int, nb: int, nk: int) -> tuple[np.ndarray, np.ndarray]:
         """
         Construct the regression matrix Phi and target vector y.
         """
@@ -129,7 +129,7 @@ class ARX(SysIdAlgBase):
         return Phi, y_
 
     @staticmethod
-    def _lstsq_lstsq(Phi: np.ndarray, y: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+    def _lstsq_lstsq(Phi: np.ndarray, y: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         """Least squares using scipy.linalg.lstsq."""
         theta, res, rank, s = scipy.linalg.lstsq(Phi, y)
 
@@ -140,7 +140,7 @@ class ARX(SysIdAlgBase):
         return theta, cov
 
     @staticmethod
-    def _lstsq_pinv(Phi: np.ndarray, y: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+    def _lstsq_pinv(Phi: np.ndarray, y: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         """Least squares using Moore-Penrose pseudoinverse."""
         theta = scipy.linalg.pinv(Phi) @ y
 
@@ -150,7 +150,7 @@ class ARX(SysIdAlgBase):
         return theta, cov
 
     @staticmethod
-    def _lstsq_qr(Phi: np.ndarray, y: np.ndarray, lmb: float) -> Tuple[np.ndarray, np.ndarray]:
+    def _lstsq_qr(Phi: np.ndarray, y: np.ndarray, lmb: float) -> tuple[np.ndarray, np.ndarray]:
         """Least squares using QR decomposition with optional regularization."""
         # Regularization by appending rows
         Phi_ = np.vstack([Phi, lmb * np.eye(Phi.shape[1])])
@@ -174,7 +174,7 @@ class ARX(SysIdAlgBase):
         return theta, cov
 
     @staticmethod
-    def _lstsq_svd(Phi: np.ndarray, y: np.ndarray, lmb: float) -> Tuple[np.ndarray, np.ndarray]:
+    def _lstsq_svd(Phi: np.ndarray, y: np.ndarray, lmb: float) -> tuple[np.ndarray, np.ndarray]:
         """Least squares using SVD with optional regularization."""
         U, s, Vh = scipy.linalg.svd(Phi, full_matrices=False)
         Sigma = np.diag(1 / s)
@@ -212,15 +212,15 @@ class FIR(ARX):
     def __init__(
         self,
         data: SysIdData,
-        y_name: Union[str, List[str]],
-        u_name: Union[str, List[str]],
-        settings: Optional[Dict[str, Any]] = None,
+        y_name: Union[str, list[str]],
+        u_name: Union[str, list[str]],
+        settings: Optional[dict[str, Any]] = None,
     ):
         if settings is None:
             settings = {}
         super().__init__(data, y_name, u_name, settings=settings)
 
-    def _ident(self, order: Union[Tuple[int, int], Tuple[int, int, int]]) -> PolynomialModel:
+    def _ident(self, order: Union[tuple[int, int], tuple[int, int, int]]) -> PolynomialModel:
         """
         Identify the FIR model.
 
