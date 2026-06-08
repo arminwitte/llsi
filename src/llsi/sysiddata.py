@@ -26,6 +26,7 @@ class SysIdData:
     - Method chaining for fluent API design
     - Flexible data manipulation (crop, resample, filter, differentiate)
     - Pythonic interface (slicing, iteration, len)
+    - Safe downsampling with anti-aliasing filters
 
     Examples:
         >>> # Create equidistant data
@@ -34,6 +35,14 @@ class SysIdData:
         >>> train_data = data[:1000]
         >>> # Method chaining
         >>> data.equidistant(N=500).lowpass(order=4, corner_frequency=10).plot()
+
+    Note:
+        When downsampling (reducing the number of samples), use methods that apply
+        anti-aliasing filters to prevent aliasing:
+        - downsample(q): Safe downsampling by factor q with anti-aliasing
+        - crop(step=q, anti_alias=True): Safe downsampling with range selection
+        Avoid using slicing with step > 1 (e.g., data[::2]) as it does not apply
+        anti-aliasing and may introduce aliasing.
     """
 
     series: dict[str, np.ndarray] = field(default_factory=dict)
@@ -113,6 +122,11 @@ class SysIdData:
             data["u"]      -> Returns numpy array of series 'u'
             data[0:100]    -> Returns a NEW SysIdData object cropped to first 100 samples
             data[:50]      -> First 50 samples
+
+        Note:
+            When using slicing with step > 1 (e.g., data[::2]), a warning is issued
+            because this performs downsampling without anti-aliasing filtering, which
+            may cause aliasing. For safe downsampling, use downsample() or crop(step=q, anti_alias=True).
         """
         if isinstance(key, str):
             return self.series[key]
@@ -125,10 +139,12 @@ class SysIdData:
             step = key.step if isinstance(key, slice) else 1
 
             if step is not None and step != 1:
-                # Use downsample logic if step > 1? For now, standard slicing.
-                # Standard array slicing supports steps, so we can support it manually
-                # but crop() is range based. Let's use crop for contiguous slices.
-                pass
+                # Warn about potential aliasing when using step > 1
+                warnings.warn(
+                    f"Slicing with step={step} performs downsampling without anti-aliasing filtering, "
+                    f"which may cause aliasing. Use downsample({step}) or crop(step={step}, anti_alias=True) for safe downsampling.",
+                    stacklevel=2,
+                )
 
             # If it's a simple contiguous slice, use crop (safer for metadata)
             if step is None or step == 1:
@@ -454,36 +470,98 @@ class SysIdData:
 
         return target
 
-    def crop(self, start: Optional[int] = None, end: Optional[int] = None, inplace: bool = True) -> "SysIdData":
+    def crop(
+        self,
+        start: Optional[int] = None,
+        end: Optional[int] = None,
+        step: Optional[int] = None,
+        inplace: bool = True,
+        anti_alias: bool = True,
+    ) -> "SysIdData":
         """
         Crop the data to a subset of samples.
 
         Args:
             start: Start index (default: 0).
             end: End index (default: N, exclusive).
+            step: Step size for downsampling (default: None, meaning 1). If > 1, the data is downsampled.
             inplace: If True, modify in-place. If False, return a copy.
+            anti_alias: If True (default) and step > 1, apply anti-aliasing filter before downsampling.
+                       Only applies to equidistant data. For non-equidistant data, a warning is issued.
 
         Returns:
             SysIdData: The cropped object (self if inplace=True, copy if inplace=False).
+
+        Note:
+            When step > 1, this performs downsampling. With anti_alias=True (default), an anti-aliasing
+            filter is applied to prevent aliasing. Use anti_alias=False only if you are certain
+            the signal has no frequency content above the new Nyquist frequency.
         """
         start = start or 0
         end = end or self.N
+        step = step or 1
 
         target = self if inplace else copy.deepcopy(self)
 
-        # Update time vector
-        if target.t is not None:
-            # Non-equidistant: crop time vector and update t_start
-            target.t = target.t[start:end]
-            if len(target.t) > 0:
-                target.t_start = float(target.t[0])
+        # If step > 1, we need to downsample
+        if step > 1:
+            # Check if we have equidistant data
+            if target.Ts is not None:
+                # Equidistant data: apply anti-aliasing if requested
+                if anti_alias:
+                    # Apply decimate with anti-aliasing filter
+                    for k, v in target:
+                        # First crop to the range, then decimate
+                        cropped_v = v[start:end]
+                        target.series[k] = scipy.signal.decimate(cropped_v, step)
+                    # Update time vector
+                    if target.t is not None:
+                        target.t = target.t[start:end:step]
+                        if len(target.t) > 0:
+                            target.t_start = float(target.t[0])
+                    else:
+                        target.t_start += target.Ts * start
+                        target.Ts *= step
+                else:
+                    # No anti-aliasing, just downsample
+                    for k, v in target:
+                        target.series[k] = v[start:end:step]
+                    if target.t is not None:
+                        target.t = target.t[start:end:step]
+                        if len(target.t) > 0:
+                            target.t_start = float(target.t[0])
+                    else:
+                        target.t_start += target.Ts * start
+                        target.Ts *= step
+            else:
+                # Non-equidistant data: cannot apply anti-aliasing filter
+                if anti_alias:
+                    warnings.warn(
+                        "Anti-aliasing filter cannot be applied to non-equidistant data. "
+                        "Downsampling without filtering may cause aliasing.",
+                        stacklevel=2,
+                    )
+                # Just downsample without filtering
+                for k, v in target:
+                    target.series[k] = v[start:end:step]
+                target.t = target.t[start:end:step]
+                if len(target.t) > 0:
+                    target.t_start = float(target.t[0])
         else:
-            # Equidistant: update t_start based on the number of skipped samples
-            target.t_start += target.Ts * start
+            # step == 1, normal cropping
+            # Update time vector
+            if target.t is not None:
+                # Non-equidistant: crop time vector and update t_start
+                target.t = target.t[start:end]
+                if len(target.t) > 0:
+                    target.t_start = float(target.t[0])
+            else:
+                # Equidistant: update t_start based on the number of skipped samples
+                target.t_start += target.Ts * start
 
-        # Crop all series
-        for k, v in target:
-            target.series[k] = v[start:end]
+            # Crop all series
+            for k, v in target:
+                target.series[k] = v[start:end]
 
         return target
 
@@ -538,10 +616,19 @@ class SysIdData:
         """
         Downsample the data by an integer factor.
 
-        Applies an anti-aliasing filter (Chebyshev type I) before downsampling.
+        Applies an anti-aliasing filter (Chebyshev type I) before downsampling to prevent
+        aliasing. This is the recommended method for safe downsampling of equidistant data.
 
         Args:
-            q: Downsampling factor.
+            q: Downsampling factor (must be >= 1).
+            inplace: If True, modify in-place. If False, return a copy.
+
+        Returns:
+            SysIdData: The downsampled object (self if inplace=True, copy if inplace=False).
+
+        Note:
+            For non-equidistant data, use crop(step=q, anti_alias=False) or resample() instead.
+            For downsampling with a specific start/end range, use crop(start, end, step=q, anti_alias=True).
         """
         target = self if inplace else copy.deepcopy(self)
         if q < 1:
