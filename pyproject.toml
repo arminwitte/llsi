@@ -11,7 +11,7 @@ authors = [
 ]
 readme = "README.md"
 license = { file="LICENSE" }
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 keywords = [
     "system identification",
     "control systems",
@@ -29,7 +29,6 @@ keywords = [
 ]
 classifiers = [
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
@@ -44,8 +43,8 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 dependencies = [
-	"numpy>=1.19.0",
-	"scipy>=1.8.0",
+	"numpy>=1.21.0",
+	"scipy>=1.10.0",
 ]
 
 [project.optional-dependencies]
@@ -104,7 +103,7 @@ fail_under = 70
 
 [tool.ruff]
 line-length = 120
-target-version = "py38"
+target-version = "py39"
 exclude = ["*.ipynb"]
 
 [tool.ruff.lint]
