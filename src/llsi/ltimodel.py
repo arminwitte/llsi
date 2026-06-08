@@ -3,7 +3,7 @@ Linear Time-Invariant (LTI) Model base class.
 """
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Optional, Union
 
 import numpy as np
 
@@ -18,8 +18,8 @@ class LTIModel(ABC):
         Ts: float = 1.0,
         nu: int = 1,
         ny: int = 1,
-        input_names: Optional[List[str]] = None,
-        output_names: Optional[List[str]] = None,
+        input_names: Optional[list[str]] = None,
+        output_names: Optional[list[str]] = None,
     ):
         """
         Initialize the LTI model.
@@ -47,11 +47,11 @@ class LTIModel(ABC):
         self.aic: Optional[float] = None
         self.bic: Optional[float] = None
         self.residuals: Optional[np.ndarray] = None
-        self.residuals_analysis: Optional[Dict[str, Any]] = None
+        self.residuals_analysis: Optional[dict[str, Any]] = None
 
     def impulse_response(
         self, N: int = 100, uncertainty: bool = False
-    ) -> Union[Tuple[np.ndarray, np.ndarray], Tuple[np.ndarray, np.ndarray, np.ndarray]]:
+    ) -> Union[tuple[np.ndarray, np.ndarray], tuple[np.ndarray, np.ndarray, np.ndarray]]:
         """
         Simulate the impulse response of the system.
 
@@ -87,7 +87,7 @@ class LTIModel(ABC):
 
     def step_response(
         self, N: int = 100, uncertainty: bool = False
-    ) -> Union[Tuple[np.ndarray, np.ndarray], Tuple[np.ndarray, np.ndarray, np.ndarray]]:
+    ) -> Union[tuple[np.ndarray, np.ndarray], tuple[np.ndarray, np.ndarray, np.ndarray]]:
         """
         Simulate the step response of the system.
 
@@ -246,7 +246,7 @@ class LTIModel(ABC):
         return float(nrmse)
 
     @abstractmethod
-    def simulate(self, u: np.ndarray, uncertainty: bool = False) -> Union[np.ndarray, Tuple[np.ndarray, np.ndarray]]:
+    def simulate(self, u: np.ndarray, uncertainty: bool = False) -> Union[np.ndarray, tuple[np.ndarray, np.ndarray]]:
         """
         Simulate the model response to input u.
 
@@ -266,8 +266,8 @@ class LTIModel(ABC):
     def frequency_response(
         self, omega: Optional[np.ndarray] = None, uncertainty: bool = False
     ) -> Union[
-        Tuple[np.ndarray, np.ndarray],
-        Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray],
+        tuple[np.ndarray, np.ndarray],
+        tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray],
     ]:
         """
         Calculate frequency response.
@@ -286,7 +286,7 @@ class LTIModel(ABC):
         pass
 
     @abstractmethod
-    def steady_state_gain(self, uncertainty: bool = False) -> Union[np.ndarray, Tuple[np.ndarray, np.ndarray]]:
+    def steady_state_gain(self, uncertainty: bool = False) -> Union[np.ndarray, tuple[np.ndarray, np.ndarray]]:
         """
         Compute the steady-state gain of the system.
 

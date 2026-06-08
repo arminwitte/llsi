@@ -3,7 +3,7 @@ Subspace identification methods (N4SID, PO-MOESP).
 """
 
 import logging
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Optional, Union
 
 import numpy as np
 import scipy.linalg
@@ -19,9 +19,9 @@ class SubspaceIdent(SysIdAlgBase):
     def __init__(
         self,
         data: SysIdData,
-        y_name: Union[str, List[str]],
-        u_name: Union[str, List[str]],
-        settings: Optional[Dict[str, Any]] = None,
+        y_name: Union[str, list[str]],
+        u_name: Union[str, list[str]],
+        settings: Optional[dict[str, Any]] = None,
     ):
         if settings is None:
             settings = {}
@@ -171,7 +171,7 @@ class SubspaceIdent(SysIdAlgBase):
 
     def _abcd_state(
         self, Xf: np.ndarray, s: int, n: int, r: int
-    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         # Xf: State sequence (n, N)
         # s: Number of columns in Hankel matrix (N)
         # n: Order
@@ -283,7 +283,7 @@ class SubspaceIdent(SysIdAlgBase):
         return A, B, C, D
 
     @staticmethod
-    def lq(A: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+    def lq(A: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         """Compute LQ decomposition."""
         # LQ = (QR(A.T)).T = R.T Q.T
         Q, R = scipy.linalg.qr(A.T, mode="economic")
@@ -296,9 +296,9 @@ class N4SID(SubspaceIdent):
     def __init__(
         self,
         data: SysIdData,
-        y_name: Union[str, List[str]],
-        u_name: Union[str, List[str]],
-        settings: Optional[Dict[str, Any]] = None,
+        y_name: Union[str, list[str]],
+        u_name: Union[str, list[str]],
+        settings: Optional[dict[str, Any]] = None,
     ):
         if settings is None:
             settings = {}
@@ -313,7 +313,7 @@ class N4SID(SubspaceIdent):
             # Original code raised this. Keeping it for safety, though N4SID supports MIMO.
             raise NotImplementedError("n4sid not implemented for multiple inputs or outputs.")
 
-    def _ident(self, order: Union[int, Tuple[int, ...]]) -> StateSpaceModel:
+    def _ident(self, order: Union[int, tuple[int, ...]]) -> StateSpaceModel:
         if isinstance(order, (tuple, list)):
             n = order[0]
         else:
@@ -379,9 +379,9 @@ class PO_MOESP(SubspaceIdent):
     def __init__(
         self,
         data: SysIdData,
-        y_name: Union[str, List[str]],
-        u_name: Union[str, List[str]],
-        settings: Optional[Dict[str, Any]] = None,
+        y_name: Union[str, list[str]],
+        u_name: Union[str, list[str]],
+        settings: Optional[dict[str, Any]] = None,
     ):
         if settings is None:
             settings = {}
@@ -392,7 +392,7 @@ class PO_MOESP(SubspaceIdent):
         # Then estimate A, B, C, and D in one go.
         # (Tangirala 2014)
 
-    def _ident(self, order: Union[int, Tuple[int, ...]]) -> StateSpaceModel:
+    def _ident(self, order: Union[int, tuple[int, ...]]) -> StateSpaceModel:
         # Tangirala 2014
         # Algorithm 23.3
         if isinstance(order, (tuple, list)):

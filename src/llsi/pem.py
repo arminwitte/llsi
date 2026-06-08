@@ -3,7 +3,7 @@ Prediction Error Method (PEM) and Output Error (OE) identification.
 """
 
 import logging
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Optional, Union
 
 import numpy as np
 import scipy.optimize
@@ -32,9 +32,9 @@ class PEM(SysIdAlgBase):
     def __init__(
         self,
         data: SysIdData,
-        y_name: Union[str, List[str]],
-        u_name: Union[str, List[str]],
-        settings: Optional[Dict[str, Any]] = None,
+        y_name: Union[str, list[str]],
+        u_name: Union[str, list[str]],
+        settings: Optional[dict[str, Any]] = None,
     ):
         """
         Initialize PEM identification.
@@ -60,7 +60,7 @@ class PEM(SysIdAlgBase):
         self.alg_inst = alg_creator(data, y_name, u_name)
         self.logger = logging.getLogger(__name__)
 
-    def _ident(self, order: Union[int, Tuple[int, ...]]) -> LTIModel:
+    def _ident(self, order: Union[int, tuple[int, ...]]) -> LTIModel:
         """
         Identify the model using PEM.
 
@@ -157,9 +157,9 @@ class ADAM(SysIdAlgBase):
     def __init__(
         self,
         data: SysIdData,
-        y_name: Union[str, List[str]],
-        u_name: Union[str, List[str]],
-        settings: Optional[Dict[str, Any]] = None,
+        y_name: Union[str, list[str]],
+        u_name: Union[str, list[str]],
+        settings: Optional[dict[str, Any]] = None,
     ):
         if settings is None:
             settings = {}
@@ -212,7 +212,7 @@ class ADAM(SysIdAlgBase):
 
         return scipy.optimize.approx_fprime(x, loss_func, epsilon=1e-8)
 
-    def _ident(self, order: Union[int, Tuple[int, ...]]) -> LTIModel:
+    def _ident(self, order: Union[int, tuple[int, ...]]) -> LTIModel:
         """
         Identify the model using Adam optimizer.
         """
@@ -301,9 +301,9 @@ class OE(PEM):
     def __init__(
         self,
         data: SysIdData,
-        y_name: Union[str, List[str]],
-        u_name: Union[str, List[str]],
-        settings: Optional[Dict[str, Any]] = None,
+        y_name: Union[str, list[str]],
+        u_name: Union[str, list[str]],
+        settings: Optional[dict[str, Any]] = None,
     ):
         if settings is None:
             settings = {}

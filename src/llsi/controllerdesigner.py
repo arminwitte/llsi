@@ -3,7 +3,7 @@ Controller design methods for stable inversion of non-minimum phase systems.
 """
 
 from abc import ABC, abstractmethod
-from typing import List, Optional, Tuple
+from typing import Optional
 
 import numpy as np
 import scipy.signal
@@ -65,7 +65,7 @@ class ControllerDesigner(ABC):
 
     def _extract_roots_gain(
         self, acceptable_threshold: float = 0.99
-    ) -> Tuple[List[complex], List[complex], List[complex], float]:
+    ) -> tuple[list[complex], list[complex], list[complex], float]:
         """Extract and categorize system zeros based on their magnitude."""
         sys_ = self.sys.to_zpk()
         zeros = np.array(sys_.zeros)
@@ -77,7 +77,7 @@ class ControllerDesigner(ABC):
 
         return acceptable_sys_zeros, unacceptable_sys_zeros, poles.tolist(), sys_.gain
 
-    def _polynomials(self) -> Tuple[Polynomial, Polynomial, Polynomial]:
+    def _polynomials(self) -> tuple[Polynomial, Polynomial, Polynomial]:
         """
         Compute system polynomials from roots.
 

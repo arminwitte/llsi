@@ -2,7 +2,7 @@
 Utility functions for system identification.
 """
 
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Optional, Union
 
 import numpy as np
 import scipy.optimize
@@ -14,13 +14,13 @@ from .sysiddata import SysIdData
 def cv(
     training_data: SysIdData,
     validation_data: SysIdData,
-    y_name: Union[str, List[str]],
-    u_name: Union[str, List[str]],
+    y_name: Union[str, list[str]],
+    u_name: Union[str, list[str]],
     order: Any,
     method: Optional[str] = None,
-    settings: Optional[Dict[str, Any]] = None,
-    bounds: Tuple[float, float] = (0, 100),
-) -> Tuple[float, float]:
+    settings: Optional[dict[str, Any]] = None,
+    bounds: tuple[float, float] = (0, 100),
+) -> tuple[float, float]:
     """
     Perform cross-validation to find the optimal regularization parameter (lambda).
 

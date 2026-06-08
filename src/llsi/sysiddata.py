@@ -6,7 +6,7 @@ import copy
 import logging
 import warnings
 from dataclasses import dataclass, field
-from typing import Any, Dict, Optional, Tuple, Union
+from typing import Any, Optional, Union
 
 import numpy as np
 import scipy.interpolate
@@ -36,12 +36,12 @@ class SysIdData:
         >>> data.equidistant(N=500).lowpass(order=4, corner_frequency=10).plot()
     """
 
-    series: Dict[str, np.ndarray] = field(default_factory=dict)
+    series: dict[str, np.ndarray] = field(default_factory=dict)
     t: Optional[np.ndarray] = None
     Ts: Optional[float] = None
     t_start: float = 0.0
-    means: Dict[str, float] = field(default_factory=dict)
-    stds: Dict[str, float] = field(default_factory=dict)
+    means: dict[str, float] = field(default_factory=dict)
+    stds: dict[str, float] = field(default_factory=dict)
 
     def __init__(
         self, t: Optional[np.ndarray] = None, Ts: Optional[float] = None, t_start: Optional[float] = None, **kwargs: Any
@@ -218,7 +218,7 @@ class SysIdData:
     # `time` property implemented above
 
     def equidistant(
-        self, N: Optional[int] = None, inplace: bool = True, method: Union[str, Dict[str, str]] = "linear"
+        self, N: Optional[int] = None, inplace: bool = True, method: Union[str, dict[str, str]] = "linear"
     ) -> "SysIdData":
         """
         Resample data to be equidistant.
@@ -404,7 +404,7 @@ class SysIdData:
 
     def split(
         self, proportion: Optional[float] = None, sample: Optional[int] = None
-    ) -> Tuple["SysIdData", "SysIdData"]:
+    ) -> tuple["SysIdData", "SysIdData"]:
         """
         Split the data into two sets.
 
@@ -573,7 +573,7 @@ class SysIdData:
         plt.show()
 
     @staticmethod
-    def generate_prbs(N: int, Ts: float, seed: int = 42) -> Tuple[np.ndarray, np.ndarray]:
+    def generate_prbs(N: int, Ts: float, seed: int = 42) -> tuple[np.ndarray, np.ndarray]:
         """
         Generate a Pseudo-Random Binary Sequence (PRBS).
 

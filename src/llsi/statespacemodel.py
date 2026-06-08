@@ -4,7 +4,7 @@ State-space model representation.
 
 import json
 import logging
-from typing import Any, List, Optional, Tuple, Union
+from typing import Any, Optional, Union
 
 import numpy as np
 import scipy.linalg
@@ -25,17 +25,17 @@ class StateSpaceModel(LTIModel):
 
     def __init__(
         self,
-        A: Optional[Union[np.ndarray, List[List[float]]]] = None,
-        B: Optional[Union[np.ndarray, List[List[float]]]] = None,
-        C: Optional[Union[np.ndarray, List[List[float]]]] = None,
-        D: Optional[Union[np.ndarray, List[List[float]]]] = None,
+        A: Optional[Union[np.ndarray, list[list[float]]]] = None,
+        B: Optional[Union[np.ndarray, list[list[float]]]] = None,
+        C: Optional[Union[np.ndarray, list[list[float]]]] = None,
+        D: Optional[Union[np.ndarray, list[list[float]]]] = None,
         Ts: float = 1.0,
         nx: int = 0,
         nu: int = 1,
         ny: int = 1,
         nk: int = 0,
-        input_names: Optional[List[str]] = None,
-        output_names: Optional[List[str]] = None,
+        input_names: Optional[list[str]] = None,
+        output_names: Optional[list[str]] = None,
     ):
         """
         Initialize StateSpaceModel.
@@ -130,7 +130,7 @@ class StateSpaceModel(LTIModel):
         if include_init_state:
             self.x_init = theta[na + nb + nc + nd :].reshape(nx, 1)
 
-    def simulate(self, u: np.ndarray, uncertainty: bool = False) -> Union[np.ndarray, Tuple[np.ndarray, np.ndarray]]:
+    def simulate(self, u: np.ndarray, uncertainty: bool = False) -> Union[np.ndarray, tuple[np.ndarray, np.ndarray]]:
         """Simulate the model."""
         u = np.atleast_2d(u)
         if u.shape[0] != self.nu:
@@ -216,8 +216,8 @@ class StateSpaceModel(LTIModel):
     def frequency_response(
         self, omega: np.ndarray = np.logspace(-3, 2), uncertainty: bool = False
     ) -> Union[
-        Tuple[np.ndarray, np.ndarray],
-        Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray],
+        tuple[np.ndarray, np.ndarray],
+        tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray],
     ]:
         """Compute frequency response."""
         A = self.A
@@ -263,7 +263,7 @@ class StateSpaceModel(LTIModel):
 
         return omega, H_arr
 
-    def steady_state_gain(self, uncertainty: bool = False) -> Union[np.ndarray, Tuple[np.ndarray, np.ndarray]]:
+    def steady_state_gain(self, uncertainty: bool = False) -> Union[np.ndarray, tuple[np.ndarray, np.ndarray]]:
         """
         Compute the steady-state gain of the system.
 
@@ -338,7 +338,7 @@ class StateSpaceModel(LTIModel):
             sys = scipy.signal.StateSpace(self.A, self.B, self.C, self.D, dt=self.Ts)
         return sys
 
-    def d2c(self, method: str = "bilinear") -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    def d2c(self, method: str = "bilinear") -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """
         Convert the discrete-time model matrices to continuous-time matrices.
 
@@ -360,7 +360,7 @@ class StateSpaceModel(LTIModel):
         D: np.ndarray,
         Ts: float,
         method: str = "bilinear",
-    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         if method == "bilinear":
             return StateSpaceModel._d2c_bilinear(A, B, C, D, Ts)
         else:
@@ -409,7 +409,7 @@ class StateSpaceModel(LTIModel):
         ss = tf.to_ss()
         return StateSpaceModel(A=ss.A, B=ss.B, C=ss.C, D=ss.D, Ts=self.Ts)
 
-    def reduce_order(self, n: int) -> Tuple["StateSpaceModel", np.ndarray]:
+    def reduce_order(self, n: int) -> tuple["StateSpaceModel", np.ndarray]:
         """
         Perform order reduction using balanced truncation.
 

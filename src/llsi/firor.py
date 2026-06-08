@@ -3,7 +3,7 @@ Finite Impulse Response Order Reduction (FIROR) method.
 """
 
 import logging
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Optional, Union
 
 from .arx import ARX
 from .statespacemodel import StateSpaceModel
@@ -22,9 +22,9 @@ class FIROR(SysIdAlgBase):
     def __init__(
         self,
         data: SysIdData,
-        y_name: Union[str, List[str]],
-        u_name: Union[str, List[str]],
-        settings: Optional[Dict[str, Any]] = None,
+        y_name: Union[str, list[str]],
+        u_name: Union[str, list[str]],
+        settings: Optional[dict[str, Any]] = None,
     ):
         """
         Initialize the FIROR identification.
