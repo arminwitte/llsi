@@ -1,7 +1,6 @@
 # llsi
-Lightweight Linear System Identification package.
 
-`llsi` offers easy access to system identification algorithms in Python. It provides tools for identifying state-space models (*n4sid*, *PO-MOESP*) and transfer function models (*ARX*). Additionally, it supports prediction error methods (*PEM*) for output-error (*OE*) models or iterative improvement of state-space models.
+**Linear System Identification in Python** - `llsi` is a Python library for **linear system identification** and **control system modeling**. It provides **subspace identification methods (N4SID, PO-MOESP)**, **ARX/ARMAX models**, **Output-Error (OE) models**, and **Prediction Error Methods (PEM)** for identifying state-space and transfer function models from input-output data.
 
 To try it out online, you can use [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/arminwitte/llsi/HEAD?labpath=notebooks%2Fexample.ipynb).
 

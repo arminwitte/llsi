@@ -14,12 +14,34 @@ license = { file="LICENSE" }
 requires-python = ">=3.8"
 keywords = [
     "system identification",
+    "control systems",
+    "control theory",
+    "state space",
+    "transfer function",
+    "ARX",
+    "N4SID",
+    "subspace identification",
+    "PEM",
+    "OE",
+    "linear systems",
+    "signal processing",
+    "system modeling",
 ]
 classifiers = [
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Developers",
     "Topic :: Scientific/Engineering",
+    "Topic :: Scientific/Engineering :: Mathematics",
+    "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 dependencies = [
 	"numpy>=1.19.0",
