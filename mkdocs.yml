@@ -50,10 +50,30 @@ nav:
       - Example: tutorials/example.ipynb
       - Sysiddata Repr Demo: tutorials/sysiddata_repr_demo.ipynb
   - API Reference:
-      - LTI Model: api/ltimodel.md
-      - State Space: api/statespacemodel.md
-      - Polynomial (ARX/OE): api/polynomialmodel.md
-      - Subspace (N4SID): api/subspace.md
-      - Utilities: api/utils.md
-      - Data: api/sysiddata.md
-      - Plotting: api/figure.md
+      - Models:
+          - LTI Model: api/ltimodel.md
+          - State Space: api/statespacemodel.md
+          - Polynomial (ARX/OE): api/polynomialmodel.md
+          - Subspace (N4SID): api/subspace.md
+      - Estimators:
+          - ARX: api/arx.md
+          - PEM: api/pem.md
+          - FIROR: api/firor.md
+          - AutoIdent: api/autoident.md
+      - Scikit-Learn:
+          - LTIModel: api/sklearn.md
+      - MATLAB Compatibility:
+          - Functions: api/matlab.md
+      - Algorithms:
+          - SysIdAlg Factory: api/sysidalg.md
+          - SysIdAlg Base: api/sysidalgbase.md
+      - Utilities:
+          - General: api/utils.md
+          - Math: api/math.md
+          - Pandas: api/pandas_utils.md
+      - Data:
+          - SysIdData: api/sysiddata.md
+      - Plotting:
+          - Figure: api/figure.md
+      - Controller Design:
+          - ControllerDesigner: api/controllerdesigner.md
