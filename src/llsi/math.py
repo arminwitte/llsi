@@ -234,12 +234,12 @@ def oe_cost_and_gradient(
         for i in range(1, min(nf, k + 1)):
             y_filt[k] -= f[i] * y_filt[k - i]
 
-        # --- 3. Gradient accumulation (only for k >= start) ---
-        if k >= start:
-            # Error
-            err = y_true[k] - y_sim[k]
-            sse += err * err
+        # --- 3. Cost accumulation (for all k) ---
+        err = y_true[k] - y_sim[k]
+        sse += err * err
 
+        # --- 4. Gradient accumulation (only for k >= start to avoid boundary effects) ---
+        if k >= start:
             # dJ/dtheta = -2 * err * dy/dtheta
 
             # Gradient for b_j: dy/db_j = u_filt[k-j]
