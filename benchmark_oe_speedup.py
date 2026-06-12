@@ -14,7 +14,6 @@ Usage:
 import time
 
 import numpy as np
-import scipy
 
 # Try to import llsi components
 try:
