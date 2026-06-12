@@ -6,10 +6,19 @@ import numpy as np
 
 try:
     from numba import njit
-except ImportError:
-    # Fallback if numba is not installed
-    def njit(func):
-        return func
+except Exception:
+    # Fallback if numba is not installed or import fails.
+    # Support both @njit and @njit(...kwargs...) usage.
+    def njit(*args, **kwargs):
+        # Used as @njit without args
+        if args and callable(args[0]) and not kwargs:
+            return args[0]
+
+        # Used as @njit(...) with args/kwargs -> return decorator
+        def _decorator(func):
+            return func
+
+        return _decorator
 
 
 @njit
@@ -98,7 +107,7 @@ def generate_prbs_sequence(N: int, seed: int) -> np.ndarray:
 # =============================================================================
 
 
-@njit(cache=True)
+@njit
 def oe_simulate(u: np.ndarray, b: np.ndarray, f: np.ndarray, nk: int) -> np.ndarray:
     """
     Simulate OE model: y[k] = (B/F) * u[k-nk]
@@ -142,7 +151,7 @@ def oe_simulate(u: np.ndarray, b: np.ndarray, f: np.ndarray, nk: int) -> np.ndar
     return y
 
 
-@njit(cache=True)
+@njit
 def oe_cost_and_gradient(
     theta: np.ndarray,
     u: np.ndarray,

@@ -14,6 +14,7 @@ Usage:
 import time
 
 import numpy as np
+import scipy
 
 # Try to import llsi components
 try:
@@ -68,8 +69,8 @@ def benchmark_oe_analytical(
     """Benchmark OE with analytical gradients."""
     from src.llsi.sysiddata import SysIdData
 
-    # Create SysIdData
-    data = SysIdData(u, y, Ts=1.0)
+    # Create SysIdData (pass series as keyword arguments)
+    data = SysIdData(Ts=1.0, u=u, y=y)
 
     # Create OE identifier
     oe = OE(data, y_name="y", u_name="u")
@@ -103,8 +104,8 @@ def benchmark_pem_finite_differences(
     """Benchmark PEM with finite differences (old approach)."""
     from src.llsi.sysiddata import SysIdData
 
-    # Create SysIdData
-    data = SysIdData(u, y, Ts=1.0)
+    # Create SysIdData (pass series as keyword arguments)
+    data = SysIdData(Ts=1.0, u=u, y=y)
 
     # Create PEM identifier with ARX initialization
     pem = PEM(data, y_name="y", u_name="u", settings={"init": "arx"})
