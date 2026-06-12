@@ -585,7 +585,7 @@ class OE(PEM):
 
         # Methods that support analytical gradients
         gradient_methods = {"BFGS", "Newton-CG", "L-BFGS-B", "TNC", "SLSQP", "dogleg", "trust-ncg"}
-        
+
         # Use analytical gradient if method supports it
         if method in gradient_methods:
             res = scipy.optimize.minimize(
