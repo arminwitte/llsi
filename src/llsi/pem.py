@@ -15,6 +15,7 @@ except ImportError:
     def njit(func: Callable) -> Callable:
         return func
 
+
 try:
     from tqdm.auto import tqdm
 except ImportError:
@@ -248,8 +249,7 @@ class ADAM(SysIdAlgBase):
 
     @staticmethod
     @njit
-    def _finite_difference_loop(n_params: int, epsilon: float, nominal_loss: float,
-                                losses: np.ndarray) -> np.ndarray:
+    def _finite_difference_loop(n_params: int, epsilon: float, nominal_loss: float, losses: np.ndarray) -> np.ndarray:
         """
         Numba-accelerated finite difference computation.
 
@@ -262,8 +262,7 @@ class ADAM(SysIdAlgBase):
 
     @staticmethod
     @njit
-    def _complex_step_loop(n_params: int, epsilon: float, nominal_loss: float,
-                           losses: np.ndarray) -> np.ndarray:
+    def _complex_step_loop(n_params: int, epsilon: float, nominal_loss: float, losses: np.ndarray) -> np.ndarray:
         """
         Numba-accelerated complex step gradient computation.
 
@@ -365,8 +364,9 @@ class ADAM(SysIdAlgBase):
 
         return grad
 
-    def _compute_gradient_complex_numba(self, x: np.ndarray, y_batch: np.ndarray, u_batch: np.ndarray,
-                                        epsilon: float) -> np.ndarray:
+    def _compute_gradient_complex_numba(
+        self, x: np.ndarray, y_batch: np.ndarray, u_batch: np.ndarray, epsilon: float
+    ) -> np.ndarray:
         """
         Numba-accelerated complex step gradient computation.
 
@@ -588,6 +588,7 @@ def benchmark_derivative_methods(
 
     # Use custom loss function or default quadratic
     if loss_function is None:
+
         def loss_function(x: np.ndarray) -> float:
             """Default quadratic loss for benchmarking."""
             # Use a fixed x_true for reproducibility
@@ -615,9 +616,7 @@ def benchmark_derivative_methods(
             start = time.perf_counter()
 
             # Use scipy's approx_fprime
-            grad_finite = scipy.optimize.approx_fprime(
-                x_test, simple_loss, epsilon=1e-8
-            )
+            grad_finite = scipy.optimize.approx_fprime(x_test, simple_loss, epsilon=1e-8)
 
             elapsed = time.perf_counter() - start
             finite_times.append(elapsed)
