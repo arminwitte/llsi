@@ -527,7 +527,7 @@ def benchmark_derivative_methods(
     order: Union[int, tuple[int, ...]] = 2,
     n_runs: int = 5,
     n_params_list: Optional[list[int]] = None,
-    loss_function: Optional[callable] = None,
+    loss_function: Optional[Callable] = None,
 ) -> dict[str, Any]:
     """
     Benchmark finite differences vs. complex step derivative methods.
