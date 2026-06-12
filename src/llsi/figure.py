@@ -70,17 +70,18 @@ class Figure:
         if exc_type is not None:
             return False  # Propagate exception
 
-        # If no plots were added, create a single empty figure
+        # Determine layout from total number of requested plots and
+        # (re)create the figure so `self.ax` matches the final layout.
         if self.counter == 0:
-            self.fig, self.ax = plt.subplots(1, 1, figsize=self.figsize, constrained_layout=True)
-        # If figure was already created in plot(), skip recreation
-        elif self.fig is None:
+            rows, cols = 1, 1
+        else:
             rows = int(np.floor((self.counter + 1) / 2))
             cols = 1 if self.counter < 2 else 2
-            self.fig, self.ax = plt.subplots(rows, cols, figsize=self.figsize, constrained_layout=True)
 
-        # Ensure self.ax is always indexable for consistency if possible,
-        # but matplotlib returns Axes or array of Axes.
+        # Always (re)create figure to match the final number of plots.
+        # This avoids cases where an earlier call created a single Axes
+        # but more plots were added afterwards.
+        self.fig, self.ax = plt.subplots(rows, cols, figsize=self.figsize, constrained_layout=True)
 
         for i in range(len(self.objects)):
             plot_type = self.plot_types[i]
@@ -107,14 +108,12 @@ class Figure:
                     self.logger.warning(f"Unknown plot_type '{plot_type}'. Skipping.")
                     continue
 
-            # handle indexing of axes with different array sizes
-            if self.counter == 1:
+            # handle indexing of axes (support single Axes, 1D or 2D arrays)
+            if isinstance(self.ax, Axes):
                 ax = self.ax
-            elif self.counter == 2:
-                ax = self.ax[ind]
             else:
-                # For 2 columns, row = ind // 2, col = ind % 2
-                ax = self.ax[ind // 2, ind % 2]
+                ax_arr = np.asarray(self.ax)
+                ax = ax_arr.flatten()[ind]
 
             # Determine color based on object identity or index
             # This logic is a bit fragile but kept from original
