@@ -142,9 +142,8 @@ def oe_simulate(u: np.ndarray, b: np.ndarray, f: np.ndarray, nk: int) -> np.ndar
                 val += b[j] * u[idx_u]
 
         # F part (feedback from output)
-        for i in range(1, nf):
-            if k - i >= 0:
-                val -= f[i] * y[k - i]
+        for i in range(1, min(nf, k + 1)):
+            val -= f[i] * y[k - i]
 
         y[k] = val
 
@@ -218,9 +217,8 @@ def oe_cost_and_gradient(
 
         # Denominator (F part) - feedback
         val_den = 0.0
-        for i in range(1, nf):
-            if k - i >= 0:
-                val_den += f[i] * y_sim[k - i]
+        for i in range(1, min(nf, k + 1)):
+            val_den += f[i] * y_sim[k - i]
 
         y_sim[k] = val_num - val_den
 
@@ -228,15 +226,13 @@ def oe_cost_and_gradient(
         # Filter u[k-nk] with 1/F: u_filt[k] = u[k-nk] - f1*u_filt[k-1] - f2*u_filt[k-2] - ...
         curr_u = u[k - nk] if (k - nk) >= 0 else 0.0
         u_filt[k] = curr_u
-        for i in range(1, nf):
-            if k - i >= 0:
-                u_filt[k] -= f[i] * u_filt[k - i]
+        for i in range(1, min(nf, k + 1)):
+            u_filt[k] -= f[i] * u_filt[k - i]
 
         # Filter y_sim[k] with 1/F: y_filt[k] = y_sim[k] - f1*y_filt[k-1] - f2*y_filt[k-2] - ...
         y_filt[k] = y_sim[k]
-        for i in range(1, nf):
-            if k - i >= 0:
-                y_filt[k] -= f[i] * y_filt[k - i]
+        for i in range(1, min(nf, k + 1)):
+            y_filt[k] -= f[i] * y_filt[k - i]
 
         # --- 3. Gradient accumulation (only for k >= start) ---
         if k >= start:
@@ -247,14 +243,12 @@ def oe_cost_and_gradient(
             # dJ/dtheta = -2 * err * dy/dtheta
 
             # Gradient for b_j: dy/db_j = u_filt[k-j]
-            for j in range(nb):
-                if (k - j) >= 0:
-                    grad[j] += -2 * err * u_filt[k - j]
+            for j in range(min(nb, k + 1)):
+                grad[j] += -2 * err * u_filt[k - j]
 
             # Gradient for f_i: dy/df_i = -y_filt[k-i]
-            for i in range(1, nf):
+            for i in range(1, min(nf, k + 1)):
                 idx_grad = nb + (i - 1)
-                if (k - i) >= 0:
-                    grad[idx_grad] += -2 * err * (-y_filt[k - i])
+                grad[idx_grad] += -2 * err * (-y_filt[k - i])
 
     return sse, grad
