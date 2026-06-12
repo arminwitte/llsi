@@ -22,6 +22,7 @@ try:
     from src.llsi.pem import OE, PEM
     from src.llsi.polynomialmodel import PolynomialModel
     from src.llsi.sysiddata import SysIdData
+
     USE_LLSI = True
 except ImportError:
     # Fallback for installed package
@@ -30,6 +31,7 @@ except ImportError:
         from llsi.pem import OE, PEM
         from llsi.polynomialmodel import PolynomialModel
         from llsi.sysiddata import SysIdData
+
         USE_LLSI = True
     except ImportError:
         USE_LLSI = False
@@ -84,7 +86,7 @@ def benchmark_oe_analytical(
         elapsed = time.perf_counter() - start
 
         times.append(elapsed)
-        costs.append(mod.aic if mod.aic is not None else float('inf'))
+        costs.append(mod.aic if mod.aic is not None else float("inf"))
 
     return {
         "method": "OE (analytical gradients)",
@@ -119,7 +121,7 @@ def benchmark_pem_finite_differences(
         elapsed = time.perf_counter() - start
 
         times.append(elapsed)
-        costs.append(mod.aic if mod.aic is not None else float('inf'))
+        costs.append(mod.aic if mod.aic is not None else float("inf"))
 
     return {
         "method": "PEM (finite differences)",
@@ -214,12 +216,10 @@ def run_full_benchmark():
         # Benchmark gradient computation
         print("\n1. Gradient Computation Benchmark:")
         print("-" * 80)
-        grad_results = benchmark_gradient_computation(
-            u, y, config["nb"], config["nf"], config["nk"]
-        )
+        grad_results = benchmark_gradient_computation(u, y, config["nb"], config["nf"], config["nk"])
 
-        print(f"   Analytical gradient: {grad_results['analytical_gradient']['median_time']*1000:.4f} ms")
-        print(f"   Finite difference:   {grad_results['finite_difference_gradient']['median_time']*1000:.4f} ms")
+        print(f"   Analytical gradient: {grad_results['analytical_gradient']['median_time'] * 1000:.4f} ms")
+        print(f"   Finite difference:   {grad_results['finite_difference_gradient']['median_time'] * 1000:.4f} ms")
         print(f"   Speedup: {grad_results['speedup']:.1f}x")
         print(f"   Theoretical max: {grad_results['theoretical_speedup']}x")
 
@@ -229,29 +229,33 @@ def run_full_benchmark():
 
         try:
             oe_results = benchmark_oe_analytical(u, y, order, n_runs=3)
-            print(f"   OE (analytical): {oe_results['median_time']*1000:.2f} ms (AIC: {oe_results['mean_cost']:.2f})")
+            print(f"   OE (analytical): {oe_results['median_time'] * 1000:.2f} ms (AIC: {oe_results['mean_cost']:.2f})")
         except Exception as e:
             print(f"   OE (analytical): FAILED - {e}")
             oe_results = None
 
         try:
             pem_results = benchmark_pem_finite_differences(u, y, order, n_runs=3)
-            print(f"   PEM (finite diff): {pem_results['median_time']*1000:.2f} ms (AIC: {pem_results['mean_cost']:.2f})")
+            print(
+                f"   PEM (finite diff): {pem_results['median_time'] * 1000:.2f} ms (AIC: {pem_results['mean_cost']:.2f})"
+            )
         except Exception as e:
             print(f"   PEM (finite diff): FAILED - {e}")
             pem_results = None
 
         if oe_results and pem_results:
-            speedup = pem_results['median_time'] / oe_results['median_time']
+            speedup = pem_results["median_time"] / oe_results["median_time"]
             print(f"   Speedup: {speedup:.1f}x")
 
-        results.append({
-            "config": config["name"],
-            "gradient_speedup": grad_results['speedup'],
-            "full_speedup": speedup if (oe_results and pem_results) else None,
-            "oe_time": oe_results['median_time'] if oe_results else None,
-            "pem_time": pem_results['median_time'] if pem_results else None,
-        })
+        results.append(
+            {
+                "config": config["name"],
+                "gradient_speedup": grad_results["speedup"],
+                "full_speedup": speedup if (oe_results and pem_results) else None,
+                "oe_time": oe_results["median_time"] if oe_results else None,
+                "pem_time": pem_results["median_time"] if pem_results else None,
+            }
+        )
 
     # Summary
     print("\n" + "=" * 80)
@@ -260,8 +264,8 @@ def run_full_benchmark():
     print(f"{'Config':<30} {'Grad Speedup':<15} {'Full Speedup':<15}")
     print("-" * 80)
     for r in results:
-        grad_sp = f"{r['gradient_speedup']:.1f}x" if r['gradient_speedup'] else "N/A"
-        full_sp = f"{r['full_speedup']:.1f}x" if r['full_speedup'] else "N/A"
+        grad_sp = f"{r['gradient_speedup']:.1f}x" if r["gradient_speedup"] else "N/A"
+        full_sp = f"{r['full_speedup']:.1f}x" if r["full_speedup"] else "N/A"
         print(f"{r['config']:<30} {grad_sp:<15} {full_sp:<15}")
 
     print("\n" + "=" * 80)
@@ -296,9 +300,7 @@ def test_gradient_correctness():
     theta = np.array([0.5, 0.3, -0.8, 0.2])  # [b0, b1, f1, f2]
 
     # Compute analytical gradient
-    sse_analytical, grad_analytical = llsi_math.oe_cost_and_gradient(
-        theta, u, y, nb, nf_full, nk
-    )
+    sse_analytical, grad_analytical = llsi_math.oe_cost_and_gradient(theta, u, y, nb, nf_full, nk)
 
     # Compute finite difference gradient
     def cost_func(theta_test):

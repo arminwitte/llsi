@@ -18,7 +18,7 @@ def check_math_functions():
     print("Checking math.py for OE functions...")
     print("=" * 80)
 
-    with open('src/llsi/math.py') as f:
+    with open("src/llsi/math.py") as f:
         content = f.read()
 
     # Parse the file
@@ -27,7 +27,7 @@ def check_math_functions():
     # Find all function definitions
     functions = {node.name for node in ast.walk(tree) if isinstance(node, ast.FunctionDef)}
 
-    required_functions = {'oe_simulate', 'oe_cost_and_gradient'}
+    required_functions = {"oe_simulate", "oe_cost_and_gradient"}
 
     for func in required_functions:
         if func in functions:
@@ -37,20 +37,20 @@ def check_math_functions():
             return False
 
     # Check for Numba decorators
-    if '@njit(cache=True)' in content or '@njit' in content:
+    if "@njit(cache=True)" in content or "@njit" in content:
         print("✓ Numba decorators present")
     else:
         print("✗ Numba decorators missing")
         return False
 
     # Check function signatures
-    if 'def oe_simulate(u: np.ndarray, b: np.ndarray, f: np.ndarray, nk: int)' in content:
+    if "def oe_simulate(u: np.ndarray, b: np.ndarray, f: np.ndarray, nk: int)" in content:
         print("✓ oe_simulate has correct signature")
     else:
         print("✗ oe_simulate signature may be incorrect")
         return False
 
-    if 'def oe_cost_and_gradient(' in content:
+    if "def oe_cost_and_gradient(" in content:
         print("✓ oe_cost_and_gradient has correct signature")
     else:
         print("✗ oe_cost_and_gradient signature may be incorrect")
@@ -66,7 +66,7 @@ def check_pem_oe_class():
     print("Checking pem.py for updated OE class...")
     print("=" * 80)
 
-    with open('src/llsi/pem.py') as f:
+    with open("src/llsi/pem.py") as f:
         content = f.read()
 
     # Parse the file
@@ -75,7 +75,7 @@ def check_pem_oe_class():
     # Find the OE class
     classes = {node.name for node in ast.walk(tree) if isinstance(node, ast.ClassDef)}
 
-    if 'OE' in classes:
+    if "OE" in classes:
         print("✓ Found OE class")
     else:
         print("✗ OE class not found")
@@ -84,34 +84,34 @@ def check_pem_oe_class():
     # Check for _ident method in OE class
     oe_class = None
     for node in ast.walk(tree):
-        if isinstance(node, ast.ClassDef) and node.name == 'OE':
+        if isinstance(node, ast.ClassDef) and node.name == "OE":
             oe_class = node
             break
 
     if oe_class:
         methods = {node.name for node in oe_class.body if isinstance(node, ast.FunctionDef)}
-        if '_ident' in methods:
+        if "_ident" in methods:
             print("✓ OE class has _ident method")
         else:
             print("✗ OE class missing _ident method")
             return False
 
     # Check for analytical gradient usage
-    if 'jac=True' in content or 'jac=lambda' in content:
+    if "jac=True" in content or "jac=lambda" in content:
         print("✓ OE uses analytical gradients (jac parameter)")
     else:
         print("✗ OE may not be using analytical gradients")
         return False
 
     # Check for oe_cost_and_gradient usage
-    if 'oe_cost_and_gradient' in content:
+    if "oe_cost_and_gradient" in content:
         print("✓ OE uses oe_cost_and_gradient function")
     else:
         print("✗ OE doesn't use oe_cost_and_gradient function")
         return False
 
     # Check for BFGS method
-    if 'BFGS' in content:
+    if "BFGS" in content:
         print("✓ OE uses BFGS optimizer")
     else:
         print("✗ OE doesn't use BFGS optimizer")
@@ -128,7 +128,7 @@ def check_benchmark_script():
     print("=" * 80)
 
     try:
-        with open('benchmark_oe_speedup.py') as f:
+        with open("benchmark_oe_speedup.py") as f:
             content = f.read()
 
         # Parse the file
@@ -138,12 +138,12 @@ def check_benchmark_script():
         functions = {node.name for node in ast.walk(tree) if isinstance(node, ast.FunctionDef)}
 
         required_functions = {
-            'generate_test_data',
-            'benchmark_oe_analytical',
-            'benchmark_pem_finite_differences',
-            'benchmark_gradient_computation',
-            'run_full_benchmark',
-            'test_gradient_correctness',
+            "generate_test_data",
+            "benchmark_oe_analytical",
+            "benchmark_pem_finite_differences",
+            "benchmark_gradient_computation",
+            "run_full_benchmark",
+            "test_gradient_correctness",
         }
 
         for func in required_functions:
@@ -167,32 +167,32 @@ def check_imports():
     print("=" * 80)
 
     # Check math.py imports
-    with open('src/llsi/math.py') as f:
+    with open("src/llsi/math.py") as f:
         math_content = f.read()
 
-    if 'import numpy as np' in math_content:
+    if "import numpy as np" in math_content:
         print("✓ math.py imports numpy")
     else:
         print("✗ math.py doesn't import numpy")
         return False
 
-    if 'from numba import njit' in math_content or 'try:' in math_content and 'from numba import njit' in math_content:
+    if "from numba import njit" in math_content or "try:" in math_content and "from numba import njit" in math_content:
         print("✓ math.py imports numba with fallback")
     else:
         print("✗ math.py doesn't import numba")
         return False
 
     # Check pem.py imports
-    with open('src/llsi/pem.py') as f:
+    with open("src/llsi/pem.py") as f:
         pem_content = f.read()
 
-    if 'from . import math as _math' in pem_content or 'from .math import' in pem_content:
+    if "from . import math as _math" in pem_content or "from .math import" in pem_content:
         print("✓ pem.py imports math module")
     else:
         print("✗ pem.py doesn't import math module")
         return False
 
-    if 'import scipy.optimize' in pem_content:
+    if "import scipy.optimize" in pem_content:
         print("✓ pem.py imports scipy.optimize")
     else:
         print("✗ pem.py doesn't import scipy.optimize")
