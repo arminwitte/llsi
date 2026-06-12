@@ -581,16 +581,29 @@ class OE(PEM):
 
         # Get minimizer settings
         minimizer_kwargs = self.settings.get("minimizer_kwargs", {})
+        method = minimizer_kwargs.get("method", "BFGS")
 
-        # Use BFGS with analytical gradient (jac=True)
-        # This is the key to the speedup!
-        res = scipy.optimize.minimize(
-            lambda theta: objective(theta)[0],  # Cost function
-            theta0,
-            method=minimizer_kwargs.get("method", "BFGS"),
-            jac=lambda theta: objective(theta)[1],  # Analytical gradient
-            options=minimizer_kwargs.get("options", {"disp": False, "maxiter": 1000}),
-        )
+        # Methods that support analytical gradients
+        gradient_methods = {"BFGS", "Newton-CG", "L-BFGS-B", "TNC", "SLSQP", "dogleg", "trust-ncg"}
+        
+        # Use analytical gradient if method supports it
+        if method in gradient_methods:
+            res = scipy.optimize.minimize(
+                lambda theta: objective(theta)[0],  # Cost function
+                theta0,
+                method=method,
+                jac=lambda theta: objective(theta)[1],  # Analytical gradient
+                options=minimizer_kwargs.get("options", {"disp": False, "maxiter": 1000}),
+            )
+        else:
+            # For methods that don't support gradients (e.g., Powell, Nelder-Mead, COBYLA)
+            # fall back to numerical approximation
+            res = scipy.optimize.minimize(
+                lambda theta: objective(theta)[0],  # Cost function
+                theta0,
+                method=method,
+                options=minimizer_kwargs.get("options", {"disp": False, "maxiter": 1000}),
+            )
 
         if not res.success:
             self.logger.warning(f"OE optimization failed: {res.message}")

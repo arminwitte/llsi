@@ -132,9 +132,8 @@ def oe_simulate(u: np.ndarray, b: np.ndarray, f: np.ndarray, nk: int) -> np.ndar
         return np.zeros(N)
 
     y = np.zeros(N)
-    start = max(nf, nb + nk)
 
-    for k in range(start, N):
+    for k in range(N):
         # B part (input contribution)
         val = 0.0
         for j in range(nb):
@@ -144,7 +143,8 @@ def oe_simulate(u: np.ndarray, b: np.ndarray, f: np.ndarray, nk: int) -> np.ndar
 
         # F part (feedback from output)
         for i in range(1, nf):
-            val -= f[i] * y[k - i]
+            if k - i >= 0:
+                val -= f[i] * y[k - i]
 
         y[k] = val
 
@@ -202,9 +202,12 @@ def oe_cost_and_gradient(
     grad = np.zeros(n_params)
     sse = 0.0
 
+    # Compute the start index where all regressors are available
     start = max(nf, nb + nk)
 
-    for k in range(start, N):
+    # Initialize filters for k < start
+    # For k < start, we need to compute the filters but not accumulate gradients
+    for k in range(N):
         # --- 1. Simulation step ---
         # Numerator (B part)
         val_num = 0.0
@@ -216,37 +219,42 @@ def oe_cost_and_gradient(
         # Denominator (F part) - feedback
         val_den = 0.0
         for i in range(1, nf):
-            val_den += f[i] * y_sim[k - i]
+            if k - i >= 0:
+                val_den += f[i] * y_sim[k - i]
 
         y_sim[k] = val_num - val_den
-
-        # Error
-        err = y_true[k] - y_sim[k]
-        sse += err * err
 
         # --- 2. Sensitivity filtering (1/F) ---
         # Filter u[k-nk] with 1/F: u_filt[k] = u[k-nk] - f1*u_filt[k-1] - f2*u_filt[k-2] - ...
         curr_u = u[k - nk] if (k - nk) >= 0 else 0.0
         u_filt[k] = curr_u
         for i in range(1, nf):
-            u_filt[k] -= f[i] * u_filt[k - i]
+            if k - i >= 0:
+                u_filt[k] -= f[i] * u_filt[k - i]
 
         # Filter y_sim[k] with 1/F: y_filt[k] = y_sim[k] - f1*y_filt[k-1] - f2*y_filt[k-2] - ...
         y_filt[k] = y_sim[k]
         for i in range(1, nf):
-            y_filt[k] -= f[i] * y_filt[k - i]
+            if k - i >= 0:
+                y_filt[k] -= f[i] * y_filt[k - i]
 
-        # --- 3. Gradient accumulation ---
-        # dJ/dtheta = -2 * err * dy/dtheta
+        # --- 3. Gradient accumulation (only for k >= start) ---
+        if k >= start:
+            # Error
+            err = y_true[k] - y_sim[k]
+            sse += err * err
 
-        # Gradient for b_j: dy/db_j = u_filt[k-j]
-        for j in range(nb):
-            if (k - j) >= 0:
-                grad[j] += -2 * err * u_filt[k - j]
+            # dJ/dtheta = -2 * err * dy/dtheta
 
-        # Gradient for f_i: dy/df_i = -y_filt[k-i]
-        for i in range(1, nf):
-            idx_grad = nb + (i - 1)
-            grad[idx_grad] += -2 * err * (-y_filt[k - i])
+            # Gradient for b_j: dy/db_j = u_filt[k-j]
+            for j in range(nb):
+                if (k - j) >= 0:
+                    grad[j] += -2 * err * u_filt[k - j]
+
+            # Gradient for f_i: dy/df_i = -y_filt[k-i]
+            for i in range(1, nf):
+                idx_grad = nb + (i - 1)
+                if (k - i) >= 0:
+                    grad[idx_grad] += -2 * err * (-y_filt[k - i])
 
     return sse, grad
