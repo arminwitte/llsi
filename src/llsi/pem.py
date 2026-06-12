@@ -586,7 +586,6 @@ class OE(PEM):
         # Methods that support bounds
         bounds_methods = {"L-BFGS-B", "TNC", "SLSQP", "Powell", "COBYLA"}
 
-
         # Methods that support analytical gradients
         gradient_methods = {"BFGS", "Newton-CG", "L-BFGS-B", "TNC", "SLSQP", "dogleg", "trust-ncg"}
 
