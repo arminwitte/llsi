@@ -500,7 +500,7 @@ class OE(PEM):
 
     Special case of PEM initialized with ARX but typically implies
     Output Error model structure B(q)/F(q).
-    
+
     This implementation uses analytical gradients via sensitivity filtering
     for significantly faster optimization (20-50x speedup over finite differences).
     """
@@ -517,29 +517,30 @@ class OE(PEM):
         # OE is typically initialized with ARX
         settings["init"] = "arx"
         super().__init__(data, y_name, u_name, settings=settings)
-        
+
         # Import math module for OE-specific functions
         from . import math as _math
+
         self._math = _math
 
     def _ident(self, order: Union[int, tuple[int, ...]]) -> LTIModel:
         """
         Identify OE model using analytical gradients.
-        
+
         This overrides the parent PEM._ident to use the specialized OE cost
         function with analytical gradients, providing significant speedup.
-        
+
         Args:
             order: Model order as (nb, nf, nk) where:
                 - nb: Number of B coefficients
                 - nf: Number of F coefficients (excluding leading 1.0)
                 - nk: Input delay
-        
+
         Returns:
             LTIModel: Identified PolynomialModel with B/F structure.
         """
         from .polynomialmodel import PolynomialModel
-        
+
         # Parse order
         if isinstance(order, int):
             # Default: assume order is nb, with nf=nb, nk=0
@@ -550,31 +551,29 @@ class OE(PEM):
             nb, nf, nk = order
         else:
             raise ValueError(f"Invalid order for OE: {order}. Expected (nb, nf, nk).")
-        
+
         # Initialize model using ARX (as per OE class default)
         mod = self.alg_inst.ident((nf, nb, nk))  # ARX uses (na, nb, nk)
-        
+
         # Extract initial parameters: [b0, b1, ..., f1, f2, ...]
         # Note: mod.a = [1.0, f1, f2, ...], mod.b = [b0, b1, ...]
         # theta = [b..., f...] where f... are the coefficients after the leading 1.0
         theta0 = np.concatenate((mod.b, mod.a[1:]))
-        
+
         # Number of F coefficients (including leading 1.0)
         nf_full = nf + 1
-        
+
         # Define objective function with analytical gradient
         def objective(theta: np.ndarray) -> tuple[float, np.ndarray]:
             """
             Objective function for OE identification.
             Returns (cost, gradient) for scipy.optimize.minimize.
             """
-            return self._math.oe_cost_and_gradient(
-                theta, self.u.ravel(), self.y.ravel(), nb, nf_full, nk
-            )
-        
+            return self._math.oe_cost_and_gradient(theta, self.u.ravel(), self.y.ravel(), nb, nf_full, nk)
+
         # Get minimizer settings
         minimizer_kwargs = self.settings.get("minimizer_kwargs", {})
-        
+
         # Use BFGS with analytical gradient (jac=True)
         # This is the key to the speedup!
         res = scipy.optimize.minimize(
@@ -584,28 +583,28 @@ class OE(PEM):
             jac=lambda theta: objective(theta)[1],  # Analytical gradient
             options=minimizer_kwargs.get("options", {"disp": False, "maxiter": 1000}),
         )
-        
+
         if not res.success:
             self.logger.warning(f"OE optimization failed: {res.message}")
-        
+
         # Update model with optimized parameters
         theta_opt = res.x
         mod.b = theta_opt[:nb]
         mod.a = np.concatenate(([1.0], theta_opt[nb:]))
-        
+
         # Compute covariance matrix using the Jacobian of residuals
         # We need to compute J_res = dy_hat/dtheta
         n_params = len(theta_opt)
         n_samples = len(self.y)
         epsilon = 1e-8
-        
+
         J_res = np.zeros((n_samples, n_params))
         y_nominal = mod.simulate(self.u).ravel()
-        
+
         for i in range(n_params):
             theta_perturbed = theta_opt.copy()
             theta_perturbed[i] += epsilon
-            
+
             # Create temporary model with perturbed parameters
             mod_perturbed = PolynomialModel(
                 a=np.concatenate(([1.0], theta_perturbed[nb:])),
@@ -614,21 +613,21 @@ class OE(PEM):
                 Ts=mod.Ts,
             )
             y_perturbed = mod_perturbed.simulate(self.u).ravel()
-            
+
             # Jacobian column: dy_hat/dtheta_i
             J_res[:, i] = (y_perturbed - y_nominal) / epsilon
-        
+
         # Estimate variance of residuals
         residuals = self.y.ravel() - y_nominal
         sigma2 = np.sum(residuals**2) / (n_samples - n_params)
-        
+
         # Compute covariance: Cov = sigma^2 * (J^T J)^-1
         H_approx = J_res.T @ J_res
         try:
             mod.cov = sigma2 * np.linalg.inv(H_approx)
         except np.linalg.LinAlgError:
             mod.cov = sigma2 * np.linalg.pinv(H_approx)
-        
+
         return mod
 
     @staticmethod

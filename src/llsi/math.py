@@ -97,33 +97,34 @@ def generate_prbs_sequence(N: int, seed: int) -> np.ndarray:
 # Output Error (OE) Model Acceleration Functions
 # =============================================================================
 
+
 @njit(cache=True)
 def oe_simulate(u: np.ndarray, b: np.ndarray, f: np.ndarray, nk: int) -> np.ndarray:
     """
     Simulate OE model: y[k] = (B/F) * u[k-nk]
-    
+
     This is a Numba-optimized replacement for scipy.signal.lfilter for OE models.
     The model structure is: y[k] = -f1*y[k-1] - f2*y[k-2] - ... + b0*u[k-nk] + b1*u[k-nk-1] + ...
-    
+
     Args:
         u: Input signal (N,)
         b: Numerator coefficients [b0, b1, ...] (nb,)
         f: Denominator coefficients [1.0, f1, f2, ...] (nf,). f[0] must be 1.0.
         nk: Input delay (samples)
-    
+
     Returns:
         y: Simulated output (N,)
     """
     N = len(u)
     nf = len(f)
     nb = len(b)
-    
+
     if N == 0 or nf == 0 or nb == 0:
         return np.zeros(N)
-    
+
     y = np.zeros(N)
     start = max(nf, nb + nk)
-    
+
     for k in range(start, N):
         # B part (input contribution)
         val = 0.0
@@ -131,13 +132,13 @@ def oe_simulate(u: np.ndarray, b: np.ndarray, f: np.ndarray, nk: int) -> np.ndar
             idx_u = k - nk - j
             if idx_u >= 0:
                 val += b[j] * u[idx_u]
-        
+
         # F part (feedback from output)
         for i in range(1, nf):
             val -= f[i] * y[k - i]
-        
+
         y[k] = val
-    
+
     return y
 
 
@@ -152,15 +153,15 @@ def oe_cost_and_gradient(
 ) -> tuple[float, np.ndarray]:
     """
     Compute SSE and analytical gradient for OE model in a single pass.
-    
+
     This is the "Turbo" for OE identification. Instead of using finite differences
     (which requires N_params simulations per optimization step), this computes the
     exact analytical gradient using sensitivity filtering.
-    
+
     The gradient is computed as:
     - ∂ŷ/∂b_j = u_filt[k-j]  (u filtered by 1/F)
     - ∂ŷ/∂f_i = -y_filt[k-i] (y_sim filtered by 1/F)
-    
+
     Args:
         theta: Parameter vector [b0, b1, ..., f1, f2, ...] (n_params,)
         u: Input signal (N,)
@@ -168,32 +169,32 @@ def oe_cost_and_gradient(
         nb: Number of B coefficients
         nf: Number of F coefficients (including leading 1.0)
         nk: Input delay (samples)
-    
+
     Returns:
         sse: Sum of squared errors (float)
         grad: Gradient vector (n_params,)
     """
     N = len(u)
     n_params = len(theta)
-    
+
     if N == 0 or n_params == 0:
         return 0.0, np.zeros(n_params)
-    
+
     # Unpack parameters
     b = theta[:nb]
     f_coeffs = theta[nb:]
     # Reconstruct F polynomial: [1.0, f1, f2, ...]
     f = np.concatenate((np.array([1.0]), f_coeffs))
-    
+
     # Initialize arrays
     y_sim = np.zeros(N)
     u_filt = np.zeros(N)  # u filtered by 1/F
     y_filt = np.zeros(N)  # y_sim filtered by 1/F
     grad = np.zeros(n_params)
     sse = 0.0
-    
+
     start = max(nf, nb + nk)
-    
+
     for k in range(start, N):
         # --- 1. Simulation step ---
         # Numerator (B part)
@@ -202,41 +203,41 @@ def oe_cost_and_gradient(
             idx_u = k - nk - j
             if idx_u >= 0:
                 val_num += b[j] * u[idx_u]
-        
+
         # Denominator (F part) - feedback
         val_den = 0.0
         for i in range(1, nf):
             val_den += f[i] * y_sim[k - i]
-        
+
         y_sim[k] = val_num - val_den
-        
+
         # Error
         err = y_true[k] - y_sim[k]
         sse += err * err
-        
+
         # --- 2. Sensitivity filtering (1/F) ---
         # Filter u[k-nk] with 1/F: u_filt[k] = u[k-nk] - f1*u_filt[k-1] - f2*u_filt[k-2] - ...
         curr_u = u[k - nk] if (k - nk) >= 0 else 0.0
         u_filt[k] = curr_u
         for i in range(1, nf):
             u_filt[k] -= f[i] * u_filt[k - i]
-        
+
         # Filter y_sim[k] with 1/F: y_filt[k] = y_sim[k] - f1*y_filt[k-1] - f2*y_filt[k-2] - ...
         y_filt[k] = y_sim[k]
         for i in range(1, nf):
             y_filt[k] -= f[i] * y_filt[k - i]
-        
+
         # --- 3. Gradient accumulation ---
         # dJ/dtheta = -2 * err * dy/dtheta
-        
+
         # Gradient for b_j: dy/db_j = u_filt[k-j]
         for j in range(nb):
             if (k - j) >= 0:
                 grad[j] += -2 * err * u_filt[k - j]
-        
+
         # Gradient for f_i: dy/df_i = -y_filt[k-i]
         for i in range(1, nf):
             idx_grad = nb + (i - 1)
             grad[idx_grad] += -2 * err * (-y_filt[k - i])
-    
+
     return sse, grad
