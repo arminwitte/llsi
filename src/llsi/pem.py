@@ -531,9 +531,10 @@ class OE(PEM):
         function with analytical gradients, providing significant speedup.
 
         Args:
-            order: Model order as (nb, nf, nk) where:
-                - nb: Number of B coefficients
-                - nf: Number of F coefficients (excluding leading 1.0)
+            order: Model order as (na, nb, nk) for ARX compatibility.
+                For OE models (B/F structure), na maps to nf and nb maps to nb.
+                - na: Number of A coefficients (maps to nf in OE)
+                - nb: Number of B coefficients (maps to nb in OE)
                 - nk: Input delay
 
         Returns:
@@ -541,27 +542,34 @@ class OE(PEM):
         """
         from .polynomialmodel import PolynomialModel
 
-        # Parse order
+        # Parse order - for backward compatibility, interpret as (na, nb, nk)
         if isinstance(order, int):
-            # Default: assume order is nb, with nf=nb, nk=0
+            # Default: assume order is na=nb, with nk=0
+            na = order
             nb = order
-            nf = order
             nk = 0
         elif isinstance(order, tuple) and len(order) == 3:
-            nb, nf, nk = order
+            na, nb, nk = order
         else:
-            raise ValueError(f"Invalid order for OE: {order}. Expected (nb, nf, nk).")
+            raise ValueError(f"Invalid order for OE: {order}. Expected (na, nb, nk) or int.")
+
+        # For OE models (B/F structure), map ARX orders to OE orders:
+        # - nb_OE = nb (numerator B coefficients)
+        # - nf_OE = na (denominator F coefficients, excluding leading 1.0)
+        nb_oe = nb
+        nf_oe = na
 
         # Initialize model using ARX (as per OE class default)
-        mod = self.alg_inst.ident((nf, nb, nk))  # ARX uses (na, nb, nk)
+        mod = self.alg_inst.ident((na, nb, nk))  # ARX uses (na, nb, nk)
 
         # Extract initial parameters: [b0, b1, ..., f1, f2, ...]
-        # Note: mod.a = [1.0, f1, f2, ...], mod.b = [b0, b1, ...]
+        # Note: mod.a = [1.0, a1, a2, ...] from ARX, which maps to F = [1.0, f1, f2, ...]
+        #       mod.b = [b0, b1, ...] from ARX, which maps to B = [b0, b1, ...]
         # theta = [b..., f...] where f... are the coefficients after the leading 1.0
         theta0 = np.concatenate((mod.b, mod.a[1:]))
 
         # Number of F coefficients (including leading 1.0)
-        nf_full = nf + 1
+        nf_full = nf_oe + 1
 
         # Define objective function with analytical gradient
         def objective(theta: np.ndarray) -> tuple[float, np.ndarray]:
@@ -569,7 +577,7 @@ class OE(PEM):
             Objective function for OE identification.
             Returns (cost, gradient) for scipy.optimize.minimize.
             """
-            return self._math.oe_cost_and_gradient(theta, self.u.ravel(), self.y.ravel(), nb, nf_full, nk)
+            return self._math.oe_cost_and_gradient(theta, self.u.ravel(), self.y.ravel(), nb_oe, nf_full, nk)
 
         # Get minimizer settings
         minimizer_kwargs = self.settings.get("minimizer_kwargs", {})
@@ -589,8 +597,8 @@ class OE(PEM):
 
         # Update model with optimized parameters
         theta_opt = res.x
-        mod.b = theta_opt[:nb]
-        mod.a = np.concatenate(([1.0], theta_opt[nb:]))
+        mod.b = theta_opt[:nb_oe]
+        mod.a = np.concatenate(([1.0], theta_opt[nb_oe:]))
 
         # Compute covariance matrix using the Jacobian of residuals
         # We need to compute J_res = dy_hat/dtheta
@@ -607,8 +615,8 @@ class OE(PEM):
 
             # Create temporary model with perturbed parameters
             mod_perturbed = PolynomialModel(
-                a=np.concatenate(([1.0], theta_perturbed[nb:])),
-                b=theta_perturbed[:nb],
+                a=np.concatenate(([1.0], theta_perturbed[nb_oe:])),
+                b=theta_perturbed[:nb_oe],
                 nk=nk,
                 Ts=mod.Ts,
             )
