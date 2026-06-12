@@ -19,8 +19,6 @@ import numpy as np
 try:
     from src.llsi import math as llsi_math
     from src.llsi.pem import OE, PEM
-    from src.llsi.polynomialmodel import PolynomialModel
-    from src.llsi.sysiddata import SysIdData
 
     USE_LLSI = True
 except ImportError:
@@ -28,8 +26,6 @@ except ImportError:
     try:
         from llsi import math as llsi_math
         from llsi.pem import OE, PEM
-        from llsi.polynomialmodel import PolynomialModel
-        from llsi.sysiddata import SysIdData
 
         USE_LLSI = True
     except ImportError:
@@ -140,7 +136,8 @@ def benchmark_gradient_computation(
     n_runs: int = 5,
 ) -> dict:
     """Benchmark just the gradient computation."""
-    N = len(u)
+    import scipy.optimize
+
     n_params = nb + nf  # f includes leading 1.0
 
     # Generate random parameters
@@ -167,7 +164,7 @@ def benchmark_gradient_computation(
         start = time.perf_counter()
         for _ in range(10):
             # Use scipy's approx_fprime
-            grad_fd = scipy.optimize.approx_fprime(theta, cost_func, epsilon=epsilon)
+            scipy.optimize.approx_fprime(theta, cost_func, epsilon=epsilon)
         elapsed = time.perf_counter() - start
         finite_times.append(elapsed / 10)
 
