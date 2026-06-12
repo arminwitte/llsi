@@ -581,17 +581,26 @@ class OE(PEM):
 
         # Get minimizer settings
         minimizer_kwargs = self.settings.get("minimizer_kwargs", {})
-        method = minimizer_kwargs.get("method", "BFGS")
+        method = minimizer_kwargs.get("method", "L-BFGS-B")
+        # Methods that support bounds
+        bounds_methods = {"L-BFGS-B", "TNC", "SLSQP", "Powell", "COBYLA"}
+
 
         # Methods that support analytical gradients
         gradient_methods = {"BFGS", "Newton-CG", "L-BFGS-B", "TNC", "SLSQP", "dogleg", "trust-ncg"}
 
         # Use analytical gradient if method supports it
         if method in gradient_methods:
+            # Add bounds for methods that support them
+            if method in bounds_methods:
+                bounds = [(-10, 10)] * n_params
+            else:
+                bounds = None
             res = scipy.optimize.minimize(
                 lambda theta: objective(theta)[0],  # Cost function
                 theta0,
                 method=method,
+                bounds=bounds,
                 jac=lambda theta: objective(theta)[1],  # Analytical gradient
                 options=minimizer_kwargs.get("options", {"disp": False, "maxiter": 1000}),
             )
@@ -602,6 +611,7 @@ class OE(PEM):
                 lambda theta: objective(theta)[0],  # Cost function
                 theta0,
                 method=method,
+                bounds=[(-10, 10)] * n_params if method in bounds_methods else None,
                 options=minimizer_kwargs.get("options", {"disp": False, "maxiter": 1000}),
             )
 
