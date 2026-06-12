@@ -570,6 +570,7 @@ class OE(PEM):
 
         # Number of F coefficients (including leading 1.0)
         nf_full = nf_oe + 1
+        n_params = nb_oe + nf_oe  # Total number of parameters
 
         # Define objective function with analytical gradient
         def objective(theta: np.ndarray) -> tuple[float, np.ndarray]:
