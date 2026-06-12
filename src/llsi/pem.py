@@ -240,7 +240,7 @@ class ADAM(SysIdAlgBase):
         # Use Numba-accelerated version for larger problems
         if len(x) >= 20:
             return self._compute_gradient_finite_numba(x, y_batch, u_batch)
-        
+
         def loss_func(params):
             return self.compute_loss(params, y_batch, u_batch)
 
@@ -248,11 +248,11 @@ class ADAM(SysIdAlgBase):
 
     @staticmethod
     @njit
-    def _finite_difference_loop(n_params: int, epsilon: float, nominal_loss: float, 
+    def _finite_difference_loop(n_params: int, epsilon: float, nominal_loss: float,
                                 losses: np.ndarray) -> np.ndarray:
         """
         Numba-accelerated finite difference computation.
-        
+
         Computes forward differences: (f(x + epsilon) - f(x)) / epsilon
         """
         grad = np.zeros(n_params)
@@ -262,11 +262,11 @@ class ADAM(SysIdAlgBase):
 
     @staticmethod
     @njit
-    def _complex_step_loop(n_params: int, epsilon: float, nominal_loss: float, 
+    def _complex_step_loop(n_params: int, epsilon: float, nominal_loss: float,
                            losses: np.ndarray) -> np.ndarray:
         """
         Numba-accelerated complex step gradient computation.
-        
+
         Computes: (f(x + epsilon) - f(x)) / epsilon
         Uses the same formula as finite differences but with much smaller epsilon.
         """
@@ -278,28 +278,28 @@ class ADAM(SysIdAlgBase):
     def _compute_gradient_finite_numba(self, x: np.ndarray, y_batch: np.ndarray, u_batch: np.ndarray) -> np.ndarray:
         """
         Numba-accelerated finite difference gradient computation.
-        
+
         Uses forward differences with pre-allocated arrays for better cache locality.
         """
         epsilon = 1e-8
         n_params = len(x)
         grad = np.zeros(n_params)
-        
+
         # Pre-compute nominal loss
         nominal_loss = self.compute_loss(x, y_batch, u_batch)
-        
+
         # Pre-allocate array for perturbed losses
         losses = np.zeros(n_params)
-        
+
         # Compute all perturbed losses
         for i in range(n_params):
             x_perturbed = x.copy()
             x_perturbed[i] += epsilon
             losses[i] = self.compute_loss(x_perturbed, y_batch, u_batch)
-        
+
         # Use Numba for the final gradient computation
         grad = self._finite_difference_loop(n_params, epsilon, nominal_loss, losses)
-        
+
         return grad
 
     def _compute_gradient_complex(self, x: np.ndarray, y_batch: np.ndarray, u_batch: np.ndarray) -> np.ndarray:
@@ -322,11 +322,11 @@ class ADAM(SysIdAlgBase):
         """
         epsilon = 1e-20  # Extremely small perturbation for complex step
         n_params = len(x)
-        
+
         # Use Numba-accelerated version for larger problems
         if n_params >= 20:
             return self._compute_gradient_complex_numba(x, y_batch, u_batch, epsilon)
-        
+
         grad = np.zeros_like(x)
 
         if self.model is None:
@@ -336,7 +336,7 @@ class ADAM(SysIdAlgBase):
         self.model.reshape(x)
         y_nominal = self.model.simulate(u_batch)
         nominal_loss = LTIModel.SSE(y_batch - y_nominal)
-        
+
         # Add nominal regularization
         if self.lambda_l1 > 0:
             nominal_loss += self.lambda_l1 * np.sum(np.abs(x))
@@ -347,17 +347,17 @@ class ADAM(SysIdAlgBase):
             # Perturb parameter i with complex step
             x_perturbed = x.copy()
             x_perturbed[i] += epsilon  # Use real perturbation (complex step approximation)
-            
+
             self.model.reshape(x_perturbed)
             y_perturbed = self.model.simulate(u_batch)
             perturbed_loss = LTIModel.SSE(y_batch - y_perturbed)
-            
+
             # Add regularization terms for perturbed parameters
             if self.lambda_l1 > 0:
                 perturbed_loss += self.lambda_l1 * np.sum(np.abs(x_perturbed))
             if self.lambda_l2 > 0:
                 perturbed_loss += self.lambda_l2 * (x_perturbed.T @ x_perturbed)
-            
+
             # Compute derivative using central difference-like approximation
             # Since we can't use true complex step (model doesn't support complex),
             # we use a very small epsilon which gives similar accuracy benefits
@@ -365,11 +365,11 @@ class ADAM(SysIdAlgBase):
 
         return grad
 
-    def _compute_gradient_complex_numba(self, x: np.ndarray, y_batch: np.ndarray, u_batch: np.ndarray, 
+    def _compute_gradient_complex_numba(self, x: np.ndarray, y_batch: np.ndarray, u_batch: np.ndarray,
                                         epsilon: float) -> np.ndarray:
         """
         Numba-accelerated complex step gradient computation.
-        
+
         Pre-allocates all arrays and uses JIT-compiled loop for the final
         gradient computation. This provides better performance for larger
         parameter counts (n_params >= 20).
@@ -383,13 +383,13 @@ class ADAM(SysIdAlgBase):
         self.model.reshape(x)
         y_nominal = self.model.simulate(u_batch)
         nominal_loss = LTIModel.SSE(y_batch - y_nominal)
-        
+
         # Add nominal regularization
         if self.lambda_l1 > 0:
             nominal_loss += self.lambda_l1 * np.sum(np.abs(x))
         if self.lambda_l2 > 0:
             nominal_loss += self.lambda_l2 * (x.T @ x)
-        
+
         # Pre-allocate arrays
         x_perturbed = x.copy()
         losses = np.zeros(n_params)
@@ -397,17 +397,17 @@ class ADAM(SysIdAlgBase):
         for i in range(n_params):
             # Perturb parameter i
             x_perturbed[i] = x[i] + epsilon
-            
+
             self.model.reshape(x_perturbed)
             y_perturbed = self.model.simulate(u_batch)
             losses[i] = LTIModel.SSE(y_batch - y_perturbed)
-            
+
             # Add regularization terms for perturbed parameters
             if self.lambda_l1 > 0:
                 losses[i] += self.lambda_l1 * np.sum(np.abs(x_perturbed))
             if self.lambda_l2 > 0:
                 losses[i] += self.lambda_l2 * (x_perturbed.T @ x_perturbed)
-            
+
             # Restore original value for next iteration
             x_perturbed[i] = x[i]
 
@@ -526,7 +526,7 @@ def benchmark_derivative_methods(
     u_name: Optional[Union[str, list[str]]] = None,
     order: Union[int, tuple[int, ...]] = 2,
     n_runs: int = 5,
-    n_params_list: list[int] = [10, 50, 100],
+    n_params_list: Optional[list[int]] = None,
     loss_function: Optional[callable] = None,
 ) -> dict[str, Any]:
     """
@@ -575,6 +575,10 @@ def benchmark_derivative_methods(
     """
     import time
 
+    # Initialize n_params_list with default if None
+    if n_params_list is None:
+        n_params_list = [10, 50, 100]
+
     results = {
         "methods": ["finite", "complex"],
         "n_params": n_params_list,
@@ -595,7 +599,7 @@ def benchmark_derivative_methods(
         np.random.seed(42)
         x_true = np.random.randn(n_params)
 
-        def simple_loss(x: np.ndarray) -> float:
+        def simple_loss(x: np.ndarray, x_true=x_true) -> float:
             """Simple quadratic loss for benchmarking."""
             return float(np.sum((x - x_true) ** 2))
 
