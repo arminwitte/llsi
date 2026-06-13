@@ -628,8 +628,15 @@ class OE(PEM):
                 options=minimizer_kwargs.get("options", {"disp": False, "maxiter": 1000}),
             )
 
-        if not res.success:
-            self.logger.warning(f"OE optimization failed: {res.message}")
+        # The Fallback Trigger: if analytical optimization fails, fall back to PEM's finite differences
+        if not res.success or res.fun > 1e10:
+            self.logger.warning(
+                f"OE analytical optimization failed ({res.message}). "
+                "Falling back to robust numerical finite differences."
+            )
+            # Route directly to the PEM parent class logic, which natively
+            # uses finite differences via mod.simulate()
+            return super()._ident(order)
 
         # Update model with optimized parameters - create new instance to ensure consistency
         theta_opt = res.x
