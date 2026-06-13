@@ -597,18 +597,18 @@ class OE(PEM):
             else:
                 bounds = None
             res = scipy.optimize.minimize(
-                lambda theta: objective(theta)[0],  # Cost function
+                objective,
                 theta0,
                 method=method,
                 bounds=bounds,
-                jac=lambda theta: objective(theta)[1],  # Analytical gradient
+                jac=True,  # objective returns (cost, grad)
                 options=minimizer_kwargs.get("options", {"disp": False, "maxiter": 1000}),
             )
         else:
             # For methods that don't support gradients (e.g., Powell, Nelder-Mead, COBYLA)
             # fall back to numerical approximation
             res = scipy.optimize.minimize(
-                lambda theta: objective(theta)[0],  # Cost function
+                lambda theta: objective(theta)[0],  # Cost function only
                 theta0,
                 method=method,
                 bounds=[(-10, 10)] * n_params if method in bounds_methods else None,
@@ -618,13 +618,17 @@ class OE(PEM):
         if not res.success:
             self.logger.warning(f"OE optimization failed: {res.message}")
 
-        # Update model with optimized parameters
+        # Update model with optimized parameters - create new instance to ensure consistency
         theta_opt = res.x
-        mod.b = theta_opt[:nb_oe]
-        mod.a = np.concatenate(([1.0], theta_opt[nb_oe:]))
+        mod = PolynomialModel(
+            a=np.concatenate(([1.0], theta_opt[nb_oe:])),
+            b=theta_opt[:nb_oe],
+            nk=nk,
+            Ts=mod.Ts,
+        )
 
         # Compute covariance matrix using the Jacobian of residuals
-        # We need to compute J_res = dy_hat/dtheta
+        # We need to compute J_res = -dy_hat/dtheta (residual = y - y_hat, so d(residual)/dtheta = -dy_hat/dtheta)
         n_params = len(theta_opt)
         n_samples = len(self.y)
         epsilon = 1e-8
@@ -645,8 +649,8 @@ class OE(PEM):
             )
             y_perturbed = mod_perturbed.simulate(self.u).ravel()
 
-            # Jacobian column: dy_hat/dtheta_i
-            J_res[:, i] = (y_perturbed - y_nominal) / epsilon
+            # Jacobian column: d(residual)/dtheta_i = d(y - y_hat)/dtheta_i = -dy_hat/dtheta_i
+            J_res[:, i] = (y_nominal - y_perturbed) / epsilon
 
         # Estimate variance of residuals
         residuals = self.y.ravel() - y_nominal
