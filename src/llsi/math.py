@@ -168,7 +168,7 @@ def oe_cost_and_gradient(
 
     The gradient is computed as:
     - ∂ŷ/∂b_j = u_filt[k-j]  (u filtered by 1/F)
-    - ∂ŷ/∂f_i = -y_filt[k-i] (y_sim filtered by 1/F)
+    - ∂ŷ/∂f_i = -s_i[k] where s_i is the sensitivity computed recursively
 
     Args:
         theta: Parameter vector [b0, b1, ..., f1, f2, ...] (n_params,)
@@ -197,15 +197,18 @@ def oe_cost_and_gradient(
     # Initialize arrays
     y_sim = np.zeros(N)
     u_filt = np.zeros(N)  # u filtered by 1/F
-    y_filt = np.zeros(N)  # y_sim filtered by 1/F
+    
+    # Sensitivity arrays: s_i[k] = ∂y[k]/∂f_i
+    # We need nf-1 sensitivity arrays (for f1, f2, ..., f_{nf-1})
+    n_f_params = nf - 1
+    sensitivities = np.zeros((n_f_params, N))  # sensitivities[i, k] = ∂y[k]/∂f_{i+1}
+    
     grad = np.zeros(n_params)
     sse = 0.0
 
     # Compute the start index where all regressors are available
     start = max(nf, nb + nk)
 
-    # Initialize filters for k < start
-    # For k < start, we need to compute the filters but not accumulate gradients
     for k in range(N):
         # --- 1. Simulation step ---
         # Numerator (B part)
@@ -222,23 +225,34 @@ def oe_cost_and_gradient(
 
         y_sim[k] = val_num - val_den
 
-        # --- 2. Sensitivity filtering (1/F) ---
-        # Filter u[k-nk] with 1/F: u_filt[k] = u[k-nk] - f1*u_filt[k-1] - f2*u_filt[k-2] - ...
+        # --- 2. Filter u[k-nk] with 1/F for b_j sensitivities ---
         curr_u = u[k - nk] if (k - nk) >= 0 else 0.0
         u_filt[k] = curr_u
         for i in range(1, min(nf, k + 1)):
             u_filt[k] -= f[i] * u_filt[k - i]
 
-        # Filter y_sim[k] with 1/F: y_filt[k] = y_sim[k] - f1*y_filt[k-1] - f2*y_filt[k-2] - ...
-        y_filt[k] = y_sim[k]
-        for i in range(1, min(nf, k + 1)):
-            y_filt[k] -= f[i] * y_filt[k - i]
+        # --- 3. Compute sensitivities ∂y/∂f_i recursively ---
+        # For each f parameter (f1, f2, ..., f_{nf-1}):
+        # ∂y[k]/∂f_i = -y[k-i] - sum_{j=1}^{nf-1} f_j * ∂y[k-j]/∂f_i
+        for i in range(n_f_params):
+            # i=0 corresponds to f1, i=1 corresponds to f2, etc.
+            # ∂y[k]/∂f_{i+1} = -y[k-(i+1)] - sum_{j=1}^{nf-1} f_j * ∂y[k-j]/∂f_{i+1}
+            delay = i + 1
+            if k - delay >= 0:
+                sensitivities[i, k] = -y_sim[k - delay]
+            else:
+                sensitivities[i, k] = 0.0
+            
+            # Subtract the feedback terms
+            for j in range(1, min(nf, k + 1)):
+                if k - j >= 0:
+                    sensitivities[i, k] -= f[j] * sensitivities[i, k - j]
 
-        # --- 3. Cost accumulation (for all k) ---
+        # --- 4. Cost accumulation (for all k) ---
         err = y_true[k] - y_sim[k]
         sse += err * err
 
-        # --- 4. Gradient accumulation (only for k >= start to avoid boundary effects) ---
+        # --- 5. Gradient accumulation (only for k >= start to avoid boundary effects) ---
         if k >= start:
             # dJ/dtheta = -2 * err * dy/dtheta
 
@@ -246,9 +260,10 @@ def oe_cost_and_gradient(
             for j in range(min(nb, k + 1)):
                 grad[j] += -2 * err * u_filt[k - j]
 
-            # Gradient for f_i: dy/df_i = -y_filt[k-i]
+            # Gradient for f_i: dy/df_i = -sensitivities[i-1, k]
             for i in range(1, min(nf, k + 1)):
                 idx_grad = nb + (i - 1)
-                grad[idx_grad] += -2 * err * (-y_filt[k - i])
+                # sensitivities[i-1, k] = ∂y[k]/∂f_i
+                grad[idx_grad] += -2 * err * sensitivities[i - 1, k]
 
     return sse, grad
