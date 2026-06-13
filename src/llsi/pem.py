@@ -572,27 +572,40 @@ class OE(PEM):
         nf_full = nf_oe + 1
         n_params = nb_oe + nf_oe  # Total number of parameters
 
-        # Define objective function with analytical gradient
+        # Define objective function with analytical gradient and overflow protection
         def objective(theta: np.ndarray) -> tuple[float, np.ndarray]:
             """
-            Objective function for OE identification.
+            Objective function for OE identification with overflow protection.
             Returns (cost, gradient) for scipy.optimize.minimize.
             """
-            return self._math.oe_cost_and_gradient(theta, self.u.ravel(), self.y.ravel(), nb_oe, nf_full, nk)
+            cost, grad = self._math.oe_cost_and_gradient(theta, self.u.ravel(), self.y.ravel(), nb_oe, nf_full, nk)
+
+            # Protect against unstable simulations (poles outside unit circle)
+            # Replace NaN/inf with massive penalty to force optimizer to retreat
+            if not np.isfinite(cost):
+                cost = 1e300
+                grad = np.zeros_like(grad)
+            elif not np.all(np.isfinite(grad)):
+                # Sanitize gradients to prevent optimizer math errors
+                grad = np.nan_to_num(grad, nan=0.0, posinf=1e10, neginf=-1e10)
+
+            return cost, grad
 
         # Get minimizer settings
         minimizer_kwargs = self.settings.get("minimizer_kwargs", {})
         method = minimizer_kwargs.get("method", "L-BFGS-B")
-        # Methods that support bounds
-        bounds_methods = {"L-BFGS-B", "TNC", "SLSQP", "Powell", "COBYLA"}
+        # Methods that support bounds (case-insensitive comparison)
+        bounds_methods = {"l-bfgs-b", "tnc", "slsqp", "powell", "cobyla"}
 
-        # Methods that support analytical gradients
-        gradient_methods = {"BFGS", "Newton-CG", "L-BFGS-B", "TNC", "SLSQP", "dogleg", "trust-ncg"}
+        # Methods that support analytical gradients (case-insensitive comparison)
+        gradient_methods = {"bfgs", "newton-cg", "l-bfgs-b", "tnc", "slsqp", "dogleg", "trust-ncg"}
+
+        method_lower = method.lower()
 
         # Use analytical gradient if method supports it
-        if method in gradient_methods:
+        if method_lower in gradient_methods:
             # Add bounds for methods that support them
-            if method in bounds_methods:
+            if method_lower in bounds_methods:
                 bounds = [(-10, 10)] * n_params
             else:
                 bounds = None
@@ -611,7 +624,7 @@ class OE(PEM):
                 lambda theta: objective(theta)[0],  # Cost function only
                 theta0,
                 method=method,
-                bounds=[(-10, 10)] * n_params if method in bounds_methods else None,
+                bounds=[(-10, 10)] * n_params if method_lower in bounds_methods else None,
                 options=minimizer_kwargs.get("options", {"disp": False, "maxiter": 1000}),
             )
 
