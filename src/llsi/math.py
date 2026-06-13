@@ -197,12 +197,12 @@ def oe_cost_and_gradient(
     # Initialize arrays
     y_sim = np.zeros(N)
     u_filt = np.zeros(N)  # u filtered by 1/F
-    
+
     # Sensitivity arrays: s_i[k] = ∂y[k]/∂f_i
     # We need nf-1 sensitivity arrays (for f1, f2, ..., f_{nf-1})
     n_f_params = nf - 1
     sensitivities = np.zeros((n_f_params, N))  # sensitivities[i, k] = ∂y[k]/∂f_{i+1}
-    
+
     grad = np.zeros(n_params)
     sse = 0.0
 
@@ -242,7 +242,7 @@ def oe_cost_and_gradient(
                 sensitivities[i, k] = -y_sim[k - delay]
             else:
                 sensitivities[i, k] = 0.0
-            
+
             # Subtract the feedback terms
             for j in range(1, min(nf, k + 1)):
                 if k - j >= 0:
