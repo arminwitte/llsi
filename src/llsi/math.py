@@ -108,6 +108,36 @@ def generate_prbs_sequence(N: int, seed: int) -> np.ndarray:
 
 
 @njit
+def _oe_simulate_njit(u: np.ndarray, b: np.ndarray, f: np.ndarray, nk: int) -> np.ndarray:
+    """
+    Numba-optimized version of oe_simulate for real-valued coefficients.
+    """
+    N = len(u)
+    nf = len(f)
+    nb = len(b)
+
+    if N == 0 or nf == 0 or nb == 0:
+        return np.zeros(N)
+
+    y = np.zeros(N)
+
+    for k in range(N):
+        # B part (input contribution)
+        val = 0.0
+        for j in range(nb):
+            idx_u = k - nk - j
+            if idx_u >= 0:
+                val += b[j] * u[idx_u]
+
+        # F part (feedback from output)
+        for i in range(1, min(nf, k + 1)):
+            val -= f[i] * y[k - i]
+
+        y[k] = val
+
+    return y
+
+
 def oe_simulate(u: np.ndarray, b: np.ndarray, f: np.ndarray, nk: int) -> np.ndarray:
     """
     Simulate OE model: y[k] = (B/F) * u[k-nk]
@@ -124,6 +154,11 @@ def oe_simulate(u: np.ndarray, b: np.ndarray, f: np.ndarray, nk: int) -> np.ndar
     Returns:
         y: Simulated output (N,)
     """
+    # Check if all inputs are real numbers (Numba doesn't support complex)
+    if np.isrealobj(u) and np.isrealobj(b) and np.isrealobj(f):
+        return _oe_simulate_njit(u, b, f, nk)
+
+    # Fallback for complex coefficients
     N = len(u)
     nf = len(f)
     nb = len(b)
@@ -131,7 +166,9 @@ def oe_simulate(u: np.ndarray, b: np.ndarray, f: np.ndarray, nk: int) -> np.ndar
     if N == 0 or nf == 0 or nb == 0:
         return np.zeros(N)
 
-    y = np.zeros(N)
+    # Determine output dtype based on input coefficients
+    dtype = np.result_type(u.dtype, b.dtype, f.dtype)
+    y = np.zeros(N, dtype=dtype)
 
     for k in range(N):
         # B part (input contribution)
@@ -263,7 +300,7 @@ def oe_cost_and_gradient(
             # Gradient for f_i: dy/df_i = -sensitivities[i-1, k]
             for i in range(1, min(nf, k + 1)):
                 idx_grad = nb + (i - 1)
-                # sensitivities[i-1, k] = ∂y[k]/∂f_i
+                # sensitivities[i-1, k] = d y[k] / d f_i
                 grad[idx_grad] += -2 * err * sensitivities[i - 1, k]
 
     return sse, grad

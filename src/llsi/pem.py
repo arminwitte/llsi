@@ -581,6 +581,7 @@ class OE(PEM):
         n_params = nb_oe + nf_oe  # Total number of parameters
 
         # Define objective function with analytical gradient and overflow protection
+
         def objective_analytical(theta: np.ndarray) -> tuple[float, np.ndarray]:
             """
             Objective function for OE identification with analytical gradients and overflow protection.
@@ -600,6 +601,7 @@ class OE(PEM):
             return cost, grad
 
         # Define objective function using finite differences (for fallback or explicit selection)
+
         def objective_finite(theta: np.ndarray) -> float:
             """
             Objective function using finite differences for gradient computation.
@@ -620,45 +622,48 @@ class OE(PEM):
             objective = objective_analytical
             use_analytical = True
         elif derivative_method == "finite":
-            objective = lambda theta: (objective_finite(theta), np.zeros_like(theta))
+
+            def objective_finite_wrapper(theta: np.ndarray) -> tuple[float, np.ndarray]:
+                return (objective_finite(theta), np.zeros_like(theta))
+
+            objective = objective_finite_wrapper
             use_analytical = False
         elif derivative_method == "complex":
             # Complex step method - use very small epsilon
+
             def objective_complex(theta: np.ndarray) -> tuple[float, np.ndarray]:
                 """
                 Objective function using complex step method for gradient computation.
+                Uses direct simulation with complex coefficients via oe_simulate.
                 """
                 cost = objective_finite(theta)
                 epsilon = 1e-20
                 grad = np.zeros_like(theta)
-                theta_complex = theta.astype(np.complex128)
-                
+
                 for i in range(len(theta)):
-                    theta_orig = theta_complex[i]
-                    theta_complex[i] = theta_orig + epsilon * 1j
-                    
-                    mod_temp = PolynomialModel(
-                        a=np.concatenate(([1.0], theta_complex[nb_oe:].real)),
-                        b=theta_complex[:nb_oe].real,
-                        nk=nk,
-                        Ts=mod.Ts,
-                    )
-                    # Use real part of complex perturbation
-                    y_hat_complex = mod_temp.simulate(self.u)
-                    cost_complex = float(LTIModel.SSE(self.y - y_hat_complex))
-                    
+                    # Perturb parameter i with complex step
+                    theta_perturbed = theta.copy().astype(np.complex128)
+                    theta_perturbed[i] = theta[i] + epsilon * 1j
+
+                    # Simulate with complex coefficients using oe_simulate
+                    b_complex = theta_perturbed[:nb_oe]
+                    f_complex = np.concatenate((np.array([1.0 + 0j]), theta_perturbed[nb_oe:]))
+                    y_hat_complex = self._math.oe_simulate(self.u.ravel(), b_complex, f_complex, nk)
+
+                    # Compute cost with complex output
+                    cost_complex = float(np.sum((self.y.ravel() - y_hat_complex) ** 2))
+
                     grad[i] = np.imag(cost_complex) / epsilon
-                    theta_complex[i] = theta_orig
-                
+
                 # Protect against unstable simulations
                 if not np.isfinite(cost):
                     cost = 1e300
                     grad = np.zeros_like(grad)
                 elif not np.all(np.isfinite(grad)):
                     grad = np.nan_to_num(grad, nan=0.0, posinf=1e10, neginf=-1e10)
-                
+
                 return cost, grad
-            
+
             objective = objective_complex
             use_analytical = True
         else:
