@@ -814,10 +814,14 @@ def benchmark_derivative_methods(
                 start = time.perf_counter()
 
                 # Use scipy's approx_fprime with simulation-based loss
-                def sim_loss(x_test_inner):
-                    mod.reshape(np.concatenate([x_test_inner, x0[n_params:]]))
-                    return float(LTIModel.SSE(y - mod.simulate(u)))
+                # Use a factory function to avoid closure issues with n_params
+                def make_sim_loss(n_params_bound: int):
+                    def sim_loss(x_test_inner):
+                        mod.reshape(np.concatenate([x_test_inner, x0[n_params_bound:]]))
+                        return float(LTIModel.SSE(y - mod.simulate(u)))
+                    return sim_loss
 
+                sim_loss = make_sim_loss(n_params)
                 grad_finite = scipy.optimize.approx_fprime(x_test, sim_loss, epsilon=1e-8)
 
                 elapsed = time.perf_counter() - start
@@ -852,9 +856,9 @@ def benchmark_derivative_methods(
                             y_hat_complex = mod.simulate(u)
                             loss_complex = np.sum((y - y_hat_complex) ** 2)
                             grad_complex[i] = np.imag(loss_complex) / epsilon
-                        except (TypeError, ValueError):
+                        except (TypeError, ValueError) as err:
                             # Model doesn't support complex parameters, fall back to finite differences
-                            raise ValueError("Model does not support complex parameters for complex step.")
+                            raise ValueError("Model does not support complex parameters for complex step.") from None
 
                         x_complex[i] = x_orig
 
