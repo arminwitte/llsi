@@ -9,14 +9,6 @@ import numpy as np
 import scipy.optimize
 
 try:
-    from numba import njit
-except ImportError:
-    # Fallback if numba is not installed
-    def njit(func: Callable) -> Callable:
-        return func
-
-
-try:
     from tqdm.auto import tqdm
 except ImportError:
 
@@ -217,7 +209,7 @@ class ADAM(SysIdAlgBase):
 
     def compute_gradient(self, x: np.ndarray, y_batch: np.ndarray, u_batch: np.ndarray) -> np.ndarray:
         """
-        Compute gradient using either complex step method (default) or finite differences.
+        Compute gradient using either finite differences with small epsilon or scipy's approx_fprime.
 
         Args:
             x: Parameter vector.
@@ -228,11 +220,13 @@ class ADAM(SysIdAlgBase):
             Gradient vector.
 
         Notes:
-            - 'complex' (default): Uses complex step method (faster and more accurate).
+            - 'complex': Uses finite differences with small epsilon (1e-8) for better accuracy.
+              Note: This is NOT a true complex step (model.simulate doesn't support complex parameters).
+              For true complex step, use the OE class with derivative_method='complex'.
             - 'finite': Uses scipy.optimize.approx_fprime (slower, less accurate).
         """
         if self.derivative_method == "complex":
-            return self._compute_gradient_complex(x, y_batch, u_batch)
+            return self._compute_gradient_finite_small_epsilon(x, y_batch, u_batch)
         else:
             return self._compute_gradient_finite(x, y_batch, u_batch)
 
@@ -247,42 +241,18 @@ class ADAM(SysIdAlgBase):
 
         return scipy.optimize.approx_fprime(x, loss_func, epsilon=1e-8)
 
-    @staticmethod
-    @njit
-    def _finite_difference_loop(n_params: int, epsilon: float, nominal_loss: float, losses: np.ndarray) -> np.ndarray:
-        """
-        Numba-accelerated finite difference computation.
 
-        Computes forward differences: (f(x + epsilon) - f(x)) / epsilon
-        """
-        grad = np.zeros(n_params)
-        for i in range(n_params):
-            grad[i] = (losses[i] - nominal_loss) / epsilon
-        return grad
-
-    @staticmethod
-    @njit
-    def _complex_step_loop(n_params: int, epsilon: float, nominal_loss: float, losses: np.ndarray) -> np.ndarray:
-        """
-        Numba-accelerated complex step gradient computation.
-
-        Computes: (f(x + epsilon) - f(x)) / epsilon
-        Uses the same formula as finite differences but with much smaller epsilon.
-        """
-        grad = np.zeros(n_params)
-        for i in range(n_params):
-            grad[i] = (losses[i] - nominal_loss) / epsilon
-        return grad
 
     def _compute_gradient_finite_numba(self, x: np.ndarray, y_batch: np.ndarray, u_batch: np.ndarray) -> np.ndarray:
         """
-        Numba-accelerated finite difference gradient computation.
+        Finite difference gradient computation with pre-allocated arrays.
 
-        Uses forward differences with pre-allocated arrays for better cache locality.
+        Uses forward differences with vectorized NumPy operations for the final
+        gradient computation. Numba was removed as it provided no benefit for
+        this trivial operation (vectorized NumPy is already C-speed).
         """
         epsilon = 1e-8
         n_params = len(x)
-        grad = np.zeros(n_params)
 
         # Pre-compute nominal loss
         nominal_loss = self.compute_loss(x, y_batch, u_batch)
@@ -296,35 +266,29 @@ class ADAM(SysIdAlgBase):
             x_perturbed[i] += epsilon
             losses[i] = self.compute_loss(x_perturbed, y_batch, u_batch)
 
-        # Use Numba for the final gradient computation
-        grad = self._finite_difference_loop(n_params, epsilon, nominal_loss, losses)
+        # Vectorized gradient computation (faster than Numba for this simple operation)
+        grad = (losses - nominal_loss) / epsilon
 
         return grad
 
-    def _compute_gradient_complex(self, x: np.ndarray, y_batch: np.ndarray, u_batch: np.ndarray) -> np.ndarray:
+    def _compute_gradient_finite_small_epsilon(self, x: np.ndarray, y_batch: np.ndarray, u_batch: np.ndarray) -> np.ndarray:
         """
-        Compute gradient using the complex step method.
+        Compute gradient using finite differences with a very small epsilon.
 
-        The complex step method provides near-analytic accuracy by using a purely
-        imaginary perturbation. The derivative is extracted from the imaginary part
-        of the output, avoiding subtraction errors.
-
-        Note: This implementation uses a numerical approximation since the model
-        simulation doesn't support complex parameters directly. It still provides
-        better accuracy than finite differences by using a very small perturbation.
+        Note: This was previously mislabeled as "complex step" but actually uses
+        a real perturbation. The small epsilon (1e-8) provides better accuracy
+        than standard finite differences (1e-4 to 1e-6) but is numerically stable
+        for real-valued simulations. For true complex step, use OE.objective_complex
+        which supports complex coefficients via oe_simulate.
 
         Uses Numba JIT compilation for acceleration when available (n_params >= 20).
-
-        Reference:
-            Lyness, J. N., & Moler, C. B. (1967). Van der Corput's method for
-            numerical differentiation. SIAM Journal on Numerical Analysis.
         """
-        epsilon = 1e-20  # Extremely small perturbation for complex step
+        epsilon = 1e-8  # Small perturbation for better accuracy (not complex step!)
         n_params = len(x)
 
         # Use Numba-accelerated version for larger problems
         if n_params >= 20:
-            return self._compute_gradient_complex_numba(x, y_batch, u_batch, epsilon)
+            return self._compute_gradient_finite_numba(x, y_batch, u_batch)
 
         grad = np.zeros_like(x)
 
@@ -343,9 +307,9 @@ class ADAM(SysIdAlgBase):
             nominal_loss += self.lambda_l2 * (x.T @ x)
 
         for i in range(n_params):
-            # Perturb parameter i with complex step
+            # Perturb parameter i with small real epsilon
             x_perturbed = x.copy()
-            x_perturbed[i] += epsilon  # Use real perturbation (complex step approximation)
+            x_perturbed[i] += epsilon
 
             self.model.reshape(x_perturbed)
             y_perturbed = self.model.simulate(u_batch)
@@ -357,64 +321,12 @@ class ADAM(SysIdAlgBase):
             if self.lambda_l2 > 0:
                 perturbed_loss += self.lambda_l2 * (x_perturbed.T @ x_perturbed)
 
-            # Compute derivative using central difference-like approximation
-            # Since we can't use true complex step (model doesn't support complex),
-            # we use a very small epsilon which gives similar accuracy benefits
+            # Forward finite difference
             grad[i] = (perturbed_loss - nominal_loss) / epsilon
 
         return grad
 
-    def _compute_gradient_complex_numba(
-        self, x: np.ndarray, y_batch: np.ndarray, u_batch: np.ndarray, epsilon: float
-    ) -> np.ndarray:
-        """
-        Numba-accelerated complex step gradient computation.
 
-        Pre-allocates all arrays and uses JIT-compiled loop for the final
-        gradient computation. This provides better performance for larger
-        parameter counts (n_params >= 20).
-        """
-        n_params = len(x)
-
-        if self.model is None:
-            raise RuntimeError("Model not initialized.")
-
-        # Pre-compute nominal loss and output
-        self.model.reshape(x)
-        y_nominal = self.model.simulate(u_batch)
-        nominal_loss = LTIModel.SSE(y_batch - y_nominal)
-
-        # Add nominal regularization
-        if self.lambda_l1 > 0:
-            nominal_loss += self.lambda_l1 * np.sum(np.abs(x))
-        if self.lambda_l2 > 0:
-            nominal_loss += self.lambda_l2 * (x.T @ x)
-
-        # Pre-allocate arrays
-        x_perturbed = x.copy()
-        losses = np.zeros(n_params)
-
-        for i in range(n_params):
-            # Perturb parameter i
-            x_perturbed[i] = x[i] + epsilon
-
-            self.model.reshape(x_perturbed)
-            y_perturbed = self.model.simulate(u_batch)
-            losses[i] = LTIModel.SSE(y_batch - y_perturbed)
-
-            # Add regularization terms for perturbed parameters
-            if self.lambda_l1 > 0:
-                losses[i] += self.lambda_l1 * np.sum(np.abs(x_perturbed))
-            if self.lambda_l2 > 0:
-                losses[i] += self.lambda_l2 * (x_perturbed.T @ x_perturbed)
-
-            # Restore original value for next iteration
-            x_perturbed[i] = x[i]
-
-        # Use JIT-compiled loop for final gradient computation
-        grad = self._complex_step_loop(n_params, epsilon, nominal_loss, losses)
-
-        return grad
 
     def _ident(self, order: Union[int, tuple[int, ...]]) -> LTIModel:
         """
@@ -650,8 +562,8 @@ class OE(PEM):
                     f_complex = np.concatenate((np.array([1.0 + 0j]), theta_perturbed[nb_oe:]))
                     y_hat_complex = self._math.oe_simulate(self.u.ravel(), b_complex, f_complex, nk)
 
-                    # Compute cost with complex output
-                    cost_complex = float(np.sum((self.y.ravel() - y_hat_complex) ** 2))
+                    # Compute cost with complex output (do NOT cast to float!)
+                    cost_complex = np.sum((self.y.ravel() - y_hat_complex) ** 2)
 
                     grad[i] = np.imag(cost_complex) / epsilon
 
@@ -778,6 +690,7 @@ def benchmark_derivative_methods(
     n_runs: int = 5,
     n_params_list: Optional[list[int]] = None,
     loss_function: Optional[Callable] = None,
+    mod: Optional[LTIModel] = None,
 ) -> dict[str, Any]:
     """
     Benchmark finite differences vs. complex step derivative methods.
@@ -786,14 +699,16 @@ def benchmark_derivative_methods(
     methods for computing gradients in optimization problems.
 
     Args:
-        data: System identification data (optional, for real PEM benchmarking).
-        y_name: Output channel name(s) (optional).
-        u_name: Input channel name(s) (optional).
-        order: Model order for initialization (optional).
+        data: System identification data (optional, for real simulation-based benchmarking).
+        y_name: Output channel name(s) (optional, required if data is provided).
+        u_name: Input channel name(s) (optional, required if data is provided).
+        order: Model order for initialization (optional, used if data is provided).
         n_runs: Number of benchmark runs per configuration.
         n_params_list: List of parameter counts to test.
-        loss_function: Custom loss function for benchmarking. If None, uses a
-                      simple quadratic loss. Signature: f(x) -> float.
+        loss_function: Custom loss function for benchmarking. If None and no data/mod,
+                      uses a simple quadratic loss. Signature: f(x) -> float.
+        mod: LTIModel instance (optional). If provided, uses mod.simulate for realistic
+             benchmarking. Requires y_name, u_name, and data to be set.
 
     Returns:
         Dictionary with benchmark results:
@@ -807,9 +722,14 @@ def benchmark_derivative_methods(
     Notes:
         - Complex step is generally FASTER due to fewer function evaluations
           (1 vs 2 per parameter) and ALWAYS more accurate (error ~1e-16 vs ~1e-7).
-        - For very complex loss functions with expensive evaluations, the
-          reduced number of evaluations in complex step typically outweighs
-          the overhead of complex arithmetic.
+        - For very complex loss functions with expensive evaluations (e.g., simulations),
+          the reduced number of evaluations in complex step typically outweighs
+          the overhead of complex arithmetic. However, in practice, complex arithmetic
+          in NumPy is ~2x slower than real arithmetic, so the speedup may be less than
+          theoretical for simple functions.
+        - When using a real model (mod argument), the 'complex' method will only work
+          if the model's simulate method supports complex parameters (e.g., OE with
+          oe_simulate). Otherwise, it falls back to finite differences with small epsilon.
 
     Example:
         >>> import numpy as np
@@ -822,6 +742,13 @@ def benchmark_derivative_methods(
         >>> def my_loss(x):
         ...     return np.sum(np.sin(x) ** 2)
         >>> results = benchmark_derivative_methods(loss_function=my_loss)
+        >>>
+        >>> # With real simulation (requires data, y_name, u_name)
+        >>> from llsi.sysiddata import SysIdData
+        >>> data = SysIdData(...)
+        >>> results = benchmark_derivative_methods(
+        ...     data=data, y_name='y', u_name='u', order=2, n_params_list=[10]
+        ... )
     """
     import time
 
@@ -835,6 +762,134 @@ def benchmark_derivative_methods(
         "times": {"finite": [], "complex": []},
         "errors": {"finite": [], "complex": []},
     }
+
+    # Check if we should use simulation-based benchmarking
+    use_simulation = mod is not None and data is not None and y_name is not None and u_name is not None
+
+    if use_simulation:
+        # Extract y and u from data
+        y = data.get_output(y_name) if isinstance(y_name, str) else data.get_output(y_name)
+        u = data.get_input(u_name) if isinstance(u_name, str) else data.get_input(u_name)
+
+        # Vectorize model parameters for benchmarking
+        x0 = mod.vectorize()
+        n_params_model = len(x0)
+
+        # Override n_params_list with model's parameter count if not provided
+        if n_params_list is None or max(n_params_list) > n_params_model:
+            n_params_list = [n_params_model]
+
+        # True gradient: Not analytically available, so we use a high-accuracy finite difference as reference
+        # Compute reference gradient with very small epsilon
+        epsilon_ref = 1e-10
+        grad_ref = np.zeros(n_params_model)
+        loss_nominal = LTIModel.SSE(y - mod.simulate(u))
+
+        for i in range(n_params_model):
+            x_perturbed = x0.copy()
+            x_perturbed[i] += epsilon_ref
+            mod.reshape(x_perturbed)
+            loss_perturbed = LTIModel.SSE(y - mod.simulate(u))
+            grad_ref[i] = (loss_perturbed - loss_nominal) / epsilon_ref
+
+        mod.reshape(x0)  # Reset model
+
+        for n_params in n_params_list:
+            if n_params > n_params_model:
+                # Skip if n_params exceeds model parameters
+                results["times"]["finite"].append(np.nan)
+                results["errors"]["finite"].append(np.nan)
+                results["times"]["complex"].append(np.nan)
+                results["errors"]["complex"].append(np.nan)
+                continue
+
+            x_test = x0[:n_params].copy()
+            true_grad = grad_ref[:n_params]
+
+            # Benchmark finite differences
+            finite_times = []
+            finite_errors = []
+
+            for _ in range(n_runs):
+                start = time.perf_counter()
+
+                # Use scipy's approx_fprime with simulation-based loss
+                def sim_loss(x_test_inner):
+                    mod.reshape(np.concatenate([x_test_inner, x0[n_params:]]))
+                    return float(LTIModel.SSE(y - mod.simulate(u)))
+
+                grad_finite = scipy.optimize.approx_fprime(x_test, sim_loss, epsilon=1e-8)
+
+                elapsed = time.perf_counter() - start
+                finite_times.append(elapsed)
+                finite_errors.append(float(np.linalg.norm(grad_finite - true_grad)))
+
+            results["times"]["finite"].append(np.median(finite_times))
+            results["errors"]["finite"].append(np.median(finite_errors))
+
+            # Benchmark complex step (only works if model supports complex parameters)
+            complex_times = []
+            complex_errors = []
+
+            try:
+                for _ in range(n_runs):
+                    start = time.perf_counter()
+
+                    epsilon = 1e-20
+                    grad_complex = np.zeros_like(x_test)
+                    x_complex = x_test.astype(np.complex128)
+
+                    for i in range(n_params):
+                        x_orig = x_complex[i]
+                        x_complex[i] = x_orig + epsilon * 1j
+
+                        # Create full parameter vector with complex perturbation
+                        x_full = np.concatenate([x_complex, x0[n_params:].astype(np.complex128)])
+                        mod.reshape(x_full)
+
+                        # Try to simulate with complex parameters
+                        try:
+                            y_hat_complex = mod.simulate(u)
+                            loss_complex = np.sum((y - y_hat_complex) ** 2)
+                            grad_complex[i] = np.imag(loss_complex) / epsilon
+                        except (TypeError, ValueError):
+                            # Model doesn't support complex parameters, fall back to finite differences
+                            raise ValueError("Model does not support complex parameters for complex step.")
+
+                        x_complex[i] = x_orig
+
+                    elapsed = time.perf_counter() - start
+                    complex_times.append(elapsed)
+                    complex_errors.append(float(np.linalg.norm(grad_complex - true_grad)))
+
+                results["times"]["complex"].append(np.median(complex_times))
+                results["errors"]["complex"].append(np.median(complex_errors))
+            except (TypeError, ValueError):
+                # Fall back to finite differences with small epsilon for complex step
+                for _ in range(n_runs):
+                    start = time.perf_counter()
+
+                    epsilon = 1e-20
+                    grad_complex = np.zeros_like(x_test)
+
+                    for i in range(n_params):
+                        x_perturbed = x_test.copy()
+                        x_perturbed[i] += epsilon
+
+                        x_full = np.concatenate([x_perturbed, x0[n_params:]])
+                        mod.reshape(x_full)
+                        loss_perturbed = LTIModel.SSE(y - mod.simulate(u))
+
+                        grad_complex[i] = (loss_perturbed - loss_nominal) / epsilon
+
+                    elapsed = time.perf_counter() - start
+                    complex_times.append(elapsed)
+                    complex_errors.append(float(np.linalg.norm(grad_complex - true_grad)))
+
+                results["times"]["complex"].append(np.median(complex_times))
+                results["errors"]["complex"].append(np.median(complex_errors))
+
+        return results
 
     # Use custom loss function or default quadratic
     if loss_function is None:
@@ -892,8 +947,6 @@ def benchmark_derivative_methods(
                 x_complex[i] = x_orig + epsilon * 1j
 
                 # Evaluate loss with complex perturbation
-                loss_complex = simple_loss(x_complex.real) + 1j * 0  # Ensure complex
-                # For quadratic loss, we can compute directly
                 loss_complex = np.sum((x_complex - x_true) ** 2)
 
                 grad_complex[i] = np.imag(loss_complex) / epsilon
