@@ -86,6 +86,73 @@ class SysIdAlgBase(ABC):
         """
         pass
 
+    def _estimate_covariance(
+        self,
+        mod: LTIModel,
+        theta_opt: np.ndarray,
+        epsilon: float = 1e-8,
+        reshape_func: Optional[Callable[[np.ndarray], None]] = None,
+    ) -> None:
+        """
+        Estimate the covariance matrix of the model parameters using finite differences.
+
+        This method computes the Jacobian of the residuals (J_res) via finite differences,
+        then estimates the covariance matrix as:
+            Cov = sigma^2 * (J_res^T * J_res)^-1
+        where sigma^2 is the variance of the residuals.
+
+        Args:
+            mod: The LTI model whose covariance matrix should be estimated.
+            theta_opt: The optimal parameter vector (result of optimization).
+            epsilon: Perturbation size for finite differences (default: 1e-8).
+            reshape_func: Optional function to apply parameters to the model.
+                          If None, uses mod.reshape(theta). Signature: (theta: np.ndarray) -> None.
+
+        Notes:
+            - This method modifies mod.cov in-place.
+            - Uses pseudo-inverse (np.linalg.pinv) as fallback for ill-conditioned matrices.
+            - The Jacobian is computed as J_res[:, i] = (y_nominal - y_perturbed) / epsilon,
+              which corresponds to -dy_hat/dtheta_i (since residual = y - y_hat).
+        """
+        if reshape_func is None:
+            reshape_func = mod.reshape
+
+        n_params = len(theta_opt)
+        n_samples = self.y.size
+
+        # Compute nominal output
+        reshape_func(theta_opt)
+        y_nominal = mod.simulate(self.u).ravel()
+
+        # Initialize Jacobian of residuals (N x P)
+        J_res = np.zeros((n_samples, n_params))
+
+        # Compute Jacobian via finite differences
+        for i in range(n_params):
+            theta_perturbed = theta_opt.copy()
+            theta_perturbed[i] += epsilon
+            reshape_func(theta_perturbed)
+            y_perturbed = mod.simulate(self.u).ravel()
+            # J_res[:, i] = d(residual)/dtheta_i = d(y - y_hat)/dtheta_i = -dy_hat/dtheta_i
+            J_res[:, i] = (y_nominal - y_perturbed) / epsilon
+
+        # Restore model to optimal parameters
+        reshape_func(theta_opt)
+
+        # Estimate variance of residuals
+        residuals = self.y.ravel() - y_nominal
+        sigma2 = np.sum(residuals**2) / (n_samples - n_params)
+
+        # Compute approximate Hessian: H = J_res^T * J_res
+        H_approx = J_res.T @ J_res
+
+        # Compute covariance: Cov = sigma^2 * H^-1
+        try:
+            mod.cov = sigma2 * np.linalg.inv(H_approx)
+        except np.linalg.LinAlgError:
+            # Fallback for ill-conditioned matrices
+            mod.cov = sigma2 * np.linalg.pinv(H_approx)
+
     def compute_residuals_analysis(self, model: LTIModel, data: Optional[SysIdData] = None) -> dict[str, Any]:
         """
         Compute residual analysis metrics (ACF, CCF) on validation data.
