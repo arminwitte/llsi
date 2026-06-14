@@ -44,10 +44,12 @@ class PEM(SysIdAlgBase):
             y_name: Output channel name(s).
             u_name: Input channel name(s).
             settings: Configuration dictionary.
-                      - 'init': Initialization method ('arx', 'n4sid', etc.). Default 'arx'.
-                      - 'minimizer_kwargs': Arguments passed to scipy.optimize.minimize.
-                      - 'lambda_l1': L1 regularization coefficient.
-                      - 'lambda_l2': L2 regularization coefficient.
+                - 'init': Initialization method ('arx', 'n4sid', etc.).
+                  Default 'arx'.
+                - 'minimizer_kwargs': Arguments passed to
+                  scipy.optimize.minimize.
+                - 'lambda_l1': L1 regularization coefficient.
+                - 'lambda_l2': L2 regularization coefficient.
         """
         if settings is None:
             settings = {}
@@ -88,7 +90,9 @@ class PEM(SysIdAlgBase):
 
             # Regularization
             x_flat = x.ravel()
-            J = sse + lambda_l1 * np.sum(np.abs(x_flat)) + lambda_l2 * (x_flat.T @ x_flat)
+            J = sse + lambda_l1 * np.sum(np.abs(x_flat)) + lambda_l2 * (
+                x_flat.T @ x_flat
+            )
 
             self.logger.debug(f"Cost: {J:10.6g}")
             return float(J)
